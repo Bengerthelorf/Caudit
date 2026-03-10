@@ -1,17 +1,13 @@
-//
-//  CauditApp.swift
-//  Caudit
-//
-//  Created by Snaix on 3/9/26.
-//
-
 import SwiftUI
 
 @main
 struct CauditApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+
     var body: some Scene {
-        WindowGroup {
-            ContentView()
+        Settings {
+            SettingsView()
+                .environment(appDelegate.appState)
         }
     }
 }

@@ -1,0 +1,479 @@
+import SwiftUI
+import Charts
+
+enum DashboardTab: String, CaseIterable, Identifiable {
+    case overview = "Overview"
+    case projects = "Projects"
+    case models = "Models"
+
+    var id: String { rawValue }
+
+    var icon: String {
+        switch self {
+        case .overview: "square.grid.2x2"
+        case .projects: "folder"
+        case .models: "cpu"
+        }
+    }
+}
+
+struct DashboardView: View {
+    @Environment(AppState.self) private var appState
+    @State private var selectedTab: DashboardTab? = .overview
+
+    var body: some View {
+        NavigationSplitView {
+            List(DashboardTab.allCases, selection: $selectedTab) { tab in
+                NavigationLink(value: tab) {
+                    Label(tab.rawValue, systemImage: tab.icon)
+                }
+            }
+            .navigationTitle("Caudit")
+            .navigationSplitViewColumnWidth(min: 160, ideal: 180, max: 220)
+        } detail: {
+            switch selectedTab {
+            case .overview, .none:
+                OverviewPage()
+                    .navigationTitle("Overview")
+            case .projects:
+                ProjectsPage()
+                    .navigationTitle("Projects")
+            case .models:
+                ModelsPage()
+                    .navigationTitle("Models")
+            }
+        }
+    }
+}
+
+// MARK: - Source Colors
+
+enum SourceColor {
+    static let localColor: Color = .init(red: 0.35, green: 0.60, blue: 1.0)  // Soft blue
+    private static let remotePalette: [Color] = [
+        .init(red: 1.0, green: 0.62, blue: 0.30),  // Warm orange
+        .init(red: 0.40, green: 0.82, blue: 0.70),  // Teal
+        .init(red: 0.95, green: 0.55, blue: 0.60),  // Coral
+        .init(red: 0.60, green: 0.75, blue: 0.95),  // Light blue
+        .init(red: 0.85, green: 0.70, blue: 0.95),  // Lavender
+        .init(red: 0.95, green: 0.80, blue: 0.45),  // Gold
+    ]
+
+    static func color(for source: String, allSources: [String]) -> Color {
+        if source == "Local" { return localColor }
+        let remotes = allSources.filter { $0 != "Local" }.sorted()
+        guard let idx = remotes.firstIndex(of: source) else { return .gray }
+        let base = remotePalette[idx % remotePalette.count]
+        let cycle = idx / remotePalette.count
+        return cycle == 0 ? base : base.opacity(1.0 - Double(cycle) * 0.25)
+    }
+}
+
+// MARK: - Filter Bar
+
+private struct FilterBar: View {
+    @Environment(AppState.self) private var appState
+    var showTimeRange: Bool = false
+
+    var body: some View {
+        HStack(spacing: 8) {
+            if appState.availableSources.count > 1 {
+                ForEach(appState.availableSources, id: \.self) { source in
+                    SourceChip(
+                        name: source,
+                        color: SourceColor.color(for: source, allSources: appState.availableSources),
+                        isSelected: isSourceVisible(source)
+                    ) {
+                        appState.toggleSource(source)
+                    }
+                }
+            }
+
+            Spacer()
+
+            if showTimeRange {
+                @Bindable var state = appState
+                Picker("Period", selection: $state.dashboardFilter.timeRange) {
+                    ForEach(TimeRange.allCases) { range in
+                        Text(range.rawValue).tag(range)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .frame(maxWidth: 280)
+            }
+        }
+    }
+
+    private func isSourceVisible(_ source: String) -> Bool {
+        appState.dashboardFilter.selectedSources.isEmpty
+            || appState.dashboardFilter.selectedSources.contains(source)
+    }
+}
+
+private struct SourceChip: View {
+    let name: String
+    let color: Color
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 4) {
+                Circle()
+                    .fill(isSelected ? color : color.opacity(0.3))
+                    .frame(width: 8, height: 8)
+                Text(name)
+                    .font(.caption)
+                    .foregroundStyle(isSelected ? .primary : .tertiary)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(isSelected ? color.opacity(0.1) : .clear, in: Capsule())
+            .overlay(Capsule().stroke(isSelected ? color.opacity(0.3) : Color.gray.opacity(0.2), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Loading Placeholder
+
+private struct LoadingPlaceholder: View {
+    var message: String = "Loading…"
+
+    var body: some View {
+        VStack(spacing: 12) {
+            ProgressView()
+                .controlSize(.large)
+            Text(message)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+// MARK: - Overview
+
+private struct OverviewPage: View {
+    @Environment(AppState.self) private var appState
+
+    private var chartEntries: [ChartEntry] {
+        let sources = appState.availableSources
+        return appState.dailyHistory.flatMap { day in
+            // Sort: Local first (bottom of stack), then remotes in consistent order
+            sources.compactMap { source in
+                guard let cost = day.costBySource[source], cost > 0 else { return nil }
+                return ChartEntry(dateString: day.dateString, source: source, cost: cost)
+            }
+        }
+    }
+
+    private var hasSources: Bool { appState.availableSources.count > 1 }
+
+    var body: some View {
+        if !appState.hasLoadedUsage {
+            LoadingPlaceholder(message: "Loading usage data…")
+        } else {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    if hasSources {
+                        FilterBar()
+                    }
+
+                    SectionHeader(title: "Usage Summary", icon: "dollarsign.circle")
+
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 4), spacing: 12) {
+                        StatCard(
+                            label: "Today",
+                            value: CauditFormatter.costDetail(appState.todayUsage.totalCost),
+                            detail: CauditFormatter.tokensWithUnit(appState.todayUsage.totalTokens),
+                            color: .blue
+                        )
+                        StatCard(
+                            label: "This Month",
+                            value: CauditFormatter.costDetail(appState.monthUsage.totalCost),
+                            detail: CauditFormatter.tokensWithUnit(appState.monthUsage.totalTokens),
+                            color: .purple
+                        )
+                        StatCard(
+                            label: "All Time",
+                            value: CauditFormatter.costDetail(appState.allTimeUsage.totalCost),
+                            detail: CauditFormatter.tokensWithUnit(appState.allTimeUsage.totalTokens),
+                            color: .green
+                        )
+                        if let rate = appState.burnRate {
+                            StatCard(
+                                label: "Burn Rate",
+                                value: CauditFormatter.costDetail(rate),
+                                detail: "per day · ~\(CauditFormatter.cost(rate * 30))/mo",
+                                color: .orange
+                            )
+                        }
+                    }
+
+                    if let quota = appState.quotaInfo {
+                        SectionHeader(title: "Quota", icon: "gauge.with.dots.needle.50percent")
+
+                        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 4), spacing: 12) {
+                            StatCard(label: "5h Window", value: "\(Int(quota.fiveHourUtilization))%", color: quotaColor(quota.fiveHourUtilization))
+                            StatCard(label: "7-Day", value: "\(Int(quota.sevenDayUtilization))%", color: quotaColor(quota.sevenDayUtilization))
+                            if let opus = quota.sevenDayOpusUtilization {
+                                StatCard(label: "Opus (7d)", value: "\(Int(opus))%", color: quotaColor(opus))
+                            }
+                            if let sonnet = quota.sevenDaySonnetUtilization {
+                                StatCard(label: "Sonnet (7d)", value: "\(Int(sonnet))%", color: quotaColor(sonnet))
+                            }
+                        }
+                    }
+
+                    SectionHeader(title: "7-Day Trend", icon: "chart.bar")
+
+                    GroupBox {
+                        if appState.dailyHistory.isEmpty || chartEntries.isEmpty {
+                            Text("No data yet")
+                                .foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity, minHeight: 180)
+                        } else if hasSources {
+                            // Stacked bars by source
+                            Chart(chartEntries) { entry in
+                                BarMark(
+                                    x: .value("Date", entry.dateString),
+                                    y: .value("Cost", entry.cost)
+                                )
+                                .foregroundStyle(by: .value("Source", entry.source))
+                                .cornerRadius(4)
+                            }
+                            .chartForegroundStyleScale(
+                                domain: appState.availableSources,
+                                range: appState.availableSources.map {
+                                    SourceColor.color(for: $0, allSources: appState.availableSources)
+                                }
+                            )
+                            .chartYAxis {
+                                AxisMarks(position: .leading) { value in
+                                    AxisValueLabel {
+                                        if let cost = value.as(Double.self) {
+                                            Text(CauditFormatter.cost(cost))
+                                                .font(.caption)
+                                        }
+                                    }
+                                    AxisGridLine()
+                                }
+                            }
+                            .chartLegend(position: .bottom, spacing: 8)
+                            .frame(height: 220)
+                            .padding(.top, 4)
+                        } else {
+                            // Simple bars when single source
+                            Chart(appState.dailyHistory) { day in
+                                BarMark(
+                                    x: .value("Date", day.dateString),
+                                    y: .value("Cost", day.totalCost)
+                                )
+                                .foregroundStyle(.blue.gradient)
+                                .cornerRadius(4)
+                            }
+                            .chartYAxis {
+                                AxisMarks(position: .leading) { value in
+                                    AxisValueLabel {
+                                        if let cost = value.as(Double.self) {
+                                            Text(CauditFormatter.cost(cost))
+                                                .font(.caption)
+                                        }
+                                    }
+                                    AxisGridLine()
+                                }
+                            }
+                            .frame(height: 200)
+                            .padding(.top, 4)
+                        }
+                    }
+                }
+                .padding(20)
+            }
+        }
+    }
+
+    private func quotaColor(_ pct: Double) -> Color {
+        if pct < 50 { return .green }
+        if pct < 80 { return .orange }
+        return .red
+    }
+}
+
+private struct ChartEntry: Identifiable {
+    var id: String { "\(dateString)-\(source)" }
+    let dateString: String
+    let source: String
+    let cost: Double
+}
+
+// MARK: - Projects
+
+private struct ProjectsPage: View {
+    @Environment(AppState.self) private var appState
+    @State private var sortOrder = [KeyPathComparator(\ProjectUsage.totalCost, order: .reverse)]
+
+    private var sortedProjects: [ProjectUsage] {
+        appState.projectBreakdown.sorted(using: sortOrder)
+    }
+
+    var body: some View {
+        if !appState.hasLoadedUsage {
+            LoadingPlaceholder(message: "Loading projects…")
+        } else if appState.projectBreakdown.isEmpty {
+            ContentUnavailableView("No Projects", systemImage: "folder", description: Text("Project data will appear here once usage is recorded."))
+        } else {
+            VStack(spacing: 0) {
+                FilterBar(showTimeRange: true)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+
+                Table(sortedProjects, sortOrder: $sortOrder) {
+                    TableColumn("Project", value: \.project) { project in
+                        HStack(spacing: 6) {
+                            Circle()
+                                .fill(SourceColor.color(for: project.source, allSources: appState.availableSources))
+                                .frame(width: 8, height: 8)
+                            Text(project.project)
+                                .lineLimit(1)
+                        }
+                    }
+                    .width(min: 150, ideal: 250)
+
+                    TableColumn("Source", value: \.source) { project in
+                        Text(project.source)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .width(ideal: 80)
+
+                    TableColumn("Tokens", value: \.totalTokens) { project in
+                        Text(CauditFormatter.tokensWithUnit(project.totalTokens))
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
+                    }
+                    .width(ideal: 90)
+
+                    TableColumn("Cost", value: \.totalCost) { project in
+                        Text(CauditFormatter.costDetail(project.totalCost))
+                            .monospacedDigit()
+                            .fontWeight(.medium)
+                    }
+                    .width(ideal: 80)
+
+                    TableColumn("Last Active", value: \.lastActive) { project in
+                        Text(project.lastActive.formatted(.dateTime.month(.abbreviated).day()))
+                            .foregroundStyle(.secondary)
+                    }
+                    .width(ideal: 90)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Models
+
+private struct ModelsPage: View {
+    @Environment(AppState.self) private var appState
+    @State private var sortOrder = [KeyPathComparator(\ModelUsageEntry.totalCost, order: .reverse)]
+
+    private var sortedModels: [ModelUsageEntry] {
+        appState.modelBreakdown.sorted(using: sortOrder)
+    }
+
+    var body: some View {
+        if !appState.hasLoadedUsage {
+            LoadingPlaceholder(message: "Loading models…")
+        } else if appState.modelBreakdown.isEmpty {
+            ContentUnavailableView("No Models", systemImage: "cpu", description: Text("Model data will appear here once usage is recorded."))
+        } else {
+            VStack(spacing: 0) {
+                FilterBar(showTimeRange: true)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+
+                Table(sortedModels, sortOrder: $sortOrder) {
+                    TableColumn("Model", value: \.model) { entry in
+                        Text(entry.model)
+                            .fontWeight(.medium)
+                    }
+                    .width(min: 120, ideal: 180)
+
+                    TableColumn("Input", value: \.inputTokens) { entry in
+                        Text(CauditFormatter.tokens(entry.inputTokens))
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
+                    }
+                    .width(ideal: 80)
+
+                    TableColumn("Output", value: \.outputTokens) { entry in
+                        Text(CauditFormatter.tokens(entry.outputTokens))
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
+                    }
+                    .width(ideal: 80)
+
+                    TableColumn("Cache", value: \.cacheTokens) { entry in
+                        Text(CauditFormatter.tokens(entry.cacheTokens))
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
+                    }
+                    .width(ideal: 80)
+
+                    TableColumn("Cost", value: \.totalCost) { entry in
+                        Text(CauditFormatter.costDetail(entry.totalCost))
+                            .monospacedDigit()
+                            .fontWeight(.medium)
+                    }
+                    .width(ideal: 80)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Components
+
+private struct SectionHeader: View {
+    let title: String
+    let icon: String
+
+    var body: some View {
+        Label(title, systemImage: icon)
+            .font(.headline)
+            .foregroundStyle(.primary)
+    }
+}
+
+private struct StatCard: View {
+    let label: String
+    let value: String
+    var detail: String? = nil
+    var color: Color = .primary
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(label)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.system(size: 22, weight: .semibold, design: .rounded))
+                .monospacedDigit()
+                .foregroundStyle(color)
+                .minimumScaleFactor(0.7)
+                .lineLimit(1)
+            if let detail {
+                Text(detail)
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(1)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .padding(12)
+        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 8))
+    }
+}
