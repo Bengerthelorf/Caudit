@@ -407,48 +407,6 @@ private struct WeekHeatmap: View {
     }
 }
 
-// MARK: - Month Heatmap (grid of ~31 square daily cells)
-
-private struct MonthHeatmap: View {
-    let dailyData: [DailyUsage]
-    private let columns = 11
-
-    var body: some View {
-        let maxCost = dailyData.map(\.totalCost).max() ?? 0
-        let rowCount = (dailyData.count + columns - 1) / columns
-
-        GroupBox {
-            if dailyData.isEmpty {
-                Text("No data yet")
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, minHeight: 80)
-            } else {
-                VStack(spacing: 3) {
-                    ForEach(0..<rowCount, id: \.self) { row in
-                        HStack(spacing: 3) {
-                            ForEach(0..<columns, id: \.self) { col in
-                                let i = row * columns + col
-                                if i < dailyData.count {
-                                    let cost = dailyData[i].totalCost
-                                    let intensity = maxCost > 0 ? cost / maxCost : 0
-                                    RoundedRectangle(cornerRadius: 2)
-                                        .fill(heatmapColor(intensity, hasData: cost > 0))
-                                        .frame(maxWidth: .infinity, minHeight: 20, maxHeight: 20)
-                                        .help("\(dailyData[i].dateString): \(CauditFormatter.costDetail(cost))")
-                                } else {
-                                    Color.clear.frame(maxWidth: .infinity, minHeight: 20, maxHeight: 20)
-                                }
-                            }
-                        }
-                    }
-
-                    HeatmapLegend()
-                }
-            }
-        }
-    }
-}
-
 private struct CalendarCell {
     let date: Date
     let label: String
@@ -459,14 +417,7 @@ private struct CalendarCell {
 private struct GitHubCalendarHeatmap: View {
     let dailyHistory: [DailyUsage]
     var minWeeks: Int = 52
-
-    private static let greens: [Color] = [
-        Color(red: 0.92, green: 0.93, blue: 0.90),
-        Color(red: 0.61, green: 0.91, blue: 0.66),
-        Color(red: 0.25, green: 0.77, blue: 0.33),
-        Color(red: 0.19, green: 0.56, blue: 0.25),
-        Color(red: 0.13, green: 0.37, blue: 0.17),
-    ]
+    var cellSize: CGFloat = 12
 
     var body: some View {
         let grid = buildGrid()
@@ -497,20 +448,7 @@ private struct GitHubCalendarHeatmap: View {
                     }
                     .defaultScrollAnchor(.trailing)
 
-                    HStack(spacing: 4) {
-                        Spacer()
-                        Text("Less")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                        ForEach(0..<5, id: \.self) { level in
-                            RoundedRectangle(cornerRadius: 2)
-                                .fill(level == 0 ? Self.greens[0].opacity(0.5) : Self.greens[level])
-                                .frame(width: 10, height: 10)
-                        }
-                        Text("More")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                    }
+                    HeatmapLegend()
                 }
             }
         }
@@ -527,9 +465,9 @@ private struct GitHubCalendarHeatmap: View {
                         .font(.system(size: 9))
                         .foregroundStyle(.secondary)
                         .fixedSize()
-                        .frame(width: 12, alignment: .leading)
+                        .frame(width: cellSize, alignment: .leading)
                 } else {
-                    Color.clear.frame(width: 12, height: 10)
+                    Color.clear.frame(width: cellSize, height: 10)
                 }
             }
         }
@@ -555,27 +493,10 @@ private struct GitHubCalendarHeatmap: View {
     }
 
     private func cellView(_ cell: CalendarCell, maxCost: Double) -> some View {
-        let color: Color
-        if !cell.hasData {
-            color = Self.greens[0].opacity(0.3)
-        } else {
-            let intensity = maxCost > 0 ? cell.cost / maxCost : 0
-            if intensity == 0 {
-                color = Self.greens[0].opacity(0.5)
-            } else if intensity < 0.25 {
-                color = Self.greens[1]
-            } else if intensity < 0.50 {
-                color = Self.greens[2]
-            } else if intensity < 0.75 {
-                color = Self.greens[3]
-            } else {
-                color = Self.greens[4]
-            }
-        }
-
+        let intensity = maxCost > 0 ? cell.cost / maxCost : 0
         return RoundedRectangle(cornerRadius: 2)
-            .fill(color)
-            .frame(width: 12, height: 12)
+            .fill(heatmapColor(intensity, hasData: cell.hasData))
+            .frame(width: cellSize, height: cellSize)
             .help(cell.hasData
                 ? "\(cell.label): \(CauditFormatter.costDetail(cell.cost))"
                 : cell.label)
@@ -788,7 +709,11 @@ private struct ActivityPage: View {
                     case .week:
                         WeekHeatmap(data: weekHeatmapDays)
                     case .month:
-                        MonthHeatmap(dailyData: monthDailyData)
+                        GitHubCalendarHeatmap(
+                            dailyHistory: monthDailyData,
+                            minWeeks: 0,
+                            cellSize: 18
+                        )
                     case .allTime:
                         GitHubCalendarHeatmap(
                             dailyHistory: appState.allTimeDailyHistory,
@@ -864,34 +789,9 @@ private struct ActivityPage: View {
         return result
     }
 
-    // Month heatmap: ~31 daily cells, gap-filled
     private var monthDailyData: [DailyUsage] {
-        let calendar = Calendar.current
         let start = TimeRange.month.filterStart
-        let endOfToday = calendar.startOfDay(for: Date())
-        let fmt = DateFormatter()
-        fmt.dateFormat = "MM/dd"
-
-        var lookup: [Int: DailyUsage] = [:]
-        for entry in appState.allTimeDailyHistory where entry.date >= start {
-            if let jd = calendar.ordinality(of: .day, in: .era, for: entry.date) {
-                lookup[jd] = entry
-            }
-        }
-
-        var result: [DailyUsage] = []
-        var current = start
-        while current <= endOfToday {
-            let jd = calendar.ordinality(of: .day, in: .era, for: current) ?? 0
-            if let existing = lookup[jd] {
-                result.append(existing)
-            } else {
-                result.append(DailyUsage(date: current, dateString: fmt.string(from: current)))
-            }
-            current = calendar.date(byAdding: .day, value: 1, to: current)!
-        }
-
-        return result
+        return appState.allTimeDailyHistory.filter { $0.date >= start }
     }
 
     private var trendData: [DailyUsage] {
