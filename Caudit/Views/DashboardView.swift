@@ -62,6 +62,9 @@ struct DashboardView: View {
                 }
             }
         }
+        .onChange(of: appState.selectedTab) { _, _ in
+            appState.selectedSessionForDetail = nil
+        }
     }
 }
 
@@ -180,17 +183,6 @@ private struct OverviewPage: View {
     private var chartEntries: [ChartEntry] {
         let sources = appState.availableSources
         return appState.dailyHistory.flatMap { day in
-            // Sort: Local first (bottom of stack), then remotes in consistent order
-            sources.compactMap { source in
-                guard let cost = day.costBySource[source], cost > 0 else { return nil }
-                return ChartEntry(dateString: day.dateString, source: source, cost: cost)
-            }
-        }
-    }
-
-    private var allTimeChartEntries: [ChartEntry] {
-        let sources = appState.availableSources
-        return appState.allTimeDailyHistory.flatMap { day in
             sources.compactMap { source in
                 guard let cost = day.costBySource[source], cost > 0 else { return nil }
                 return ChartEntry(dateString: day.dateString, source: source, cost: cost)
@@ -258,140 +250,15 @@ private struct OverviewPage: View {
 
                     SectionHeader(title: "7-Day Trend", icon: "chart.bar")
 
-                    GroupBox {
-                        if appState.dailyHistory.isEmpty || chartEntries.isEmpty {
-                            Text("No data yet")
-                                .foregroundStyle(.secondary)
-                                .frame(maxWidth: .infinity, minHeight: 180)
-                        } else if hasSources {
-                            // Stacked bars by source
-                            Chart(chartEntries) { entry in
-                                BarMark(
-                                    x: .value("Date", entry.dateString),
-                                    y: .value("Cost", entry.cost)
-                                )
-                                .foregroundStyle(by: .value("Source", entry.source))
-                                .cornerRadius(4)
-                            }
-                            .chartForegroundStyleScale(
-                                domain: appState.availableSources,
-                                range: appState.availableSources.map {
-                                    SourceColor.color(for: $0, allSources: appState.availableSources)
-                                }
-                            )
-                            .chartYAxis {
-                                AxisMarks(position: .leading) { value in
-                                    AxisValueLabel {
-                                        if let cost = value.as(Double.self) {
-                                            Text(CauditFormatter.cost(cost))
-                                                .font(.caption)
-                                        }
-                                    }
-                                    AxisGridLine()
-                                }
-                            }
-                            .chartLegend(position: .bottom, spacing: 8)
-                            .frame(height: 220)
-                            .padding(.top, 4)
-                        } else {
-                            // Simple bars when single source
-                            Chart(appState.dailyHistory) { day in
-                                BarMark(
-                                    x: .value("Date", day.dateString),
-                                    y: .value("Cost", day.totalCost)
-                                )
-                                .foregroundStyle(.blue.gradient)
-                                .cornerRadius(4)
-                            }
-                            .chartYAxis {
-                                AxisMarks(position: .leading) { value in
-                                    AxisValueLabel {
-                                        if let cost = value.as(Double.self) {
-                                            Text(CauditFormatter.cost(cost))
-                                                .font(.caption)
-                                        }
-                                    }
-                                    AxisGridLine()
-                                }
-                            }
-                            .frame(height: 200)
-                            .padding(.top, 4)
-                        }
-                    }
+                    TrendChart(
+                        dailyHistory: appState.dailyHistory,
+                        availableSources: appState.availableSources
+                    )
 
                     if !appState.allTimeDailyHistory.isEmpty {
-                        SectionHeader(title: "All Time", icon: "chart.bar.fill")
+                        SectionHeader(title: "All Time", icon: "chart.dots.scatter")
 
-                        GroupBox {
-                            if allTimeChartEntries.isEmpty {
-                                Text("No data yet")
-                                    .foregroundStyle(.secondary)
-                                    .frame(maxWidth: .infinity, minHeight: 180)
-                            } else if hasSources {
-                                Chart(allTimeChartEntries) { entry in
-                                    BarMark(
-                                        x: .value("Date", entry.dateString),
-                                        y: .value("Cost", entry.cost)
-                                    )
-                                    .foregroundStyle(by: .value("Source", entry.source))
-                                    .cornerRadius(2)
-                                }
-                                .chartForegroundStyleScale(
-                                    domain: appState.availableSources,
-                                    range: appState.availableSources.map {
-                                        SourceColor.color(for: $0, allSources: appState.availableSources)
-                                    }
-                                )
-                                .chartYAxis {
-                                    AxisMarks(position: .leading) { value in
-                                        AxisValueLabel {
-                                            if let cost = value.as(Double.self) {
-                                                Text(CauditFormatter.cost(cost))
-                                                    .font(.caption)
-                                            }
-                                        }
-                                        AxisGridLine()
-                                    }
-                                }
-                                .chartXAxis {
-                                    AxisMarks(values: .automatic(desiredCount: 8)) { value in
-                                        AxisValueLabel()
-                                        AxisGridLine()
-                                    }
-                                }
-                                .chartLegend(position: .bottom, spacing: 8)
-                                .frame(height: 220)
-                                .padding(.top, 4)
-                            } else {
-                                Chart(appState.allTimeDailyHistory) { day in
-                                    BarMark(
-                                        x: .value("Date", day.dateString),
-                                        y: .value("Cost", day.totalCost)
-                                    )
-                                    .foregroundStyle(.blue.gradient)
-                                    .cornerRadius(2)
-                                }
-                                .chartYAxis {
-                                    AxisMarks(position: .leading) { value in
-                                        AxisValueLabel {
-                                            if let cost = value.as(Double.self) {
-                                                Text(CauditFormatter.cost(cost))
-                                                    .font(.caption)
-                                            }
-                                        }
-                                        AxisGridLine()
-                                    }
-                                }
-                                .chartXAxis {
-                                    AxisMarks(values: .automatic(desiredCount: 8)) { value in
-                                        AxisValueLabel()
-                                        AxisGridLine()
-                                    }
-                                }
-                                .frame(height: 200)
-                                .padding(.top, 4)
-                            }
-                        }
+                        GitHubCalendarHeatmap(dailyHistory: appState.allTimeDailyHistory)
                     }
                 }
                 .padding(20)
@@ -411,6 +278,280 @@ private struct ChartEntry: Identifiable {
     let dateString: String
     let source: String
     let cost: Double
+}
+
+// MARK: - GitHub Calendar Heatmap
+
+private struct CalendarCell {
+    let date: Date
+    let label: String
+    let cost: Double
+    let hasData: Bool
+}
+
+private struct GitHubCalendarHeatmap: View {
+    let dailyHistory: [DailyUsage]
+
+    private static let greens: [Color] = [
+        Color(red: 0.92, green: 0.93, blue: 0.90),
+        Color(red: 0.61, green: 0.91, blue: 0.66),
+        Color(red: 0.25, green: 0.77, blue: 0.33),
+        Color(red: 0.19, green: 0.56, blue: 0.25),
+        Color(red: 0.13, green: 0.37, blue: 0.17),
+    ]
+
+    var body: some View {
+        let grid = buildGrid()
+        let maxCost = dailyHistory.map(\.totalCost).max() ?? 0
+
+        GroupBox {
+            if grid.isEmpty {
+                Text("No data yet")
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, minHeight: 120)
+            } else {
+                VStack(alignment: .leading, spacing: 4) {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            monthLabelsRow(grid: grid)
+
+                            HStack(spacing: 2) {
+                                ForEach(grid.indices, id: \.self) { weekIdx in
+                                    VStack(spacing: 2) {
+                                        ForEach(0..<7, id: \.self) { dayIdx in
+                                            cellView(grid[weekIdx][dayIdx], maxCost: maxCost)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        .padding(4)
+                    }
+                    .defaultScrollAnchor(.trailing)
+
+                    HStack(spacing: 4) {
+                        Spacer()
+                        Text("Less")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                        ForEach(0..<5, id: \.self) { level in
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(level == 0 ? Self.greens[0].opacity(0.5) : Self.greens[level])
+                                .frame(width: 10, height: 10)
+                        }
+                        Text("More")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func monthLabelsRow(grid: [[CalendarCell]]) -> some View {
+        let labels = computeMonthLabels(grid: grid)
+
+        HStack(spacing: 2) {
+            ForEach(grid.indices, id: \.self) { weekIdx in
+                if let label = labels[weekIdx] {
+                    Text(label)
+                        .font(.system(size: 9))
+                        .foregroundStyle(.secondary)
+                        .fixedSize()
+                        .frame(width: 12, alignment: .leading)
+                } else {
+                    Color.clear.frame(width: 12, height: 10)
+                }
+            }
+        }
+    }
+
+    private func computeMonthLabels(grid: [[CalendarCell]]) -> [Int: String] {
+        let calendar = Calendar.current
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM"
+
+        var labels: [Int: String] = [:]
+        var lastMonth = -1
+
+        for (idx, week) in grid.enumerated() {
+            let month = calendar.component(.month, from: week[0].date)
+            if month != lastMonth {
+                if idx > 0 { labels[idx] = formatter.string(from: week[0].date) }
+                lastMonth = month
+            }
+        }
+
+        return labels
+    }
+
+    private func cellView(_ cell: CalendarCell, maxCost: Double) -> some View {
+        let color: Color
+        if !cell.hasData {
+            color = Self.greens[0].opacity(0.3)
+        } else {
+            let intensity = maxCost > 0 ? cell.cost / maxCost : 0
+            if intensity == 0 {
+                color = Self.greens[0].opacity(0.5)
+            } else if intensity < 0.25 {
+                color = Self.greens[1]
+            } else if intensity < 0.50 {
+                color = Self.greens[2]
+            } else if intensity < 0.75 {
+                color = Self.greens[3]
+            } else {
+                color = Self.greens[4]
+            }
+        }
+
+        return RoundedRectangle(cornerRadius: 2)
+            .fill(color)
+            .frame(width: 12, height: 12)
+            .help(cell.hasData
+                ? "\(cell.label): \(CauditFormatter.costDetail(cell.cost))"
+                : cell.label)
+    }
+
+    private func buildGrid() -> [[CalendarCell]] {
+        guard !dailyHistory.isEmpty else { return [] }
+
+        let calendar = Calendar.current
+        let labelFormatter = DateFormatter()
+        labelFormatter.dateFormat = "MMM d, yyyy"
+
+        // Build lookup: julian day → cost
+        var costByJulian: [Int: Double] = [:]
+        for day in dailyHistory {
+            if let jd = calendar.ordinality(of: .day, in: .era, for: day.date) {
+                costByJulian[jd, default: 0] += day.totalCost
+            }
+        }
+
+        let firstDate = dailyHistory.first!.date
+        let lastDate = dailyHistory.last!.date
+
+        // Pad start to Sunday
+        let startWeekday = calendar.component(.weekday, from: firstDate)
+        let startDate = calendar.date(byAdding: .day, value: -(startWeekday - 1), to: firstDate)!
+
+        // Pad end to Saturday
+        let endWeekday = calendar.component(.weekday, from: lastDate)
+        let endDate = calendar.date(byAdding: .day, value: 7 - endWeekday, to: lastDate)!
+
+        var grid: [[CalendarCell]] = []
+        var current = startDate
+
+        while current <= endDate {
+            var week: [CalendarCell] = []
+            for _ in 0..<7 {
+                let jd = calendar.ordinality(of: .day, in: .era, for: current) ?? 0
+                let cost = costByJulian[jd]
+                week.append(CalendarCell(
+                    date: current,
+                    label: labelFormatter.string(from: current),
+                    cost: cost ?? 0,
+                    hasData: cost != nil
+                ))
+                current = calendar.date(byAdding: .day, value: 1, to: current)!
+            }
+            grid.append(week)
+        }
+
+        return grid
+    }
+}
+
+// MARK: - Trend Chart (reusable)
+
+private struct TrendChart: View {
+    let dailyHistory: [DailyUsage]
+    let availableSources: [String]
+    var desiredXAxisCount: Int = 7
+
+    private var chartEntries: [ChartEntry] {
+        dailyHistory.flatMap { day in
+            availableSources.compactMap { source in
+                guard let cost = day.costBySource[source], cost > 0 else { return nil }
+                return ChartEntry(dateString: day.dateString, source: source, cost: cost)
+            }
+        }
+    }
+
+    private var hasSources: Bool { availableSources.count > 1 }
+
+    var body: some View {
+        GroupBox {
+            if dailyHistory.isEmpty || (hasSources && chartEntries.isEmpty) {
+                Text("No data yet")
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, minHeight: 180)
+            } else if hasSources {
+                Chart(chartEntries) { entry in
+                    BarMark(
+                        x: .value("Date", entry.dateString),
+                        y: .value("Cost", entry.cost)
+                    )
+                    .foregroundStyle(by: .value("Source", entry.source))
+                    .cornerRadius(3)
+                }
+                .chartForegroundStyleScale(
+                    domain: availableSources,
+                    range: availableSources.map {
+                        SourceColor.color(for: $0, allSources: availableSources)
+                    }
+                )
+                .chartYAxis {
+                    AxisMarks(position: .leading) { value in
+                        AxisValueLabel {
+                            if let cost = value.as(Double.self) {
+                                Text(CauditFormatter.cost(cost))
+                                    .font(.caption)
+                            }
+                        }
+                        AxisGridLine()
+                    }
+                }
+                .chartXAxis {
+                    AxisMarks(values: .automatic(desiredCount: desiredXAxisCount)) { _ in
+                        AxisValueLabel()
+                        AxisGridLine()
+                    }
+                }
+                .chartLegend(position: .bottom, spacing: 8)
+                .frame(height: 220)
+                .padding(.top, 4)
+            } else {
+                Chart(dailyHistory) { day in
+                    BarMark(
+                        x: .value("Date", day.dateString),
+                        y: .value("Cost", day.totalCost)
+                    )
+                    .foregroundStyle(.blue.gradient)
+                    .cornerRadius(3)
+                }
+                .chartYAxis {
+                    AxisMarks(position: .leading) { value in
+                        AxisValueLabel {
+                            if let cost = value.as(Double.self) {
+                                Text(CauditFormatter.cost(cost))
+                                    .font(.caption)
+                            }
+                        }
+                        AxisGridLine()
+                    }
+                }
+                .chartXAxis {
+                    AxisMarks(values: .automatic(desiredCount: desiredXAxisCount)) { _ in
+                        AxisValueLabel()
+                        AxisGridLine()
+                    }
+                }
+                .frame(height: 200)
+                .padding(.top, 4)
+            }
+        }
+    }
 }
 
 // MARK: - Activity
@@ -571,9 +712,44 @@ private struct ActivityPage: View {
                             )
                         }
                     }
+
+                    SectionHeader(title: "Cost Trend", icon: "chart.bar")
+
+                    TrendChart(
+                        dailyHistory: trendData,
+                        availableSources: appState.availableSources,
+                        desiredXAxisCount: trendXAxisCount
+                    )
                 }
                 .padding(20)
             }
+        }
+    }
+
+    private var trendData: [DailyUsage] {
+        switch appState.dashboardFilter.timeRange {
+        case .today:
+            let calendar = Calendar.current
+            let todayStart = calendar.startOfDay(for: Date())
+            return appState.allTimeDailyHistory.filter { calendar.isDate($0.date, inSameDayAs: todayStart) }
+        case .week:
+            return appState.dailyHistory
+        case .month:
+            let calendar = Calendar.current
+            let now = Date()
+            let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now))!
+            return appState.allTimeDailyHistory.filter { $0.date >= startOfMonth }
+        case .allTime:
+            return appState.allTimeDailyHistory
+        }
+    }
+
+    private var trendXAxisCount: Int {
+        switch appState.dashboardFilter.timeRange {
+        case .today: return 1
+        case .week: return 7
+        case .month: return 10
+        case .allTime: return 8
         }
     }
 

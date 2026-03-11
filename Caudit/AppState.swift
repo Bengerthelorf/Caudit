@@ -346,20 +346,11 @@ final class AppState {
             sourceFiltered = allRecords.filter { dashboardFilter.selectedSources.contains($0.source) }
         }
 
+        // Always use all-time data for activity pattern heatmap
         let calendar = Calendar.current
-        let now = Date()
-        let startOfToday = calendar.startOfDay(for: now)
-        let tableStart: Date
-        switch dashboardFilter.timeRange {
-        case .today: tableStart = startOfToday
-        case .week: tableStart = calendar.date(byAdding: .day, value: -6, to: startOfToday)!
-        case .month: tableStart = calendar.date(from: calendar.dateComponents([.year, .month], from: now))!
-        case .allTime: tableStart = .distantPast
-        }
-
         var counts = [(Int, Double)](repeating: (0, 0.0), count: 168)
 
-        for record in sourceFiltered where record.timestamp >= tableStart {
+        for record in sourceFiltered {
             let weekday = calendar.component(.weekday, from: record.timestamp) - 1
             let hour = calendar.component(.hour, from: record.timestamp)
             let idx = weekday * 24 + hour
