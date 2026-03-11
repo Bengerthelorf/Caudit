@@ -265,6 +265,87 @@ private struct OverviewPage: View {
 
 // MARK: - GitHub Calendar Heatmap
 
+// MARK: - Linear Heatmap (for Today / 7 Days / Month)
+
+private struct LinearHeatmap: View {
+    let entries: [DailyUsage]
+    var labelInterval: Int = 1
+
+    private static let greens: [Color] = [
+        Color(red: 0.92, green: 0.93, blue: 0.90),
+        Color(red: 0.61, green: 0.91, blue: 0.66),
+        Color(red: 0.25, green: 0.77, blue: 0.33),
+        Color(red: 0.19, green: 0.56, blue: 0.25),
+        Color(red: 0.13, green: 0.37, blue: 0.17),
+    ]
+
+    var body: some View {
+        let maxCost = entries.map(\.totalCost).max() ?? 0
+
+        GroupBox {
+            if entries.isEmpty {
+                Text("No data yet")
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, minHeight: 80)
+            } else {
+                VStack(spacing: 6) {
+                    HStack(spacing: 3) {
+                        ForEach(entries.indices, id: \.self) { i in
+                            let cost = entries[i].totalCost
+                            let intensity = maxCost > 0 ? cost / maxCost : 0
+                            RoundedRectangle(cornerRadius: 3)
+                                .fill(cellColor(intensity, hasData: cost > 0))
+                                .frame(maxWidth: .infinity, minHeight: 36, maxHeight: 36)
+                                .help("\(entries[i].dateString): \(CauditFormatter.costDetail(cost))")
+                        }
+                    }
+
+                    HStack(spacing: 3) {
+                        ForEach(entries.indices, id: \.self) { i in
+                            Group {
+                                if i % labelInterval == 0 {
+                                    Text(entries[i].dateString)
+                                        .font(.system(size: 9))
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.6)
+                                } else {
+                                    Text("")
+                                }
+                            }
+                            .frame(maxWidth: .infinity)
+                        }
+                    }
+
+                    HStack(spacing: 4) {
+                        Spacer()
+                        Text("Less")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                        ForEach(0..<5, id: \.self) { level in
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(level == 0 ? Self.greens[0].opacity(0.5) : Self.greens[level])
+                                .frame(width: 10, height: 10)
+                        }
+                        Text("More")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+            }
+        }
+    }
+
+    private func cellColor(_ intensity: Double, hasData: Bool) -> Color {
+        if !hasData { return Self.greens[0].opacity(0.3) }
+        if intensity == 0 { return Self.greens[0].opacity(0.5) }
+        if intensity < 0.25 { return Self.greens[1] }
+        if intensity < 0.50 { return Self.greens[2] }
+        if intensity < 0.75 { return Self.greens[3] }
+        return Self.greens[4]
+    }
+}
+
 private struct CalendarCell {
     let date: Date
     let label: String
@@ -594,10 +675,28 @@ private struct ActivityPage: View {
 
                     SectionHeader(title: "Activity", icon: "chart.dots.scatter")
 
-                    GitHubCalendarHeatmap(
-                        dailyHistory: heatmapData,
-                        minWeeks: appState.dashboardFilter.timeRange == .allTime ? 52 : 0
-                    )
+                    switch appState.dashboardFilter.timeRange {
+                    case .today:
+                        LinearHeatmap(
+                            entries: appState.todayHourlyHistory,
+                            labelInterval: 3
+                        )
+                    case .week:
+                        LinearHeatmap(
+                            entries: heatmapData,
+                            labelInterval: 1
+                        )
+                    case .month:
+                        LinearHeatmap(
+                            entries: heatmapData,
+                            labelInterval: 5
+                        )
+                    case .allTime:
+                        GitHubCalendarHeatmap(
+                            dailyHistory: heatmapData,
+                            minWeeks: 52
+                        )
+                    }
 
                     if !sessionDurations.isEmpty {
                         SectionHeader(title: "Session Duration", icon: "clock")
