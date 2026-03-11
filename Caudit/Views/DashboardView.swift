@@ -419,6 +419,7 @@ private struct GitHubCalendarHeatmap: View {
     var minWeeks: Int = 52
     var cellWidth: CGFloat = 12
     var cellHeight: CGFloat = 12
+    var fillWidth: Bool = false
 
     var body: some View {
         let grid = buildGrid()
@@ -431,23 +432,14 @@ private struct GitHubCalendarHeatmap: View {
                     .frame(maxWidth: .infinity, minHeight: 120)
             } else {
                 VStack(alignment: .leading, spacing: 4) {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            monthLabelsRow(grid: grid)
-
-                            HStack(spacing: 2) {
-                                ForEach(grid.indices, id: \.self) { weekIdx in
-                                    VStack(spacing: 2) {
-                                        ForEach(0..<7, id: \.self) { dayIdx in
-                                            cellView(grid[weekIdx][dayIdx], maxCost: maxCost)
-                                        }
-                                    }
-                                }
-                            }
+                    if fillWidth {
+                        gridContent(grid: grid, maxCost: maxCost)
+                    } else {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            gridContent(grid: grid, maxCost: maxCost)
                         }
-                        .padding(4)
+                        .defaultScrollAnchor(.trailing)
                     }
-                    .defaultScrollAnchor(.trailing)
 
                     HeatmapLegend()
                 }
@@ -456,19 +448,53 @@ private struct GitHubCalendarHeatmap: View {
     }
 
     @ViewBuilder
-    private func monthLabelsRow(grid: [[CalendarCell]]) -> some View {
-        let labels = computeMonthLabels(grid: grid)
+    private func gridContent(grid: [[CalendarCell]], maxCost: Double) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            labelsRow(grid: grid)
 
-        HStack(spacing: 2) {
-            ForEach(grid.indices, id: \.self) { weekIdx in
-                if let label = labels[weekIdx] {
-                    Text(label)
+            HStack(spacing: 2) {
+                ForEach(grid.indices, id: \.self) { weekIdx in
+                    VStack(spacing: 2) {
+                        ForEach(0..<7, id: \.self) { dayIdx in
+                            cellView(grid[weekIdx][dayIdx], maxCost: maxCost)
+                        }
+                    }
+                }
+            }
+        }
+        .padding(4)
+    }
+
+    @ViewBuilder
+    private func labelsRow(grid: [[CalendarCell]]) -> some View {
+        if fillWidth {
+            // Date labels for each column
+            let dateFmt = DateFormatter()
+            let _ = { dateFmt.dateFormat = "M/d" }()
+
+            HStack(spacing: 2) {
+                ForEach(grid.indices, id: \.self) { weekIdx in
+                    Text(dateFmt.string(from: grid[weekIdx][0].date))
                         .font(.system(size: 9))
                         .foregroundStyle(.secondary)
-                        .fixedSize()
-                        .frame(width: cellWidth, alignment: .leading)
-                } else {
-                    Color.clear.frame(width: cellWidth, height: 10)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+        } else {
+            // Month labels at boundaries
+            let labels = computeMonthLabels(grid: grid)
+
+            HStack(spacing: 2) {
+                ForEach(grid.indices, id: \.self) { weekIdx in
+                    if let label = labels[weekIdx] {
+                        Text(label)
+                            .font(.system(size: 9))
+                            .foregroundStyle(.secondary)
+                            .fixedSize()
+                            .frame(width: cellWidth, alignment: .leading)
+                    } else {
+                        Color.clear.frame(width: cellWidth, height: 10)
+                    }
                 }
             }
         }
@@ -497,7 +523,11 @@ private struct GitHubCalendarHeatmap: View {
         let intensity = maxCost > 0 ? cell.cost / maxCost : 0
         return RoundedRectangle(cornerRadius: 2)
             .fill(heatmapColor(intensity, hasData: cell.hasData))
-            .frame(width: cellWidth, height: cellHeight)
+            .frame(
+                minWidth: fillWidth ? nil : cellWidth,
+                maxWidth: fillWidth ? .infinity : cellWidth,
+                minHeight: cellHeight, maxHeight: cellHeight
+            )
             .help(cell.hasData
                 ? "\(cell.label): \(CauditFormatter.costDetail(cell.cost))"
                 : cell.label)
@@ -713,8 +743,8 @@ private struct ActivityPage: View {
                         GitHubCalendarHeatmap(
                             dailyHistory: monthDailyData,
                             minWeeks: 0,
-                            cellWidth: 28,
-                            cellHeight: 16
+                            cellHeight: 16,
+                            fillWidth: true
                         )
                     case .allTime:
                         GitHubCalendarHeatmap(
