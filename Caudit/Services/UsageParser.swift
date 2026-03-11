@@ -41,7 +41,7 @@ final class UsageParser: @unchecked Sendable {
         }
         lock.unlock()
 
-        let records = grepAndParse(projectsDir: projectsDir)
+        let records = nativeScanAndParse(projectsDir: projectsDir)
 
         lock.lock()
         cachedFingerprint = newFingerprint
@@ -77,34 +77,108 @@ final class UsageParser: @unchecked Sendable {
         return "\(fileCount) \(totalSize)"
     }
 
-    /// Grep-based parser: only reads lines containing usage data.
-    private func grepAndParse(projectsDir: URL) -> [UsageRecord] {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/bin/sh")
-        process.arguments = ["-c", """
-            find '\(projectsDir.path)' -name '*.jsonl' 2>/dev/null | while IFS= read -r f; do \
-            rel="${f#*/projects/}"; proj="${rel%%/*}"; \
-            echo "===CAUDIT_PROJECT:${proj}==="; grep '"input_tokens"' "$f" 2>/dev/null; done; true
-        """]
+    /// Native file scanner: reads JSONL files line-by-line without spawning shell processes.
+    private func nativeScanAndParse(projectsDir: URL) -> [UsageRecord] {
+        let fm = FileManager.default
+        guard let enumerator = fm.enumerator(
+            at: projectsDir,
+            includingPropertiesForKeys: [.isRegularFileKey],
+            options: [.skipsHiddenFiles]
+        ) else { return [] }
 
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = FileHandle.nullDevice
+        let basePath = projectsDir.path + "/"
+        var jsonlFiles: [(path: String, project: String)] = []
 
-        do {
-            try process.run()
-        } catch {
-            return []
+        for case let url as URL in enumerator {
+            guard url.pathExtension == "jsonl" else { continue }
+            let fullPath = url.path
+            guard fullPath.hasPrefix(basePath) else { continue }
+            let rel = String(fullPath.dropFirst(basePath.count))
+            let projectDir = String(rel.prefix(while: { $0 != "/" }))
+            jsonlFiles.append((fullPath, Self.readableProjectName(projectDir)))
         }
 
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        process.waitUntilExit()
+        var records: [UsageRecord] = []
+        records.reserveCapacity(jsonlFiles.count * 50)
 
-        guard let content = String(data: data, encoding: .utf8), !content.isEmpty else {
-            return []
+        for (filePath, project) in jsonlFiles {
+            guard let file = fopen(filePath, "r") else { continue }
+            defer { fclose(file) }
+
+            var linePtr: UnsafeMutablePointer<CChar>? = nil
+            var lineCapacity: Int = 0
+            defer { free(linePtr) }
+
+            while getline(&linePtr, &lineCapacity, file) > 0 {
+                guard let ptr = linePtr else { continue }
+                guard strstr(ptr, "\"input_tokens\"") != nil else { continue }
+
+                autoreleasepool {
+                    let len = strlen(ptr)
+                    let data = Data(bytes: ptr, count: len)
+
+                    guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                          json["type"] as? String == "assistant",
+                          let message = json["message"] as? [String: Any],
+                          let usage = message["usage"] as? [String: Any] else {
+                        return
+                    }
+
+                    let inputTokens = usage["input_tokens"] as? Int ?? 0
+                    let outputTokens = usage["output_tokens"] as? Int ?? 0
+                    let cacheReadTokens = usage["cache_read_input_tokens"] as? Int ?? 0
+
+                    var cacheCreationTokens = usage["cache_creation_input_tokens"] as? Int ?? 0
+                    if let cacheDict = usage["cache_creation"] as? [String: Any] {
+                        let ephemeral5m = cacheDict["ephemeral_5m_input_tokens"] as? Int ?? 0
+                        let ephemeral1h = cacheDict["ephemeral_1h_input_tokens"] as? Int ?? 0
+                        let nested = ephemeral5m + ephemeral1h
+                        if nested > cacheCreationTokens { cacheCreationTokens = nested }
+                    }
+
+                    guard inputTokens + outputTokens + cacheReadTokens + cacheCreationTokens > 0 else { return }
+
+                    let model = message["model"] as? String ?? json["model"] as? String ?? "unknown"
+
+                    let timestamp: Date
+                    if let ts = json["timestamp"] as? String {
+                        timestamp = CauditFormatter.parseISO8601(ts) ?? Date()
+                    } else {
+                        timestamp = Date()
+                    }
+
+                    let pricing = PricingTable.shared.pricing(for: model)
+                    let cost = pricing.cost(
+                        input: inputTokens, output: outputTokens,
+                        cacheRead: cacheReadTokens, cacheCreation: cacheCreationTokens
+                    )
+
+                    let sessionId = json["sessionId"] as? String ?? ""
+                    let slug = json["slug"] as? String ?? ""
+
+                    var toolNames: [String] = []
+                    if let contentArray = message["content"] as? [[String: Any]] {
+                        for item in contentArray {
+                            if item["type"] as? String == "tool_use",
+                               let name = item["name"] as? String {
+                                toolNames.append(name)
+                            }
+                        }
+                    }
+
+                    records.append(UsageRecord(
+                        inputTokens: inputTokens, outputTokens: outputTokens,
+                        cacheReadTokens: cacheReadTokens, cacheCreationTokens: cacheCreationTokens,
+                        model: model, timestamp: timestamp, cost: cost,
+                        project: project, source: "Local",
+                        sessionId: sessionId, slug: slug,
+                        toolCalls: toolNames
+                    ))
+                }
+            }
         }
 
-        return Self.parseGrepOutput(content)
+        return records
     }
 
     // MARK: - Grep Output Parser
