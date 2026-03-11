@@ -37,25 +37,29 @@ struct DashboardView: View {
             .navigationTitle("Caudit")
             .navigationSplitViewColumnWidth(min: 160, ideal: 180, max: 220)
         } detail: {
-            switch selectedTab {
-            case .overview, .none:
-                OverviewPage()
-                    .navigationTitle("Overview")
-            case .activity:
-                ActivityPage()
-                    .navigationTitle("Activity")
-            case .sessions:
-                SessionsPage()
-                    .navigationTitle("Sessions")
-            case .projects:
-                ProjectsPage()
-                    .navigationTitle("Projects")
-            case .models:
-                ModelsPage()
-                    .navigationTitle("Models")
-            case .tools:
-                ToolsPage()
-                    .navigationTitle("Tools")
+            if let session = appState.selectedSessionForDetail {
+                SessionDetailView(session: session)
+            } else {
+                switch selectedTab {
+                case .overview, .none:
+                    OverviewPage()
+                        .navigationTitle("Overview")
+                case .activity:
+                    ActivityPage()
+                        .navigationTitle("Activity")
+                case .sessions:
+                    SessionsPage()
+                        .navigationTitle("Sessions")
+                case .projects:
+                    ProjectsPage()
+                        .navigationTitle("Projects")
+                case .models:
+                    ModelsPage()
+                        .navigationTitle("Models")
+                case .tools:
+                    ToolsPage()
+                        .navigationTitle("Tools")
+                }
             }
         }
     }

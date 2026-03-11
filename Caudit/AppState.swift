@@ -16,6 +16,10 @@ final class AppState {
     var sessionBreakdown: [SessionInfo] = []
     var toolBreakdown: [ToolUsageEntry] = []
     var isParsingUsage = false
+
+    // MARK: - Navigation State
+    var selectedSessionForDetail: SessionInfo?
+    var projectFilter: String?
     var lastUsageUpdate: Date?
     var availableSources: [String] = []
     var heatmapData: [HeatmapEntry] = (0..<7).flatMap { day in
