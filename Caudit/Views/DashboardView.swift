@@ -180,16 +180,6 @@ private struct LoadingPlaceholder: View {
 private struct OverviewPage: View {
     @Environment(AppState.self) private var appState
 
-    private var chartEntries: [ChartEntry] {
-        let sources = appState.availableSources
-        return appState.dailyHistory.flatMap { day in
-            sources.compactMap { source in
-                guard let cost = day.costBySource[source], cost > 0 else { return nil }
-                return ChartEntry(dateString: day.dateString, source: source, cost: cost)
-            }
-        }
-    }
-
     private var hasSources: Bool { appState.availableSources.count > 1 }
 
     var body: some View {
@@ -271,13 +261,6 @@ private struct OverviewPage: View {
         if pct < 80 { return .orange }
         return .red
     }
-}
-
-private struct ChartEntry: Identifiable {
-    var id: String { "\(dateString)-\(source)" }
-    let dateString: String
-    let source: String
-    let cost: Double
 }
 
 // MARK: - GitHub Calendar Heatmap
@@ -428,16 +411,20 @@ private struct GitHubCalendarHeatmap: View {
             }
         }
 
-        let firstDate = dailyHistory.first!.date
         let lastDate = dailyHistory.last!.date
-
-        // Pad start to Sunday
-        let startWeekday = calendar.component(.weekday, from: firstDate)
-        let startDate = calendar.date(byAdding: .day, value: -(startWeekday - 1), to: firstDate)!
 
         // Pad end to Saturday
         let endWeekday = calendar.component(.weekday, from: lastDate)
         let endDate = calendar.date(byAdding: .day, value: 7 - endWeekday, to: lastDate)!
+
+        // Always show at least 52 weeks (like GitHub) for scrollable range
+        let firstDate = dailyHistory.first!.date
+        let minStart = calendar.date(byAdding: .weekOfYear, value: -51, to: endDate)!
+        let dataStart: Date = min(firstDate, minStart)
+
+        // Pad start to Sunday
+        let startWeekday = calendar.component(.weekday, from: dataStart)
+        let startDate = calendar.date(byAdding: .day, value: -(startWeekday - 1), to: dataStart)!
 
         var grid: [[CalendarCell]] = []
         var current = startDate
@@ -464,16 +451,22 @@ private struct GitHubCalendarHeatmap: View {
 
 // MARK: - Trend Chart (reusable)
 
+private struct DateChartEntry: Identifiable {
+    var id: String { "\(date.timeIntervalSince1970)-\(source)" }
+    let date: Date
+    let source: String
+    let cost: Double
+}
+
 private struct TrendChart: View {
     let dailyHistory: [DailyUsage]
     let availableSources: [String]
-    var desiredXAxisCount: Int = 7
 
-    private var chartEntries: [ChartEntry] {
+    private var dateEntries: [DateChartEntry] {
         dailyHistory.flatMap { day in
             availableSources.compactMap { source in
                 guard let cost = day.costBySource[source], cost > 0 else { return nil }
-                return ChartEntry(dateString: day.dateString, source: source, cost: cost)
+                return DateChartEntry(date: day.date, source: source, cost: cost)
             }
         }
     }
@@ -482,14 +475,14 @@ private struct TrendChart: View {
 
     var body: some View {
         GroupBox {
-            if dailyHistory.isEmpty || (hasSources && chartEntries.isEmpty) {
+            if dailyHistory.isEmpty || (hasSources && dateEntries.isEmpty) {
                 Text("No data yet")
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, minHeight: 180)
             } else if hasSources {
-                Chart(chartEntries) { entry in
+                Chart(dateEntries) { entry in
                     BarMark(
-                        x: .value("Date", entry.dateString),
+                        x: .value("Date", entry.date, unit: .day),
                         y: .value("Cost", entry.cost)
                     )
                     .foregroundStyle(by: .value("Source", entry.source))
@@ -513,8 +506,8 @@ private struct TrendChart: View {
                     }
                 }
                 .chartXAxis {
-                    AxisMarks(values: .automatic(desiredCount: desiredXAxisCount)) { _ in
-                        AxisValueLabel()
+                    AxisMarks(values: .stride(by: .day, count: xAxisStride)) { value in
+                        AxisValueLabel(format: .dateTime.month(.abbreviated).day())
                         AxisGridLine()
                     }
                 }
@@ -524,7 +517,7 @@ private struct TrendChart: View {
             } else {
                 Chart(dailyHistory) { day in
                     BarMark(
-                        x: .value("Date", day.dateString),
+                        x: .value("Date", day.date, unit: .day),
                         y: .value("Cost", day.totalCost)
                     )
                     .foregroundStyle(.blue.gradient)
@@ -542,8 +535,8 @@ private struct TrendChart: View {
                     }
                 }
                 .chartXAxis {
-                    AxisMarks(values: .automatic(desiredCount: desiredXAxisCount)) { _ in
-                        AxisValueLabel()
+                    AxisMarks(values: .stride(by: .day, count: xAxisStride)) { value in
+                        AxisValueLabel(format: .dateTime.month(.abbreviated).day())
                         AxisGridLine()
                     }
                 }
@@ -551,6 +544,14 @@ private struct TrendChart: View {
                 .padding(.top, 4)
             }
         }
+    }
+
+    private var xAxisStride: Int {
+        let count = dailyHistory.count
+        if count <= 7 { return 1 }
+        if count <= 31 { return 5 }
+        if count <= 90 { return 14 }
+        return 30
     }
 }
 
@@ -717,8 +718,7 @@ private struct ActivityPage: View {
 
                     TrendChart(
                         dailyHistory: trendData,
-                        availableSources: appState.availableSources,
-                        desiredXAxisCount: trendXAxisCount
+                        availableSources: appState.availableSources
                     )
                 }
                 .padding(20)
@@ -744,14 +744,6 @@ private struct ActivityPage: View {
         }
     }
 
-    private var trendXAxisCount: Int {
-        switch appState.dashboardFilter.timeRange {
-        case .today: return 1
-        case .week: return 7
-        case .month: return 10
-        case .allTime: return 8
-        }
-    }
 
     @ViewBuilder
     private func heatmapCell(_ entry: HeatmapEntry) -> some View {
