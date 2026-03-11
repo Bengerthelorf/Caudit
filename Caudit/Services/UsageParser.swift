@@ -163,12 +163,23 @@ final class UsageParser: @unchecked Sendable {
                 let sessionId = json["sessionId"] as? String ?? ""
                 let slug = json["slug"] as? String ?? ""
 
+                var toolNames: [String] = []
+                if let contentArray = message["content"] as? [[String: Any]] {
+                    for item in contentArray {
+                        if item["type"] as? String == "tool_use",
+                           let name = item["name"] as? String {
+                            toolNames.append(name)
+                        }
+                    }
+                }
+
                 records.append(UsageRecord(
                     inputTokens: inputTokens, outputTokens: outputTokens,
                     cacheReadTokens: cacheReadTokens, cacheCreationTokens: cacheCreationTokens,
                     model: model, timestamp: timestamp, cost: cost,
                     project: currentProject, source: source,
-                    sessionId: sessionId, slug: slug
+                    sessionId: sessionId, slug: slug,
+                    toolCalls: toolNames
                 ))
             }
         }
@@ -219,6 +230,7 @@ final class UsageParser: @unchecked Sendable {
         var dailyMap: [String: DailyUsage] = [:]
         var projectMap: [String: ProjectUsage] = [:]
         var sessionMap: [String: SessionInfo] = [:]
+        var toolMap: [String: Int] = [:]
 
         let dayFormatter = Self.dayFormatter
 
@@ -294,6 +306,10 @@ final class UsageParser: @unchecked Sendable {
                     }
                     sessionMap[record.sessionId] = session
                 }
+
+                for toolName in record.toolCalls {
+                    toolMap[toolName, default: 0] += 1
+                }
             }
         }
 
@@ -311,7 +327,9 @@ final class UsageParser: @unchecked Sendable {
             modelBreakdown: Array(modelMap.values),
             dailyHistory: dailyHistory,
             projectBreakdown: projectMap.values.sorted { $0.totalCost > $1.totalCost },
-            sessionBreakdown: sessionMap.values.sorted { $0.lastTimestamp > $1.lastTimestamp }
+            sessionBreakdown: sessionMap.values.sorted { $0.lastTimestamp > $1.lastTimestamp },
+            toolBreakdown: toolMap.map { ToolUsageEntry(name: $0.key, usageCount: $0.value) }
+                .sorted { $0.usageCount > $1.usageCount }
         )
     }
 }

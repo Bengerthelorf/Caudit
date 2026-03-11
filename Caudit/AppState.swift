@@ -13,6 +13,7 @@ final class AppState {
     var dailyHistory: [DailyUsage] = []
     var projectBreakdown: [ProjectUsage] = []
     var sessionBreakdown: [SessionInfo] = []
+    var toolBreakdown: [ToolUsageEntry] = []
     var isParsingUsage = false
     var lastUsageUpdate: Date?
     var availableSources: [String] = []
@@ -324,6 +325,7 @@ final class AppState {
         dailyHistory = result.dailyHistory
         projectBreakdown = result.projectBreakdown
         sessionBreakdown = result.sessionBreakdown
+        toolBreakdown = result.toolBreakdown
         lastUsageUpdate = Date()
         recomputeHeatmap()
         NotificationCenter.default.post(name: .cauditDataUpdated, object: nil)

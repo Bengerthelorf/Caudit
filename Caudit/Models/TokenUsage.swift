@@ -50,6 +50,13 @@ struct UsageRecord: Sendable {
     let source: String
     let sessionId: String
     let slug: String
+    let toolCalls: [String]
+}
+
+struct ToolUsageEntry: Identifiable, Sendable {
+    var id: String { name }
+    let name: String
+    var usageCount: Int = 0
 }
 
 struct SessionInfo: Identifiable, Sendable {
@@ -82,6 +89,7 @@ struct ParseResult: Sendable {
     let dailyHistory: [DailyUsage]
     let projectBreakdown: [ProjectUsage]
     let sessionBreakdown: [SessionInfo]
+    let toolBreakdown: [ToolUsageEntry]
 }
 
 struct DailyUsage: Identifiable, Sendable {
