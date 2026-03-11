@@ -302,6 +302,7 @@ final class UsageParser: @unchecked Sendable {
         var allTime = AggregatedUsage()
         var modelMap: [String: ModelUsageEntry] = [:]
         var dailyMap: [String: DailyUsage] = [:]
+        var allTimeDailyMap: [String: DailyUsage] = [:]
         var projectMap: [String: ProjectUsage] = [:]
         var sessionMap: [String: SessionInfo] = [:]
         var toolMap: [String: Int] = [:]
@@ -327,13 +328,22 @@ final class UsageParser: @unchecked Sendable {
                 today.add(entry)
             }
 
-            // Chart: always 7 days, with per-source breakdown
+            // All-time daily collection
+            let dayStart = calendar.startOfDay(for: record.timestamp)
+            let key = dayFormatter.string(from: dayStart)
+            let tokens = record.inputTokens + record.outputTokens + record.cacheReadTokens + record.cacheCreationTokens
+
+            var allDay = allTimeDailyMap[key] ?? DailyUsage(date: dayStart, dateString: key)
+            allDay.totalCost += record.cost
+            allDay.totalTokens += tokens
+            allDay.costBySource[record.source, default: 0] += record.cost
+            allTimeDailyMap[key] = allDay
+
+            // 7-day chart subset
             if record.timestamp >= sevenDaysAgo {
-                let dayStart = calendar.startOfDay(for: record.timestamp)
-                let key = dayFormatter.string(from: dayStart)
                 var day = dailyMap[key] ?? DailyUsage(date: dayStart, dateString: key)
                 day.totalCost += record.cost
-                day.totalTokens += record.inputTokens + record.outputTokens + record.cacheReadTokens + record.cacheCreationTokens
+                day.totalTokens += tokens
                 day.costBySource[record.source, default: 0] += record.cost
                 dailyMap[key] = day
             }
@@ -403,7 +413,8 @@ final class UsageParser: @unchecked Sendable {
             projectBreakdown: projectMap.values.sorted { $0.totalCost > $1.totalCost },
             sessionBreakdown: sessionMap.values.sorted { $0.lastTimestamp > $1.lastTimestamp },
             toolBreakdown: toolMap.map { ToolUsageEntry(name: $0.key, usageCount: $0.value) }
-                .sorted { $0.usageCount > $1.usageCount }
+                .sorted { $0.usageCount > $1.usageCount },
+            allTimeDailyHistory: allTimeDailyMap.values.sorted { $0.date < $1.date }
         )
     }
 }

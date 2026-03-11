@@ -184,6 +184,16 @@ private struct OverviewPage: View {
         }
     }
 
+    private var allTimeChartEntries: [ChartEntry] {
+        let sources = appState.availableSources
+        return appState.allTimeDailyHistory.flatMap { day in
+            sources.compactMap { source in
+                guard let cost = day.costBySource[source], cost > 0 else { return nil }
+                return ChartEntry(dateString: day.dateString, source: source, cost: cost)
+            }
+        }
+    }
+
     private var hasSources: Bool { appState.availableSources.count > 1 }
 
     var body: some View {
@@ -302,6 +312,81 @@ private struct OverviewPage: View {
                             }
                             .frame(height: 200)
                             .padding(.top, 4)
+                        }
+                    }
+
+                    if !appState.allTimeDailyHistory.isEmpty {
+                        SectionHeader(title: "All Time", icon: "chart.bar.fill")
+
+                        GroupBox {
+                            if allTimeChartEntries.isEmpty {
+                                Text("No data yet")
+                                    .foregroundStyle(.secondary)
+                                    .frame(maxWidth: .infinity, minHeight: 180)
+                            } else if hasSources {
+                                Chart(allTimeChartEntries) { entry in
+                                    BarMark(
+                                        x: .value("Date", entry.dateString),
+                                        y: .value("Cost", entry.cost)
+                                    )
+                                    .foregroundStyle(by: .value("Source", entry.source))
+                                    .cornerRadius(2)
+                                }
+                                .chartForegroundStyleScale(
+                                    domain: appState.availableSources,
+                                    range: appState.availableSources.map {
+                                        SourceColor.color(for: $0, allSources: appState.availableSources)
+                                    }
+                                )
+                                .chartYAxis {
+                                    AxisMarks(position: .leading) { value in
+                                        AxisValueLabel {
+                                            if let cost = value.as(Double.self) {
+                                                Text(CauditFormatter.cost(cost))
+                                                    .font(.caption)
+                                            }
+                                        }
+                                        AxisGridLine()
+                                    }
+                                }
+                                .chartXAxis {
+                                    AxisMarks(values: .automatic(desiredCount: 8)) { value in
+                                        AxisValueLabel()
+                                        AxisGridLine()
+                                    }
+                                }
+                                .chartLegend(position: .bottom, spacing: 8)
+                                .frame(height: 220)
+                                .padding(.top, 4)
+                            } else {
+                                Chart(appState.allTimeDailyHistory) { day in
+                                    BarMark(
+                                        x: .value("Date", day.dateString),
+                                        y: .value("Cost", day.totalCost)
+                                    )
+                                    .foregroundStyle(.blue.gradient)
+                                    .cornerRadius(2)
+                                }
+                                .chartYAxis {
+                                    AxisMarks(position: .leading) { value in
+                                        AxisValueLabel {
+                                            if let cost = value.as(Double.self) {
+                                                Text(CauditFormatter.cost(cost))
+                                                    .font(.caption)
+                                            }
+                                        }
+                                        AxisGridLine()
+                                    }
+                                }
+                                .chartXAxis {
+                                    AxisMarks(values: .automatic(desiredCount: 8)) { value in
+                                        AxisValueLabel()
+                                        AxisGridLine()
+                                    }
+                                }
+                                .frame(height: 200)
+                                .padding(.top, 4)
+                            }
                         }
                     }
                 }

@@ -11,6 +11,7 @@ final class AppState {
     var allTimeUsage = AggregatedUsage()
     var modelBreakdown: [ModelUsageEntry] = []
     var dailyHistory: [DailyUsage] = []
+    var allTimeDailyHistory: [DailyUsage] = []
     var projectBreakdown: [ProjectUsage] = []
     var sessionBreakdown: [SessionInfo] = []
     var toolBreakdown: [ToolUsageEntry] = []
@@ -323,6 +324,7 @@ final class AppState {
         allTimeUsage = result.allTime
         modelBreakdown = result.modelBreakdown.sorted { $0.totalCost > $1.totalCost }
         dailyHistory = result.dailyHistory
+        allTimeDailyHistory = result.allTimeDailyHistory
         projectBreakdown = result.projectBreakdown
         sessionBreakdown = result.sessionBreakdown
         toolBreakdown = result.toolBreakdown
