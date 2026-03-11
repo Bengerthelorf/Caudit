@@ -274,6 +274,7 @@ private struct CalendarCell {
 
 private struct GitHubCalendarHeatmap: View {
     let dailyHistory: [DailyUsage]
+    var minWeeks: Int = 52
 
     private static let greens: [Color] = [
         Color(red: 0.92, green: 0.93, blue: 0.90),
@@ -417,10 +418,15 @@ private struct GitHubCalendarHeatmap: View {
         let endWeekday = calendar.component(.weekday, from: lastDate)
         let endDate = calendar.date(byAdding: .day, value: 7 - endWeekday, to: lastDate)!
 
-        // Always show at least 52 weeks (like GitHub) for scrollable range
+        // Optionally pad to minimum weeks for scrollable range
         let firstDate = dailyHistory.first!.date
-        let minStart = calendar.date(byAdding: .weekOfYear, value: -51, to: endDate)!
-        let dataStart: Date = min(firstDate, minStart)
+        let dataStart: Date
+        if minWeeks > 0 {
+            let minStart = calendar.date(byAdding: .weekOfYear, value: -(minWeeks - 1), to: endDate)!
+            dataStart = min(firstDate, minStart)
+        } else {
+            dataStart = firstDate
+        }
 
         // Pad start to Sunday
         let startWeekday = calendar.component(.weekday, from: dataStart)
@@ -451,6 +457,11 @@ private struct GitHubCalendarHeatmap: View {
 
 // MARK: - Trend Chart (reusable)
 
+enum ChartGranularity {
+    case daily
+    case hourly
+}
+
 private struct DateChartEntry: Identifiable {
     var id: String { "\(date.timeIntervalSince1970)-\(source)" }
     let date: Date
@@ -461,6 +472,7 @@ private struct DateChartEntry: Identifiable {
 private struct TrendChart: View {
     let dailyHistory: [DailyUsage]
     let availableSources: [String]
+    var granularity: ChartGranularity = .daily
 
     private var dateEntries: [DateChartEntry] {
         dailyHistory.flatMap { day in
@@ -473,6 +485,10 @@ private struct TrendChart: View {
 
     private var hasSources: Bool { availableSources.count > 1 }
 
+    private var calendarUnit: Calendar.Component {
+        granularity == .hourly ? .hour : .day
+    }
+
     var body: some View {
         GroupBox {
             if dailyHistory.isEmpty || (hasSources && dateEntries.isEmpty) {
@@ -482,7 +498,7 @@ private struct TrendChart: View {
             } else if hasSources {
                 Chart(dateEntries) { entry in
                     BarMark(
-                        x: .value("Date", entry.date, unit: .day),
+                        x: .value("Time", entry.date, unit: calendarUnit),
                         y: .value("Cost", entry.cost)
                     )
                     .foregroundStyle(by: .value("Source", entry.source))
@@ -494,54 +510,51 @@ private struct TrendChart: View {
                         SourceColor.color(for: $0, allSources: availableSources)
                     }
                 )
-                .chartYAxis {
-                    AxisMarks(position: .leading) { value in
-                        AxisValueLabel {
-                            if let cost = value.as(Double.self) {
-                                Text(CauditFormatter.cost(cost))
-                                    .font(.caption)
-                            }
-                        }
-                        AxisGridLine()
-                    }
-                }
-                .chartXAxis {
-                    AxisMarks(values: .stride(by: .day, count: xAxisStride)) { value in
-                        AxisValueLabel(format: .dateTime.month(.abbreviated).day())
-                        AxisGridLine()
-                    }
-                }
+                .chartYAxis { costAxisMarks }
+                .chartXAxis { xAxisMarks }
                 .chartLegend(position: .bottom, spacing: 8)
                 .frame(height: 220)
                 .padding(.top, 4)
             } else {
                 Chart(dailyHistory) { day in
                     BarMark(
-                        x: .value("Date", day.date, unit: .day),
+                        x: .value("Time", day.date, unit: calendarUnit),
                         y: .value("Cost", day.totalCost)
                     )
                     .foregroundStyle(.blue.gradient)
                     .cornerRadius(3)
                 }
-                .chartYAxis {
-                    AxisMarks(position: .leading) { value in
-                        AxisValueLabel {
-                            if let cost = value.as(Double.self) {
-                                Text(CauditFormatter.cost(cost))
-                                    .font(.caption)
-                            }
-                        }
-                        AxisGridLine()
-                    }
-                }
-                .chartXAxis {
-                    AxisMarks(values: .stride(by: .day, count: xAxisStride)) { value in
-                        AxisValueLabel(format: .dateTime.month(.abbreviated).day())
-                        AxisGridLine()
-                    }
-                }
+                .chartYAxis { costAxisMarks }
+                .chartXAxis { xAxisMarks }
                 .frame(height: 200)
                 .padding(.top, 4)
+            }
+        }
+    }
+
+    private var costAxisMarks: some AxisContent {
+        AxisMarks(position: .leading) { value in
+            AxisValueLabel {
+                if let cost = value.as(Double.self) {
+                    Text(CauditFormatter.cost(cost))
+                        .font(.caption)
+                }
+            }
+            AxisGridLine()
+        }
+    }
+
+    @AxisContentBuilder
+    private var xAxisMarks: some AxisContent {
+        if granularity == .hourly {
+            AxisMarks(values: .stride(by: .hour, count: 3)) { _ in
+                AxisValueLabel(format: .dateTime.hour())
+                AxisGridLine()
+            }
+        } else {
+            AxisMarks(values: .stride(by: .day, count: xAxisStride)) { _ in
+                AxisValueLabel(format: .dateTime.month(.abbreviated).day())
+                AxisGridLine()
             }
         }
     }
@@ -559,22 +572,6 @@ private struct TrendChart: View {
 
 private struct ActivityPage: View {
     @Environment(AppState.self) private var appState
-
-    private let displayDayOrder = [1, 2, 3, 4, 5, 6, 0]  // Mon-Sun
-    private let dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-    private let dayFullLabels = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
-
-    private var maxCount: Int {
-        appState.heatmapData.map(\.messageCount).max() ?? 0
-    }
-
-    private var totalCalls: Int {
-        appState.heatmapData.reduce(0) { $0 + $1.messageCount }
-    }
-
-    private var peakEntry: HeatmapEntry? {
-        appState.heatmapData.max(by: { $0.messageCount < $1.messageCount })
-    }
 
     private var sessionDurations: [TimeInterval] {
         appState.sessionBreakdown
@@ -595,97 +592,12 @@ private struct ActivityPage: View {
                 VStack(alignment: .leading, spacing: 16) {
                     FilterBar(showTimeRange: true)
 
-                    SectionHeader(title: "Activity Patterns", icon: "chart.dots.scatter")
+                    SectionHeader(title: "Activity", icon: "chart.dots.scatter")
 
-                    GroupBox {
-                        if totalCalls == 0 {
-                            Text("No activity data yet")
-                                .foregroundStyle(.secondary)
-                                .frame(maxWidth: .infinity, minHeight: 180)
-                        } else {
-                            VStack(alignment: .leading, spacing: 2) {
-                                // Hour labels
-                                HStack(spacing: 2) {
-                                    Text("")
-                                        .frame(width: 32)
-                                    ForEach(0..<24, id: \.self) { hour in
-                                        Group {
-                                            if hour % 3 == 0 {
-                                                Text("\(hour)")
-                                                    .font(.system(size: 9))
-                                                    .foregroundStyle(.secondary)
-                                            } else {
-                                                Text("")
-                                            }
-                                        }
-                                        .frame(width: 18, alignment: .center)
-                                    }
-                                }
-
-                                // Day rows
-                                ForEach(0..<7, id: \.self) { displayIndex in
-                                    let day = displayDayOrder[displayIndex]
-                                    HStack(spacing: 2) {
-                                        Text(dayLabels[displayIndex])
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                            .frame(width: 32, alignment: .trailing)
-
-                                        ForEach(0..<24, id: \.self) { hour in
-                                            let entry = appState.heatmapData[day * 24 + hour]
-                                            heatmapCell(entry)
-                                        }
-                                    }
-                                }
-
-                                // Legend
-                                HStack(spacing: 4) {
-                                    Spacer()
-                                    Text("Less")
-                                        .font(.caption2)
-                                        .foregroundStyle(.tertiary)
-                                    ForEach(0..<5, id: \.self) { level in
-                                        RoundedRectangle(cornerRadius: 2)
-                                            .fill(legendColor(level: level))
-                                            .frame(width: 12, height: 12)
-                                    }
-                                    Text("More")
-                                        .font(.caption2)
-                                        .foregroundStyle(.tertiary)
-                                }
-                                .padding(.top, 8)
-                            }
-                            .padding(.vertical, 4)
-                        }
-                    }
-
-                    SectionHeader(title: "Summary", icon: "chart.bar.xaxis")
-
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 4), spacing: 12) {
-                        StatCard(
-                            label: "Total Calls",
-                            value: CauditFormatter.tokens(totalCalls),
-                            color: .blue
-                        )
-                        if let peak = peakEntry, peak.messageCount > 0 {
-                            StatCard(
-                                label: "Peak Day",
-                                value: dayFullLabels[peak.dayOfWeek],
-                                color: .purple
-                            )
-                            StatCard(
-                                label: "Peak Hour",
-                                value: String(format: "%d:00", peak.hour),
-                                color: .orange
-                            )
-                            StatCard(
-                                label: "Peak Slot Cost",
-                                value: CauditFormatter.costDetail(peak.totalCost),
-                                detail: "\(peak.messageCount) calls",
-                                color: .green
-                            )
-                        }
-                    }
+                    GitHubCalendarHeatmap(
+                        dailyHistory: heatmapData,
+                        minWeeks: appState.dashboardFilter.timeRange == .allTime ? 52 : 0
+                    )
 
                     if !sessionDurations.isEmpty {
                         SectionHeader(title: "Session Duration", icon: "clock")
@@ -718,7 +630,8 @@ private struct ActivityPage: View {
 
                     TrendChart(
                         dailyHistory: trendData,
-                        availableSources: appState.availableSources
+                        availableSources: appState.availableSources,
+                        granularity: appState.dashboardFilter.timeRange == .today ? .hourly : .daily
                     )
                 }
                 .padding(20)
@@ -726,7 +639,7 @@ private struct ActivityPage: View {
         }
     }
 
-    private var trendData: [DailyUsage] {
+    private var heatmapData: [DailyUsage] {
         switch appState.dashboardFilter.timeRange {
         case .today:
             let calendar = Calendar.current
@@ -744,35 +657,11 @@ private struct ActivityPage: View {
         }
     }
 
-
-    @ViewBuilder
-    private func heatmapCell(_ entry: HeatmapEntry) -> some View {
-        let intensity = maxCount > 0 ? Double(entry.messageCount) / Double(maxCount) : 0
-        RoundedRectangle(cornerRadius: 2)
-            .fill(cellColor(intensity))
-            .frame(width: 18, height: 18)
-            .help("\(dayFullLabels[entry.dayOfWeek]) \(entry.hour):00 – \(entry.messageCount) calls, \(CauditFormatter.costDetail(entry.totalCost))")
-    }
-
-    private static let githubGreens: [Color] = [
-        Color(red: 0.92, green: 0.93, blue: 0.90),  // #ebedf0 - empty
-        Color(red: 0.61, green: 0.91, blue: 0.66),  // #9be9a8
-        Color(red: 0.25, green: 0.77, blue: 0.33),  // #40c463
-        Color(red: 0.19, green: 0.56, blue: 0.25),  // #30a14e
-        Color(red: 0.13, green: 0.37, blue: 0.17),  // #216e39
-    ]
-
-    private func cellColor(_ intensity: Double) -> Color {
-        if intensity == 0 { return Self.githubGreens[0].opacity(0.5) }
-        if intensity < 0.25 { return Self.githubGreens[1] }
-        if intensity < 0.50 { return Self.githubGreens[2] }
-        if intensity < 0.75 { return Self.githubGreens[3] }
-        return Self.githubGreens[4]
-    }
-
-    private func legendColor(level: Int) -> Color {
-        guard level >= 0 && level < Self.githubGreens.count else { return .clear }
-        return level == 0 ? Self.githubGreens[0].opacity(0.5) : Self.githubGreens[level]
+    private var trendData: [DailyUsage] {
+        if appState.dashboardFilter.timeRange == .today {
+            return appState.todayHourlyHistory
+        }
+        return heatmapData
     }
 }
 

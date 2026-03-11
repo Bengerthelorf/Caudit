@@ -15,6 +15,7 @@ final class AppState {
     var projectBreakdown: [ProjectUsage] = []
     var sessionBreakdown: [SessionInfo] = []
     var toolBreakdown: [ToolUsageEntry] = []
+    var todayHourlyHistory: [DailyUsage] = []
     var isParsingUsage = false
 
     // MARK: - Navigation State
@@ -333,6 +334,7 @@ final class AppState {
         projectBreakdown = result.projectBreakdown
         sessionBreakdown = result.sessionBreakdown
         toolBreakdown = result.toolBreakdown
+        todayHourlyHistory = result.todayHourlyHistory
         lastUsageUpdate = Date()
         recomputeHeatmap()
         NotificationCenter.default.post(name: .cauditDataUpdated, object: nil)

@@ -93,6 +93,7 @@ struct ParseResult: Sendable {
     let sessionBreakdown: [SessionInfo]
     let toolBreakdown: [ToolUsageEntry]
     let allTimeDailyHistory: [DailyUsage]
+    let todayHourlyHistory: [DailyUsage]
 }
 
 struct DailyUsage: Identifiable, Sendable {

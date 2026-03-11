@@ -305,6 +305,7 @@ final class UsageParser: @unchecked Sendable {
         var modelMap: [String: ModelUsageEntry] = [:]
         var dailyMap: [String: DailyUsage] = [:]
         var allTimeDailyMap: [String: DailyUsage] = [:]
+        var hourlyMap: [Int: DailyUsage] = [:]
         var projectMap: [String: ProjectUsage] = [:]
         var sessionMap: [String: SessionInfo] = [:]
         var toolMap: [String: Int] = [:]
@@ -328,6 +329,16 @@ final class UsageParser: @unchecked Sendable {
 
             if record.timestamp >= startOfToday {
                 today.add(entry)
+
+                // Hourly bucketing for today
+                let hour = calendar.component(.hour, from: record.timestamp)
+                let hourDate = calendar.date(bySettingHour: hour, minute: 0, second: 0, of: startOfToday) ?? record.timestamp
+                let tokens = record.inputTokens + record.outputTokens + record.cacheReadTokens + record.cacheCreationTokens
+                var hourEntry = hourlyMap[hour] ?? DailyUsage(date: hourDate, dateString: String(format: "%d:00", hour))
+                hourEntry.totalCost += record.cost
+                hourEntry.totalTokens += tokens
+                hourEntry.costBySource[record.source, default: 0] += record.cost
+                hourlyMap[hour] = hourEntry
             }
 
             // All-time daily collection
@@ -407,6 +418,13 @@ final class UsageParser: @unchecked Sendable {
             dailyHistory.append(dailyMap[key] ?? DailyUsage(date: date, dateString: key))
         }
 
+        // Build today's hourly history (all 24 hours)
+        var todayHourlyHistory: [DailyUsage] = []
+        for hour in 0..<24 {
+            let hourDate = calendar.date(bySettingHour: hour, minute: 0, second: 0, of: startOfToday) ?? startOfToday
+            todayHourlyHistory.append(hourlyMap[hour] ?? DailyUsage(date: hourDate, dateString: String(format: "%d:00", hour)))
+        }
+
         return ParseResult(
             today: today,
             month: month,
@@ -417,7 +435,8 @@ final class UsageParser: @unchecked Sendable {
             sessionBreakdown: sessionMap.values.sorted { $0.lastTimestamp > $1.lastTimestamp },
             toolBreakdown: toolMap.map { ToolUsageEntry(name: $0.key, usageCount: $0.value) }
                 .sorted { $0.usageCount > $1.usageCount },
-            allTimeDailyHistory: allTimeDailyMap.values.sorted { $0.date < $1.date }
+            allTimeDailyHistory: allTimeDailyMap.values.sorted { $0.date < $1.date },
+            todayHourlyHistory: todayHourlyHistory
         )
     }
 }
