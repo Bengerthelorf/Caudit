@@ -499,20 +499,25 @@ private struct ActivityPage: View {
             .help("\(dayFullLabels[entry.dayOfWeek]) \(entry.hour):00 – \(entry.messageCount) calls, \(CauditFormatter.costDetail(entry.totalCost))")
     }
 
+    private static let githubGreens: [Color] = [
+        Color(red: 0.92, green: 0.93, blue: 0.90),  // #ebedf0 - empty
+        Color(red: 0.61, green: 0.91, blue: 0.66),  // #9be9a8
+        Color(red: 0.25, green: 0.77, blue: 0.33),  // #40c463
+        Color(red: 0.19, green: 0.56, blue: 0.25),  // #30a14e
+        Color(red: 0.13, green: 0.37, blue: 0.17),  // #216e39
+    ]
+
     private func cellColor(_ intensity: Double) -> Color {
-        if intensity == 0 { return Color.primary.opacity(0.05) }
-        return Color.accentColor.opacity(0.15 + intensity * 0.75)
+        if intensity == 0 { return Self.githubGreens[0].opacity(0.5) }
+        if intensity < 0.25 { return Self.githubGreens[1] }
+        if intensity < 0.50 { return Self.githubGreens[2] }
+        if intensity < 0.75 { return Self.githubGreens[3] }
+        return Self.githubGreens[4]
     }
 
     private func legendColor(level: Int) -> Color {
-        switch level {
-        case 0: return Color.primary.opacity(0.05)
-        case 1: return Color.accentColor.opacity(0.25)
-        case 2: return Color.accentColor.opacity(0.45)
-        case 3: return Color.accentColor.opacity(0.65)
-        case 4: return Color.accentColor.opacity(0.90)
-        default: return .clear
-        }
+        guard level >= 0 && level < Self.githubGreens.count else { return .clear }
+        return level == 0 ? Self.githubGreens[0].opacity(0.5) : Self.githubGreens[level]
     }
 }
 
