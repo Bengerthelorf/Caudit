@@ -817,6 +817,96 @@ private struct ProjectsPage: View {
     }
 }
 
+// MARK: - Unified Filter Bar (Menu-based)
+
+private struct UnifiedFilterBar: View {
+    @Environment(AppState.self) private var appState
+
+    var body: some View {
+        @Bindable var state = appState
+        HStack(spacing: 8) {
+            if appState.availableSources.count > 1 {
+                Menu {
+                    Button {
+                        appState.dashboardFilter.selectedSources = []
+                    } label: {
+                        HStack {
+                            Text("All Devices")
+                            if appState.dashboardFilter.selectedSources.isEmpty {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+
+                    Divider()
+
+                    ForEach(appState.availableSources, id: \.self) { source in
+                        Button {
+                            selectSingleSource(source)
+                        } label: {
+                            HStack {
+                                Text(source)
+                                if isSingleSourceSelected(source) {
+                                    Image(systemName: "checkmark")
+                                }
+                            }
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "desktopcomputer")
+                        Text(deviceLabel)
+                            .lineLimit(1)
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.caption2)
+                    }
+                    .font(.caption)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 5)
+                    .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 6))
+                }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
+            }
+
+            Spacer()
+
+            Picker("Period", selection: $state.dashboardFilter.timeRange) {
+                ForEach(TimeRange.allCases) { range in
+                    Text(range.rawValue).tag(range)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .frame(maxWidth: 280)
+        }
+    }
+
+    private var deviceLabel: String {
+        if appState.dashboardFilter.selectedSources.isEmpty {
+            return "All Devices"
+        }
+        if appState.dashboardFilter.selectedSources.count == 1,
+           let source = appState.dashboardFilter.selectedSources.first {
+            return source
+        }
+        return "\(appState.dashboardFilter.selectedSources.count) Devices"
+    }
+
+    private func isSingleSourceSelected(_ source: String) -> Bool {
+        appState.dashboardFilter.selectedSources.count == 1
+            && appState.dashboardFilter.selectedSources.contains(source)
+    }
+
+    private func selectSingleSource(_ source: String) {
+        if isSingleSourceSelected(source) {
+            appState.dashboardFilter.selectedSources = []
+        } else {
+            appState.dashboardFilter.selectedSources = [source]
+        }
+    }
+}
+
 // MARK: - Models
 
 private struct ModelsPage: View {
@@ -834,7 +924,7 @@ private struct ModelsPage: View {
             ContentUnavailableView("No Models", systemImage: "cpu", description: Text("Model data will appear here once usage is recorded."))
         } else {
             VStack(spacing: 0) {
-                FilterBar(showTimeRange: true)
+                UnifiedFilterBar()
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
 
@@ -899,7 +989,7 @@ private struct ToolsPage: View {
             ContentUnavailableView("No Tool Data", systemImage: "wrench.and.screwdriver", description: Text("Tool usage data will appear here once recorded."))
         } else {
             VStack(spacing: 0) {
-                FilterBar(showTimeRange: true)
+                UnifiedFilterBar()
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
 
