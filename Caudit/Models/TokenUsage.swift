@@ -51,6 +51,7 @@ struct UsageRecord: Sendable {
     let sessionId: String
     let slug: String
     let toolCalls: [String]
+    let projectDir: String
 }
 
 struct ToolUsageEntry: Identifiable, Sendable {
@@ -64,6 +65,7 @@ struct SessionInfo: Identifiable, Sendable {
     let sessionId: String
     let slug: String
     let project: String
+    let projectDir: String
     let source: String
     var firstTimestamp: Date
     var lastTimestamp: Date

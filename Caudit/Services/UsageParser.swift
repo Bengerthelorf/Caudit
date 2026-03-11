@@ -87,21 +87,21 @@ final class UsageParser: @unchecked Sendable {
         ) else { return [] }
 
         let basePath = projectsDir.path + "/"
-        var jsonlFiles: [(path: String, project: String)] = []
+        var jsonlFiles: [(path: String, project: String, projectDir: String)] = []
 
         for case let url as URL in enumerator {
             guard url.pathExtension == "jsonl" else { continue }
             let fullPath = url.path
             guard fullPath.hasPrefix(basePath) else { continue }
             let rel = String(fullPath.dropFirst(basePath.count))
-            let projectDir = String(rel.prefix(while: { $0 != "/" }))
-            jsonlFiles.append((fullPath, Self.readableProjectName(projectDir)))
+            let projDir = String(rel.prefix(while: { $0 != "/" }))
+            jsonlFiles.append((fullPath, Self.readableProjectName(projDir), projDir))
         }
 
         var records: [UsageRecord] = []
         records.reserveCapacity(jsonlFiles.count * 50)
 
-        for (filePath, project) in jsonlFiles {
+        for (filePath, project, projDir) in jsonlFiles {
             guard let file = fopen(filePath, "r") else { continue }
             defer { fclose(file) }
 
@@ -172,7 +172,7 @@ final class UsageParser: @unchecked Sendable {
                         model: model, timestamp: timestamp, cost: cost,
                         project: project, source: "Local",
                         sessionId: sessionId, slug: slug,
-                        toolCalls: toolNames
+                        toolCalls: toolNames, projectDir: projDir
                     ))
                 }
             }
@@ -188,11 +188,13 @@ final class UsageParser: @unchecked Sendable {
         var records: [UsageRecord] = []
         records.reserveCapacity(lines.count / 3)
         var currentProject = "unknown"
+        var currentProjectDir = ""
 
         for line in lines {
             if line.hasPrefix("===CAUDIT_PROJECT:") && line.hasSuffix("===") {
                 let raw = String(line.dropFirst("===CAUDIT_PROJECT:".count).dropLast(3))
                 currentProject = readableProjectName(raw)
+                currentProjectDir = raw
                 continue
             }
 
@@ -253,7 +255,7 @@ final class UsageParser: @unchecked Sendable {
                     model: model, timestamp: timestamp, cost: cost,
                     project: currentProject, source: source,
                     sessionId: sessionId, slug: slug,
-                    toolCalls: toolNames
+                    toolCalls: toolNames, projectDir: currentProjectDir
                 ))
             }
         }
@@ -375,6 +377,7 @@ final class UsageParser: @unchecked Sendable {
                         sessionId: record.sessionId,
                         slug: record.slug,
                         project: record.project,
+                        projectDir: record.projectDir,
                         source: record.source,
                         firstTimestamp: record.timestamp,
                         lastTimestamp: record.timestamp
