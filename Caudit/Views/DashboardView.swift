@@ -25,11 +25,11 @@ enum DashboardTab: String, CaseIterable, Identifiable {
 
 struct DashboardView: View {
     @Environment(AppState.self) private var appState
-    @State private var selectedTab: DashboardTab? = .overview
 
     var body: some View {
+        @Bindable var state = appState
         NavigationSplitView {
-            List(DashboardTab.allCases, selection: $selectedTab) { tab in
+            List(DashboardTab.allCases, selection: $state.selectedTab) { tab in
                 NavigationLink(value: tab) {
                     Label(tab.rawValue, systemImage: tab.icon)
                 }
@@ -40,7 +40,7 @@ struct DashboardView: View {
             if let session = appState.selectedSessionForDetail {
                 SessionDetailView(session: session)
             } else {
-                switch selectedTab {
+                switch appState.selectedTab {
                 case .overview, .none:
                     OverviewPage()
                         .navigationTitle("Overview")
@@ -613,9 +613,14 @@ private struct ActivityPage: View {
 private struct SessionsPage: View {
     @Environment(AppState.self) private var appState
     @State private var sortOrder = [KeyPathComparator(\SessionInfo.lastTimestamp, order: .reverse)]
+    @State private var selectedSessionId: SessionInfo.ID?
 
-    private var sortedSessions: [SessionInfo] {
-        appState.sessionBreakdown.sorted(using: sortOrder)
+    private var filteredSessions: [SessionInfo] {
+        var sessions = appState.sessionBreakdown
+        if let project = appState.projectFilter {
+            sessions = sessions.filter { $0.project == project }
+        }
+        return sessions.sorted(using: sortOrder)
     }
 
     var body: some View {
@@ -625,11 +630,30 @@ private struct SessionsPage: View {
             ContentUnavailableView("No Sessions", systemImage: "bubble.left.and.bubble.right", description: Text("Session data will appear here once usage is recorded."))
         } else {
             VStack(spacing: 0) {
-                FilterBar(showTimeRange: true)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
+                HStack(spacing: 8) {
+                    if let project = appState.projectFilter {
+                        Button {
+                            appState.projectFilter = nil
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "xmark.circle.fill")
+                                Text(project)
+                                    .lineLimit(1)
+                            }
+                            .font(.caption)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.accentColor.opacity(0.1), in: Capsule())
+                        }
+                        .buttonStyle(.plain)
+                    }
 
-                Table(sortedSessions, sortOrder: $sortOrder) {
+                    FilterBar(showTimeRange: true)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+
+                Table(filteredSessions, selection: $selectedSessionId, sortOrder: $sortOrder) {
                     TableColumn("Session", value: \.slug) { session in
                         HStack(spacing: 6) {
                             Circle()
@@ -683,6 +707,30 @@ private struct SessionsPage: View {
                     }
                     .width(ideal: 120)
                 }
+                .onChange(of: selectedSessionId) { _, newValue in
+                    // Double-click detected via selection + keyboard enter, or use contextual menu
+                }
+                .onKeyPress(.return) {
+                    if let id = selectedSessionId,
+                       let session = filteredSessions.first(where: { $0.id == id }) {
+                        appState.selectedSessionForDetail = session
+                        return .handled
+                    }
+                    return .ignored
+                }
+                .contextMenu(forSelectionType: SessionInfo.ID.self) { ids in
+                    if let id = ids.first,
+                       let session = filteredSessions.first(where: { $0.id == id }) {
+                        Button("View Conversation") {
+                            appState.selectedSessionForDetail = session
+                        }
+                    }
+                } primaryAction: { ids in
+                    if let id = ids.first,
+                       let session = filteredSessions.first(where: { $0.id == id }) {
+                        appState.selectedSessionForDetail = session
+                    }
+                }
             }
         }
     }
@@ -693,6 +741,7 @@ private struct SessionsPage: View {
 private struct ProjectsPage: View {
     @Environment(AppState.self) private var appState
     @State private var sortOrder = [KeyPathComparator(\ProjectUsage.totalCost, order: .reverse)]
+    @State private var selectedProjectId: ProjectUsage.ID?
 
     private var sortedProjects: [ProjectUsage] {
         appState.projectBreakdown.sorted(using: sortOrder)
@@ -709,7 +758,7 @@ private struct ProjectsPage: View {
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
 
-                Table(sortedProjects, sortOrder: $sortOrder) {
+                Table(sortedProjects, selection: $selectedProjectId, sortOrder: $sortOrder) {
                     TableColumn("Project", value: \.project) { project in
                         HStack(spacing: 6) {
                             Circle()
@@ -747,6 +796,21 @@ private struct ProjectsPage: View {
                             .foregroundStyle(.secondary)
                     }
                     .width(ideal: 90)
+                }
+                .contextMenu(forSelectionType: ProjectUsage.ID.self) { ids in
+                    if let id = ids.first,
+                       let project = sortedProjects.first(where: { $0.id == id }) {
+                        Button("View Sessions") {
+                            appState.projectFilter = project.project
+                            appState.selectedTab = .sessions
+                        }
+                    }
+                } primaryAction: { ids in
+                    if let id = ids.first,
+                       let project = sortedProjects.first(where: { $0.id == id }) {
+                        appState.projectFilter = project.project
+                        appState.selectedTab = .sessions
+                    }
                 }
             }
         }

@@ -18,6 +18,7 @@ final class AppState {
     var isParsingUsage = false
 
     // MARK: - Navigation State
+    var selectedTab: DashboardTab? = .overview
     var selectedSessionForDetail: SessionInfo?
     var projectFilter: String?
     var lastUsageUpdate: Date?
