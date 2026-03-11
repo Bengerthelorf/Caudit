@@ -15,6 +15,17 @@ struct SessionMessage: Identifiable, Sendable {
         case user
         case assistant
     }
+
+    /// True when a user message contains only tool_result blocks (no actual user text)
+    var isToolResultOnly: Bool {
+        guard role == .user else { return false }
+        return content.allSatisfy {
+            switch $0 {
+            case .toolResult: return true
+            default: return false
+            }
+        }
+    }
 }
 
 enum SessionContentItem: Identifiable, Sendable {

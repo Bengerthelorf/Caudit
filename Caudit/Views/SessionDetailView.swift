@@ -6,6 +6,7 @@ struct SessionDetailView: View {
 
     @State private var detail: SessionDetail?
     @State private var isLoading = true
+    @State private var loadError: String?
     private let service = SessionDetailService()
 
     var body: some View {
@@ -57,7 +58,9 @@ struct SessionDetailView: View {
                 VStack(spacing: 12) {
                     ProgressView()
                         .controlSize(.large)
-                    Text("Loading conversation…")
+                    Text(session.source == "Local"
+                         ? "Loading conversation…"
+                         : "Loading from \(session.source)…")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
@@ -72,15 +75,43 @@ struct SessionDetailView: View {
                     .padding(16)
                 }
             } else {
-                ContentUnavailableView("No Messages", systemImage: "bubble.left.and.bubble.right",
-                                       description: Text("Could not load conversation content."))
+                ContentUnavailableView(
+                    "No Messages",
+                    systemImage: "bubble.left.and.bubble.right",
+                    description: Text(loadError ?? "Could not load conversation content.")
+                )
             }
         }
         .task {
-            isLoading = true
-            detail = await service.loadSession(sessionId: session.sessionId, projectDir: session.projectDir)
-            isLoading = false
+            await loadSession()
         }
+    }
+
+    private func loadSession() async {
+        isLoading = true
+        loadError = nil
+
+        // Try local first
+        detail = await service.loadSession(sessionId: session.sessionId, projectDir: session.projectDir)
+
+        // If local failed and this is a remote session, try SSH
+        if detail == nil && session.source != "Local" {
+            if let device = appState.remoteDevices.first(where: { $0.name == session.source }) {
+                do {
+                    detail = try await service.loadRemoteSession(
+                        sessionId: session.sessionId,
+                        projectDir: session.projectDir,
+                        device: device
+                    )
+                } catch {
+                    loadError = error.localizedDescription
+                }
+            } else {
+                loadError = "Remote device '\(session.source)' not configured."
+            }
+        }
+
+        isLoading = false
     }
 }
 
@@ -91,17 +122,28 @@ private struct MessageRow: View {
     @State private var isThinkingExpanded = false
     @State private var expandedTools: Set<String> = []
 
+    private var displayRole: DisplayRole {
+        if message.isToolResultOnly {
+            return .toolResult
+        }
+        return message.role == .user ? .user : .assistant
+    }
+
+    private enum DisplayRole {
+        case user, assistant, toolResult
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             // Role header
             HStack(spacing: 6) {
-                Image(systemName: message.role == .user ? "person.fill" : "sparkle")
-                    .foregroundStyle(message.role == .user ? .blue : .purple)
+                Image(systemName: roleIcon)
+                    .foregroundStyle(roleColor)
                     .frame(width: 16)
-                Text(message.role == .user ? "User" : "Assistant")
+                Text(roleLabel)
                     .font(.caption)
                     .fontWeight(.semibold)
-                    .foregroundStyle(message.role == .user ? .blue : .purple)
+                    .foregroundStyle(roleColor)
                 Spacer()
                 Text(message.timestamp.formatted(.dateTime.hour().minute().second()))
                     .font(.caption2)
@@ -114,21 +156,51 @@ private struct MessageRow: View {
             }
         }
         .padding(12)
-        .background(
-            message.role == .user
-                ? Color.blue.opacity(0.04)
-                : Color.purple.opacity(0.04),
-            in: RoundedRectangle(cornerRadius: 8)
-        )
+        .background(roleBackground, in: RoundedRectangle(cornerRadius: 8))
         .overlay(
             RoundedRectangle(cornerRadius: 8)
-                .stroke(
-                    message.role == .user
-                        ? Color.blue.opacity(0.1)
-                        : Color.purple.opacity(0.1),
-                    lineWidth: 1
-                )
+                .stroke(roleBorder, lineWidth: 1)
         )
+    }
+
+    private var roleIcon: String {
+        switch displayRole {
+        case .user: return "person.fill"
+        case .assistant: return "sparkle"
+        case .toolResult: return "gearshape.arrow.triangle.2.circlepath"
+        }
+    }
+
+    private var roleLabel: String {
+        switch displayRole {
+        case .user: return "User"
+        case .assistant: return "Assistant"
+        case .toolResult: return "Tool Results"
+        }
+    }
+
+    private var roleColor: Color {
+        switch displayRole {
+        case .user: return .blue
+        case .assistant: return .purple
+        case .toolResult: return .green
+        }
+    }
+
+    private var roleBackground: Color {
+        switch displayRole {
+        case .user: return Color.blue.opacity(0.04)
+        case .assistant: return Color.purple.opacity(0.04)
+        case .toolResult: return Color.green.opacity(0.04)
+        }
+    }
+
+    private var roleBorder: Color {
+        switch displayRole {
+        case .user: return Color.blue.opacity(0.1)
+        case .assistant: return Color.purple.opacity(0.1)
+        case .toolResult: return Color.green.opacity(0.1)
+        }
     }
 
     @ViewBuilder

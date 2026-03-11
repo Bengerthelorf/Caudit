@@ -25,6 +25,53 @@ final class SessionDetailService: Sendable {
         }.value
     }
 
+    func loadRemoteSession(sessionId: String, projectDir: String, device: RemoteDevice) async throws -> SessionDetail? {
+        let remotePath = "\(device.claudePath)/projects/\(projectDir)/\(sessionId).jsonl"
+        let output = try await runSSH(device: device, command: "cat \(remotePath) 2>/dev/null")
+        guard !output.isEmpty else { return nil }
+
+        return await Task.detached {
+            self.parseLines(output, sessionId: sessionId)
+        }.value
+    }
+
+    private func parseLines(_ content: String, sessionId: String) -> SessionDetail {
+        let lines = content.split(separator: "\n", omittingEmptySubsequences: true)
+        var messages: [SessionMessage] = []
+
+        for line in lines {
+            autoreleasepool {
+                guard let data = line.data(using: .utf8),
+                      let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return }
+
+                let type = json["type"] as? String ?? ""
+                guard type == "user" || type == "assistant" else { return }
+                if json["isMeta"] as? Bool == true { return }
+                if json["isSidechain"] as? Bool == true { return }
+
+                let uuid = json["uuid"] as? String ?? UUID().uuidString
+                let timestamp: Date
+                if let ts = json["timestamp"] as? String {
+                    timestamp = CauditFormatter.parseISO8601(ts) ?? Date()
+                } else {
+                    timestamp = Date()
+                }
+
+                let role: SessionMessage.MessageRole = type == "user" ? .user : .assistant
+                let message = json["message"] as? [String: Any] ?? [:]
+                let contentItems = parseContent(message: message, role: role)
+
+                guard !contentItems.isEmpty else { return }
+
+                messages.append(SessionMessage(
+                    id: uuid, role: role, timestamp: timestamp, content: contentItems
+                ))
+            }
+        }
+
+        return SessionDetail(sessionId: sessionId, messages: messages)
+    }
+
     private func parseSessionFile(path: String, sessionId: String) -> SessionDetail {
         guard let file = fopen(path, "r") else {
             return SessionDetail(sessionId: sessionId, messages: [])
@@ -154,5 +201,109 @@ final class SessionDetailService: Sendable {
             result.removeSubrange(range)
         }
         return result.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    // MARK: - SSH
+
+    private func runSSH(device: RemoteDevice, command: String) async throws -> String {
+        try await withCheckedThrowingContinuation { continuation in
+            DispatchQueue.global(qos: .utility).async {
+                let process = Process()
+                process.executableURL = URL(fileURLWithPath: "/usr/bin/ssh")
+
+                var args = [
+                    "-o", "BatchMode=yes",
+                    "-o", "ConnectTimeout=10",
+                    "-o", "StrictHostKeyChecking=accept-new",
+                    "-o", "ServerAliveInterval=10",
+                    "-o", "ServerAliveCountMax=3",
+                ]
+
+                if !device.identityFile.isEmpty {
+                    let expanded = NSString(string: device.identityFile).expandingTildeInPath
+                    args += ["-i", expanded]
+                }
+
+                args += [device.sshHost, command]
+                process.arguments = args
+
+                var env = ProcessInfo.processInfo.environment
+                if env["SSH_AUTH_SOCK"] == nil {
+                    if let sock = Self.launchdSSHAuthSocket() {
+                        env["SSH_AUTH_SOCK"] = sock
+                    }
+                }
+                process.environment = env
+
+                let stdout = Pipe()
+                let stderr = Pipe()
+                process.standardOutput = stdout
+                process.standardError = stderr
+
+                do {
+                    try process.run()
+                } catch {
+                    continuation.resume(throwing: error)
+                    return
+                }
+
+                var outData = Data()
+                var errData = Data()
+                let readGroup = DispatchGroup()
+
+                readGroup.enter()
+                DispatchQueue.global().async {
+                    outData = stdout.fileHandleForReading.readDataToEndOfFile()
+                    readGroup.leave()
+                }
+
+                readGroup.enter()
+                DispatchQueue.global().async {
+                    errData = stderr.fileHandleForReading.readDataToEndOfFile()
+                    readGroup.leave()
+                }
+
+                readGroup.wait()
+                process.waitUntilExit()
+
+                let output = String(data: outData, encoding: .utf8) ?? ""
+
+                if !output.isEmpty || process.terminationStatus == 0 {
+                    continuation.resume(returning: output)
+                } else {
+                    let msg = String(data: errData, encoding: .utf8)?
+                        .trimmingCharacters(in: .whitespacesAndNewlines) ?? "SSH failed"
+                    continuation.resume(throwing: SSHError.failed(msg))
+                }
+            }
+        }
+    }
+
+    private static func launchdSSHAuthSocket() -> String? {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/bin/launchctl")
+        process.arguments = ["getenv", "SSH_AUTH_SOCK"]
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = FileHandle.nullDevice
+        do {
+            try process.run()
+            process.waitUntilExit()
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            let sock = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
+            return (sock?.isEmpty == false) ? sock : nil
+        } catch {
+            return nil
+        }
+    }
+
+    enum SSHError: LocalizedError {
+        case failed(String)
+
+        var errorDescription: String? {
+            switch self {
+            case .failed(let msg): return "SSH: \(msg)"
+            }
+        }
     }
 }
