@@ -362,9 +362,7 @@ private struct ActivityPage: View {
         } else {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    if appState.availableSources.count > 1 {
-                        FilterBar()
-                    }
+                    FilterBar(showTimeRange: true)
 
                     SectionHeader(title: "Activity Patterns", icon: "chart.dots.scatter")
 

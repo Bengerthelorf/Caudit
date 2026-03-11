@@ -340,9 +340,19 @@ final class AppState {
         }
 
         let calendar = Calendar.current
+        let now = Date()
+        let startOfToday = calendar.startOfDay(for: now)
+        let tableStart: Date
+        switch dashboardFilter.timeRange {
+        case .today: tableStart = startOfToday
+        case .week: tableStart = calendar.date(byAdding: .day, value: -6, to: startOfToday)!
+        case .month: tableStart = calendar.date(from: calendar.dateComponents([.year, .month], from: now))!
+        case .allTime: tableStart = .distantPast
+        }
+
         var counts = [(Int, Double)](repeating: (0, 0.0), count: 168)
 
-        for record in sourceFiltered {
+        for record in sourceFiltered where record.timestamp >= tableStart {
             let weekday = calendar.component(.weekday, from: record.timestamp) - 1
             let hour = calendar.component(.hour, from: record.timestamp)
             let idx = weekday * 24 + hour
