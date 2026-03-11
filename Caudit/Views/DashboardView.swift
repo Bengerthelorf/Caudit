@@ -345,6 +345,17 @@ private struct ActivityPage: View {
         appState.heatmapData.max(by: { $0.messageCount < $1.messageCount })
     }
 
+    private var sessionDurations: [TimeInterval] {
+        appState.sessionBreakdown
+            .map(\.duration)
+            .filter { $0 > 0 }
+    }
+
+    private var avgDuration: TimeInterval {
+        guard !sessionDurations.isEmpty else { return 0 }
+        return sessionDurations.reduce(0, +) / Double(sessionDurations.count)
+    }
+
     var body: some View {
         if !appState.hasLoadedUsage {
             LoadingPlaceholder(message: "Loading activity data…")
@@ -442,6 +453,33 @@ private struct ActivityPage: View {
                                 label: "Peak Slot Cost",
                                 value: CauditFormatter.costDetail(peak.totalCost),
                                 detail: "\(peak.messageCount) calls",
+                                color: .green
+                            )
+                        }
+                    }
+
+                    if !sessionDurations.isEmpty {
+                        SectionHeader(title: "Session Duration", icon: "clock")
+
+                        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 4), spacing: 12) {
+                            StatCard(
+                                label: "Total Sessions",
+                                value: "\(sessionDurations.count)",
+                                color: .blue
+                            )
+                            StatCard(
+                                label: "Avg Duration",
+                                value: CauditFormatter.duration(avgDuration),
+                                color: .purple
+                            )
+                            StatCard(
+                                label: "Longest",
+                                value: CauditFormatter.duration(sessionDurations.max() ?? 0),
+                                color: .orange
+                            )
+                            StatCard(
+                                label: "Shortest",
+                                value: CauditFormatter.duration(sessionDurations.min() ?? 0),
                                 color: .green
                             )
                         }
