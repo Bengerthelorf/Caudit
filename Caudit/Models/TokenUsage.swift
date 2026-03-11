@@ -48,6 +48,30 @@ struct UsageRecord: Sendable {
     let cost: Double
     let project: String
     let source: String
+    let sessionId: String
+    let slug: String
+}
+
+struct SessionInfo: Identifiable, Sendable {
+    var id: String { sessionId }
+    let sessionId: String
+    let slug: String
+    let project: String
+    let source: String
+    var firstTimestamp: Date
+    var lastTimestamp: Date
+    var messageCount: Int = 0
+    var totalTokens: Int = 0
+    var totalCost: Double = 0
+
+    var duration: TimeInterval {
+        lastTimestamp.timeIntervalSince(firstTimestamp)
+    }
+
+    var displayName: String {
+        guard !slug.isEmpty else { return sessionId.prefix(8).description }
+        return slug.split(separator: "-").map { $0.prefix(1).uppercased() + $0.dropFirst() }.joined(separator: " ")
+    }
 }
 
 struct ParseResult: Sendable {
@@ -57,6 +81,7 @@ struct ParseResult: Sendable {
     let modelBreakdown: [ModelUsageEntry]
     let dailyHistory: [DailyUsage]
     let projectBreakdown: [ProjectUsage]
+    let sessionBreakdown: [SessionInfo]
 }
 
 struct DailyUsage: Identifiable, Sendable {

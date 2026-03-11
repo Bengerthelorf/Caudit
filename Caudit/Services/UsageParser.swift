@@ -160,11 +160,15 @@ final class UsageParser: @unchecked Sendable {
                     cacheRead: cacheReadTokens, cacheCreation: cacheCreationTokens
                 )
 
+                let sessionId = json["sessionId"] as? String ?? ""
+                let slug = json["slug"] as? String ?? ""
+
                 records.append(UsageRecord(
                     inputTokens: inputTokens, outputTokens: outputTokens,
                     cacheReadTokens: cacheReadTokens, cacheCreationTokens: cacheCreationTokens,
                     model: model, timestamp: timestamp, cost: cost,
-                    project: currentProject, source: source
+                    project: currentProject, source: source,
+                    sessionId: sessionId, slug: slug
                 ))
             }
         }
@@ -214,6 +218,7 @@ final class UsageParser: @unchecked Sendable {
         var modelMap: [String: ModelUsageEntry] = [:]
         var dailyMap: [String: DailyUsage] = [:]
         var projectMap: [String: ProjectUsage] = [:]
+        var sessionMap: [String: SessionInfo] = [:]
 
         let dayFormatter = Self.dayFormatter
 
@@ -266,6 +271,29 @@ final class UsageParser: @unchecked Sendable {
                 modelEntry.cacheCreationTokens += record.cacheCreationTokens
                 modelEntry.totalCost += record.cost
                 modelMap[shortModel] = modelEntry
+
+                // Session grouping
+                if !record.sessionId.isEmpty {
+                    let tokens = record.inputTokens + record.outputTokens + record.cacheReadTokens + record.cacheCreationTokens
+                    var session = sessionMap[record.sessionId] ?? SessionInfo(
+                        sessionId: record.sessionId,
+                        slug: record.slug,
+                        project: record.project,
+                        source: record.source,
+                        firstTimestamp: record.timestamp,
+                        lastTimestamp: record.timestamp
+                    )
+                    session.messageCount += 1
+                    session.totalTokens += tokens
+                    session.totalCost += record.cost
+                    if record.timestamp < session.firstTimestamp {
+                        session.firstTimestamp = record.timestamp
+                    }
+                    if record.timestamp > session.lastTimestamp {
+                        session.lastTimestamp = record.timestamp
+                    }
+                    sessionMap[record.sessionId] = session
+                }
             }
         }
 
@@ -282,7 +310,8 @@ final class UsageParser: @unchecked Sendable {
             allTime: allTime,
             modelBreakdown: Array(modelMap.values),
             dailyHistory: dailyHistory,
-            projectBreakdown: projectMap.values.sorted { $0.totalCost > $1.totalCost }
+            projectBreakdown: projectMap.values.sorted { $0.totalCost > $1.totalCost },
+            sessionBreakdown: sessionMap.values.sorted { $0.lastTimestamp > $1.lastTimestamp }
         )
     }
 }

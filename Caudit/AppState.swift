@@ -12,6 +12,7 @@ final class AppState {
     var modelBreakdown: [ModelUsageEntry] = []
     var dailyHistory: [DailyUsage] = []
     var projectBreakdown: [ProjectUsage] = []
+    var sessionBreakdown: [SessionInfo] = []
     var isParsingUsage = false
     var lastUsageUpdate: Date?
     var availableSources: [String] = []
@@ -322,6 +323,7 @@ final class AppState {
         modelBreakdown = result.modelBreakdown.sorted { $0.totalCost > $1.totalCost }
         dailyHistory = result.dailyHistory
         projectBreakdown = result.projectBreakdown
+        sessionBreakdown = result.sessionBreakdown
         lastUsageUpdate = Date()
         recomputeHeatmap()
         NotificationCenter.default.post(name: .cauditDataUpdated, object: nil)
