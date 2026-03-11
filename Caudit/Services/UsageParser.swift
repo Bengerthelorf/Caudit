@@ -291,13 +291,7 @@ final class UsageParser: @unchecked Sendable {
         let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now))!
         let sevenDaysAgo = calendar.date(byAdding: .day, value: -6, to: startOfToday)!
 
-        let tableStart: Date
-        switch tableTimeRange {
-        case .today: tableStart = startOfToday
-        case .week: tableStart = sevenDaysAgo
-        case .month: tableStart = startOfMonth
-        case .allTime: tableStart = .distantPast
-        }
+        let tableStart = tableTimeRange.filterStart
 
         var today = AggregatedUsage()
         var month = AggregatedUsage()
@@ -309,6 +303,7 @@ final class UsageParser: @unchecked Sendable {
         var projectMap: [String: ProjectUsage] = [:]
         var sessionMap: [String: SessionInfo] = [:]
         var toolMap: [String: Int] = [:]
+        var dayHourMap: [String: (date: Date, slots: [Double])] = [:]
 
         let dayFormatter = Self.dayFormatter
 
@@ -351,6 +346,14 @@ final class UsageParser: @unchecked Sendable {
             allDay.totalTokens += tokens
             allDay.costBySource[record.source, default: 0] += record.cost
             allTimeDailyMap[key] = allDay
+
+            // Day-hour breakdown: bucket by day + 4-hour slot
+            let hourOfDay = calendar.component(.hour, from: record.timestamp)
+            let slot = hourOfDay / 4
+            if dayHourMap[key] == nil {
+                dayHourMap[key] = (date: dayStart, slots: Array(repeating: 0, count: 6))
+            }
+            dayHourMap[key]!.slots[slot] += record.cost
 
             // 7-day chart subset
             if record.timestamp >= sevenDaysAgo {
@@ -425,6 +428,10 @@ final class UsageParser: @unchecked Sendable {
             todayHourlyHistory.append(hourlyMap[hour] ?? DailyUsage(date: hourDate, dateString: String(format: "%d:00", hour)))
         }
 
+        let dayHourlyBreakdown = dayHourMap.map { (key, value) in
+            DayHourlyBreakdown(date: value.date, slotCosts: value.slots)
+        }.sorted { $0.date < $1.date }
+
         return ParseResult(
             today: today,
             month: month,
@@ -436,7 +443,8 @@ final class UsageParser: @unchecked Sendable {
             toolBreakdown: toolMap.map { ToolUsageEntry(name: $0.key, usageCount: $0.value) }
                 .sorted { $0.usageCount > $1.usageCount },
             allTimeDailyHistory: allTimeDailyMap.values.sorted { $0.date < $1.date },
-            todayHourlyHistory: todayHourlyHistory
+            todayHourlyHistory: todayHourlyHistory,
+            dayHourlyBreakdown: dayHourlyBreakdown
         )
     }
 }

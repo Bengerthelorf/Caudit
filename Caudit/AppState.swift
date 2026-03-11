@@ -16,6 +16,7 @@ final class AppState {
     var sessionBreakdown: [SessionInfo] = []
     var toolBreakdown: [ToolUsageEntry] = []
     var todayHourlyHistory: [DailyUsage] = []
+    var dayHourlyBreakdown: [DayHourlyBreakdown] = []
     var isParsingUsage = false
 
     // MARK: - Navigation State
@@ -24,9 +25,6 @@ final class AppState {
     var projectFilter: String?
     var lastUsageUpdate: Date?
     var availableSources: [String] = []
-    var heatmapData: [HeatmapEntry] = (0..<7).flatMap { day in
-        (0..<24).map { hour in HeatmapEntry(dayOfWeek: day, hour: hour) }
-    }
 
     var burnRate: Double? {
         guard hasLoadedUsage, todayUsage.totalCost > 0 else { return nil }
@@ -335,40 +333,9 @@ final class AppState {
         sessionBreakdown = result.sessionBreakdown
         toolBreakdown = result.toolBreakdown
         todayHourlyHistory = result.todayHourlyHistory
+        dayHourlyBreakdown = result.dayHourlyBreakdown
         lastUsageUpdate = Date()
-        recomputeHeatmap()
         NotificationCenter.default.post(name: .cauditDataUpdated, object: nil)
-    }
-
-    private func recomputeHeatmap() {
-        let sourceFiltered: [UsageRecord]
-        if dashboardFilter.selectedSources.isEmpty {
-            sourceFiltered = allRecords
-        } else {
-            sourceFiltered = allRecords.filter { dashboardFilter.selectedSources.contains($0.source) }
-        }
-
-        // Always use all-time data for activity pattern heatmap
-        let calendar = Calendar.current
-        var counts = [(Int, Double)](repeating: (0, 0.0), count: 168)
-
-        for record in sourceFiltered {
-            let weekday = calendar.component(.weekday, from: record.timestamp) - 1
-            let hour = calendar.component(.hour, from: record.timestamp)
-            let idx = weekday * 24 + hour
-            counts[idx].0 += 1
-            counts[idx].1 += record.cost
-        }
-
-        heatmapData = (0..<7).flatMap { day in
-            (0..<24).map { hour in
-                let idx = day * 24 + hour
-                return HeatmapEntry(
-                    dayOfWeek: day, hour: hour,
-                    messageCount: counts[idx].0, totalCost: counts[idx].1
-                )
-            }
-        }
     }
 
     // MARK: - Filtering

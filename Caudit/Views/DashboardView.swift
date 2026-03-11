@@ -265,50 +265,73 @@ private struct OverviewPage: View {
 
 // MARK: - GitHub Calendar Heatmap
 
-// MARK: - Linear Heatmap (for Today / 7 Days / Month)
+// MARK: - Heatmap Color Palette
 
-private struct LinearHeatmap: View {
-    let entries: [DailyUsage]
-    var labelInterval: Int = 1
+private let heatmapGreens: [Color] = [
+    Color(red: 0.92, green: 0.93, blue: 0.90),
+    Color(red: 0.61, green: 0.91, blue: 0.66),
+    Color(red: 0.25, green: 0.77, blue: 0.33),
+    Color(red: 0.19, green: 0.56, blue: 0.25),
+    Color(red: 0.13, green: 0.37, blue: 0.17),
+]
 
-    private static let greens: [Color] = [
-        Color(red: 0.92, green: 0.93, blue: 0.90),
-        Color(red: 0.61, green: 0.91, blue: 0.66),
-        Color(red: 0.25, green: 0.77, blue: 0.33),
-        Color(red: 0.19, green: 0.56, blue: 0.25),
-        Color(red: 0.13, green: 0.37, blue: 0.17),
-    ]
+private func heatmapColor(_ intensity: Double, hasData: Bool) -> Color {
+    if !hasData { return heatmapGreens[0].opacity(0.3) }
+    if intensity == 0 { return heatmapGreens[0].opacity(0.5) }
+    if intensity < 0.25 { return heatmapGreens[1] }
+    if intensity < 0.50 { return heatmapGreens[2] }
+    if intensity < 0.75 { return heatmapGreens[3] }
+    return heatmapGreens[4]
+}
+
+private struct HeatmapLegend: View {
+    var body: some View {
+        HStack(spacing: 4) {
+            Spacer()
+            Text("Less").font(.caption2).foregroundStyle(.tertiary)
+            ForEach(0..<5, id: \.self) { level in
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(level == 0 ? heatmapGreens[0].opacity(0.5) : heatmapGreens[level])
+                    .frame(width: 10, height: 10)
+            }
+            Text("More").font(.caption2).foregroundStyle(.tertiary)
+        }
+    }
+}
+
+// MARK: - Today Heatmap (1 row × 24 hourly cells)
+
+private struct TodayHeatmap: View {
+    let hourlyData: [DailyUsage]
 
     var body: some View {
-        let maxCost = entries.map(\.totalCost).max() ?? 0
+        let maxCost = hourlyData.map(\.totalCost).max() ?? 0
 
         GroupBox {
-            if entries.isEmpty {
+            if hourlyData.isEmpty {
                 Text("No data yet")
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, minHeight: 80)
             } else {
                 VStack(spacing: 6) {
-                    HStack(spacing: 3) {
-                        ForEach(entries.indices, id: \.self) { i in
-                            let cost = entries[i].totalCost
+                    HStack(spacing: 2) {
+                        ForEach(0..<24, id: \.self) { hour in
+                            let cost = hour < hourlyData.count ? hourlyData[hour].totalCost : 0
                             let intensity = maxCost > 0 ? cost / maxCost : 0
                             RoundedRectangle(cornerRadius: 3)
-                                .fill(cellColor(intensity, hasData: cost > 0))
+                                .fill(heatmapColor(intensity, hasData: cost > 0))
                                 .frame(maxWidth: .infinity, minHeight: 36, maxHeight: 36)
-                                .help("\(entries[i].dateString): \(CauditFormatter.costDetail(cost))")
+                                .help("\(hour):00 – \(hour + 1):00: \(CauditFormatter.costDetail(cost))")
                         }
                     }
 
-                    HStack(spacing: 3) {
-                        ForEach(entries.indices, id: \.self) { i in
+                    HStack(spacing: 2) {
+                        ForEach(0..<24, id: \.self) { hour in
                             Group {
-                                if i % labelInterval == 0 {
-                                    Text(entries[i].dateString)
+                                if hour % 3 == 0 {
+                                    Text("\(hour)")
                                         .font(.system(size: 9))
                                         .foregroundStyle(.secondary)
-                                        .lineLimit(1)
-                                        .minimumScaleFactor(0.6)
                                 } else {
                                     Text("")
                                 }
@@ -317,32 +340,112 @@ private struct LinearHeatmap: View {
                         }
                     }
 
-                    HStack(spacing: 4) {
-                        Spacer()
-                        Text("Less")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                        ForEach(0..<5, id: \.self) { level in
-                            RoundedRectangle(cornerRadius: 2)
-                                .fill(level == 0 ? Self.greens[0].opacity(0.5) : Self.greens[level])
-                                .frame(width: 10, height: 10)
-                        }
-                        Text("More")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                    }
+                    HeatmapLegend()
                 }
             }
         }
     }
+}
 
-    private func cellColor(_ intensity: Double, hasData: Bool) -> Color {
-        if !hasData { return Self.greens[0].opacity(0.3) }
-        if intensity == 0 { return Self.greens[0].opacity(0.5) }
-        if intensity < 0.25 { return Self.greens[1] }
-        if intensity < 0.50 { return Self.greens[2] }
-        if intensity < 0.75 { return Self.greens[3] }
-        return Self.greens[4]
+// MARK: - Week Heatmap (7 day-columns × 6 four-hour rows)
+
+private struct WeekHeatmap: View {
+    let data: [DayHourlyBreakdown]
+
+    private static let timeLabels = ["0:00", "4:00", "8:00", "12:00", "16:00", "20:00"]
+
+    private var maxCost: Double {
+        data.flatMap(\.slotCosts).max() ?? 0
+    }
+
+    var body: some View {
+        let dayFmt = DateFormatter()
+        let _ = { dayFmt.dateFormat = "E\nM/d" }()
+
+        GroupBox {
+            if data.isEmpty {
+                Text("No data yet")
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, minHeight: 80)
+            } else {
+                VStack(alignment: .leading, spacing: 2) {
+                    // Column headers (day labels)
+                    HStack(spacing: 2) {
+                        Color.clear.frame(width: 40, height: 1)
+                        ForEach(data) { day in
+                            Text(dayFmt.string(from: day.date))
+                                .font(.system(size: 9))
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
+                                .frame(maxWidth: .infinity)
+                        }
+                    }
+
+                    // Rows (one per 4-hour slot)
+                    ForEach(0..<6, id: \.self) { slot in
+                        HStack(spacing: 2) {
+                            Text(Self.timeLabels[slot])
+                                .font(.system(size: 9))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 40, alignment: .leading)
+
+                            ForEach(data) { day in
+                                let cost = day.slotCosts[slot]
+                                let intensity = maxCost > 0 ? cost / maxCost : 0
+                                RoundedRectangle(cornerRadius: 3)
+                                    .fill(heatmapColor(intensity, hasData: cost > 0))
+                                    .frame(maxWidth: .infinity, minHeight: 28, maxHeight: 28)
+                                    .help("\(dayFmt.string(from: day.date).replacingOccurrences(of: "\n", with: " ")) \(Self.timeLabels[slot]): \(CauditFormatter.costDetail(cost))")
+                            }
+                        }
+                    }
+
+                    HeatmapLegend()
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Month Heatmap (grid of ~31 square daily cells)
+
+private struct MonthHeatmap: View {
+    let dailyData: [DailyUsage]
+    private let columns = 11
+
+    var body: some View {
+        let maxCost = dailyData.map(\.totalCost).max() ?? 0
+        let rowCount = (dailyData.count + columns - 1) / columns
+
+        GroupBox {
+            if dailyData.isEmpty {
+                Text("No data yet")
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, minHeight: 80)
+            } else {
+                VStack(spacing: 3) {
+                    ForEach(0..<rowCount, id: \.self) { row in
+                        HStack(spacing: 3) {
+                            ForEach(0..<columns, id: \.self) { col in
+                                let i = row * columns + col
+                                if i < dailyData.count {
+                                    let cost = dailyData[i].totalCost
+                                    let intensity = maxCost > 0 ? cost / maxCost : 0
+                                    RoundedRectangle(cornerRadius: 2)
+                                        .fill(heatmapColor(intensity, hasData: cost > 0))
+                                        .frame(maxWidth: .infinity, minHeight: 20, maxHeight: 20)
+                                        .help("\(dailyData[i].dateString): \(CauditFormatter.costDetail(cost))")
+                                } else {
+                                    Color.clear.frame(maxWidth: .infinity, minHeight: 20, maxHeight: 20)
+                                }
+                            }
+                        }
+                    }
+
+                    HeatmapLegend()
+                }
+            }
+        }
     }
 }
 
@@ -654,6 +757,10 @@ private struct TrendChart: View {
 private struct ActivityPage: View {
     @Environment(AppState.self) private var appState
 
+    private var filterStart: Date {
+        appState.dashboardFilter.timeRange.filterStart
+    }
+
     private var sessionDurations: [TimeInterval] {
         appState.sessionBreakdown
             .map(\.duration)
@@ -677,23 +784,14 @@ private struct ActivityPage: View {
 
                     switch appState.dashboardFilter.timeRange {
                     case .today:
-                        LinearHeatmap(
-                            entries: appState.todayHourlyHistory,
-                            labelInterval: 3
-                        )
+                        TodayHeatmap(hourlyData: appState.todayHourlyHistory)
                     case .week:
-                        LinearHeatmap(
-                            entries: heatmapData,
-                            labelInterval: 1
-                        )
+                        WeekHeatmap(data: weekHeatmapDays)
                     case .month:
-                        LinearHeatmap(
-                            entries: heatmapData,
-                            labelInterval: 5
-                        )
+                        MonthHeatmap(dailyData: monthDailyData)
                     case .allTime:
                         GitHubCalendarHeatmap(
-                            dailyHistory: heatmapData,
+                            dailyHistory: appState.allTimeDailyHistory,
                             minWeeks: 52
                         )
                     }
@@ -738,29 +836,69 @@ private struct ActivityPage: View {
         }
     }
 
-    private var heatmapData: [DailyUsage] {
-        switch appState.dashboardFilter.timeRange {
-        case .today:
-            let calendar = Calendar.current
-            let todayStart = calendar.startOfDay(for: Date())
-            return appState.allTimeDailyHistory.filter { calendar.isDate($0.date, inSameDayAs: todayStart) }
-        case .week:
-            return appState.dailyHistory
-        case .month:
-            let calendar = Calendar.current
-            let now = Date()
-            let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now))!
-            return appState.allTimeDailyHistory.filter { $0.date >= startOfMonth }
-        case .allTime:
-            return appState.allTimeDailyHistory
+    // Week heatmap: 7 days × 6 four-hour slots, gap-filled
+    private var weekHeatmapDays: [DayHourlyBreakdown] {
+        let calendar = Calendar.current
+        let start = TimeRange.week.filterStart
+        let endOfToday = calendar.startOfDay(for: Date())
+
+        var lookup: [Int: DayHourlyBreakdown] = [:]
+        for entry in appState.dayHourlyBreakdown where entry.date >= start {
+            if let jd = calendar.ordinality(of: .day, in: .era, for: entry.date) {
+                lookup[jd] = entry
+            }
         }
+
+        var result: [DayHourlyBreakdown] = []
+        var current = start
+        while current <= endOfToday {
+            let jd = calendar.ordinality(of: .day, in: .era, for: current) ?? 0
+            if let existing = lookup[jd] {
+                result.append(existing)
+            } else {
+                result.append(DayHourlyBreakdown(date: current, slotCosts: Array(repeating: 0, count: 6)))
+            }
+            current = calendar.date(byAdding: .day, value: 1, to: current)!
+        }
+
+        return result
+    }
+
+    // Month heatmap: ~31 daily cells, gap-filled
+    private var monthDailyData: [DailyUsage] {
+        let calendar = Calendar.current
+        let start = TimeRange.month.filterStart
+        let endOfToday = calendar.startOfDay(for: Date())
+        let fmt = DateFormatter()
+        fmt.dateFormat = "MM/dd"
+
+        var lookup: [Int: DailyUsage] = [:]
+        for entry in appState.allTimeDailyHistory where entry.date >= start {
+            if let jd = calendar.ordinality(of: .day, in: .era, for: entry.date) {
+                lookup[jd] = entry
+            }
+        }
+
+        var result: [DailyUsage] = []
+        var current = start
+        while current <= endOfToday {
+            let jd = calendar.ordinality(of: .day, in: .era, for: current) ?? 0
+            if let existing = lookup[jd] {
+                result.append(existing)
+            } else {
+                result.append(DailyUsage(date: current, dateString: fmt.string(from: current)))
+            }
+            current = calendar.date(byAdding: .day, value: 1, to: current)!
+        }
+
+        return result
     }
 
     private var trendData: [DailyUsage] {
         if appState.dashboardFilter.timeRange == .today {
             return appState.todayHourlyHistory
         }
-        return heatmapData
+        return appState.allTimeDailyHistory.filter { $0.date >= filterStart }
     }
 }
 

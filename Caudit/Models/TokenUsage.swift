@@ -94,6 +94,7 @@ struct ParseResult: Sendable {
     let toolBreakdown: [ToolUsageEntry]
     let allTimeDailyHistory: [DailyUsage]
     let todayHourlyHistory: [DailyUsage]
+    let dayHourlyBreakdown: [DayHourlyBreakdown]
 }
 
 struct DailyUsage: Identifiable, Sendable {
@@ -115,12 +116,12 @@ struct ProjectUsage: Identifiable, Sendable {
     var source: String = "Local"
 }
 
-struct HeatmapEntry: Identifiable, Sendable {
-    var id: Int { dayOfWeek * 24 + hour }
-    let dayOfWeek: Int  // 0=Sunday ... 6=Saturday
-    let hour: Int       // 0-23
-    var messageCount: Int = 0
-    var totalCost: Double = 0
+struct DayHourlyBreakdown: Identifiable, Sendable {
+    var id: Date { date }
+    let date: Date
+    var slotCosts: [Double]  // 6 four-hour slots (0-3, 4-7, 8-11, 12-15, 16-19, 20-23)
+
+    var totalCost: Double { slotCosts.reduce(0, +) }
 }
 
 struct QuotaInfo: Sendable {
@@ -154,6 +155,17 @@ enum TimeRange: String, CaseIterable, Identifiable {
     case allTime = "All Time"
 
     var id: String { rawValue }
+
+    var filterStart: Date {
+        let calendar = Calendar.current
+        let startOfToday = calendar.startOfDay(for: Date())
+        switch self {
+        case .today: return startOfToday
+        case .week: return calendar.date(byAdding: .day, value: -6, to: startOfToday)!
+        case .month: return calendar.date(byAdding: .day, value: -30, to: startOfToday)!
+        case .allTime: return .distantPast
+        }
+    }
 }
 
 struct DashboardFilter: Equatable {
