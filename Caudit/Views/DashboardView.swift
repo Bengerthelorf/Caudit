@@ -417,7 +417,8 @@ private struct CalendarCell {
 private struct GitHubCalendarHeatmap: View {
     let dailyHistory: [DailyUsage]
     var minWeeks: Int = 52
-    var cellSize: CGFloat = 12
+    var cellWidth: CGFloat = 12
+    var cellHeight: CGFloat = 12
 
     var body: some View {
         let grid = buildGrid()
@@ -465,9 +466,9 @@ private struct GitHubCalendarHeatmap: View {
                         .font(.system(size: 9))
                         .foregroundStyle(.secondary)
                         .fixedSize()
-                        .frame(width: cellSize, alignment: .leading)
+                        .frame(width: cellWidth, alignment: .leading)
                 } else {
-                    Color.clear.frame(width: cellSize, height: 10)
+                    Color.clear.frame(width: cellWidth, height: 10)
                 }
             }
         }
@@ -496,7 +497,7 @@ private struct GitHubCalendarHeatmap: View {
         let intensity = maxCost > 0 ? cell.cost / maxCost : 0
         return RoundedRectangle(cornerRadius: 2)
             .fill(heatmapColor(intensity, hasData: cell.hasData))
-            .frame(width: cellSize, height: cellSize)
+            .frame(width: cellWidth, height: cellHeight)
             .help(cell.hasData
                 ? "\(cell.label): \(CauditFormatter.costDetail(cell.cost))"
                 : cell.label)
@@ -712,7 +713,8 @@ private struct ActivityPage: View {
                         GitHubCalendarHeatmap(
                             dailyHistory: monthDailyData,
                             minWeeks: 0,
-                            cellSize: 18
+                            cellWidth: 28,
+                            cellHeight: 16
                         )
                     case .allTime:
                         GitHubCalendarHeatmap(
