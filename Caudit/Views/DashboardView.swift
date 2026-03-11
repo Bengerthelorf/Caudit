@@ -3,6 +3,7 @@ import Charts
 
 enum DashboardTab: String, CaseIterable, Identifiable {
     case overview = "Overview"
+    case activity = "Activity"
     case projects = "Projects"
     case models = "Models"
 
@@ -11,6 +12,7 @@ enum DashboardTab: String, CaseIterable, Identifiable {
     var icon: String {
         switch self {
         case .overview: "square.grid.2x2"
+        case .activity: "chart.dots.scatter"
         case .projects: "folder"
         case .models: "cpu"
         }
@@ -35,6 +37,9 @@ struct DashboardView: View {
             case .overview, .none:
                 OverviewPage()
                     .navigationTitle("Overview")
+            case .activity:
+                ActivityPage()
+                    .navigationTitle("Activity")
             case .projects:
                 ProjectsPage()
                     .navigationTitle("Projects")
@@ -307,6 +312,160 @@ private struct ChartEntry: Identifiable {
     let dateString: String
     let source: String
     let cost: Double
+}
+
+// MARK: - Activity
+
+private struct ActivityPage: View {
+    @Environment(AppState.self) private var appState
+
+    private let displayDayOrder = [1, 2, 3, 4, 5, 6, 0]  // Mon-Sun
+    private let dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    private let dayFullLabels = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+
+    private var maxCount: Int {
+        appState.heatmapData.map(\.messageCount).max() ?? 0
+    }
+
+    private var totalCalls: Int {
+        appState.heatmapData.reduce(0) { $0 + $1.messageCount }
+    }
+
+    private var peakEntry: HeatmapEntry? {
+        appState.heatmapData.max(by: { $0.messageCount < $1.messageCount })
+    }
+
+    var body: some View {
+        if !appState.hasLoadedUsage {
+            LoadingPlaceholder(message: "Loading activity data…")
+        } else {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    if appState.availableSources.count > 1 {
+                        FilterBar()
+                    }
+
+                    SectionHeader(title: "Activity Patterns", icon: "chart.dots.scatter")
+
+                    GroupBox {
+                        if totalCalls == 0 {
+                            Text("No activity data yet")
+                                .foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity, minHeight: 180)
+                        } else {
+                            VStack(alignment: .leading, spacing: 2) {
+                                // Hour labels
+                                HStack(spacing: 2) {
+                                    Text("")
+                                        .frame(width: 32)
+                                    ForEach(0..<24, id: \.self) { hour in
+                                        Group {
+                                            if hour % 3 == 0 {
+                                                Text("\(hour)")
+                                                    .font(.system(size: 9))
+                                                    .foregroundStyle(.secondary)
+                                            } else {
+                                                Text("")
+                                            }
+                                        }
+                                        .frame(width: 18, alignment: .center)
+                                    }
+                                }
+
+                                // Day rows
+                                ForEach(0..<7, id: \.self) { displayIndex in
+                                    let day = displayDayOrder[displayIndex]
+                                    HStack(spacing: 2) {
+                                        Text(dayLabels[displayIndex])
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                            .frame(width: 32, alignment: .trailing)
+
+                                        ForEach(0..<24, id: \.self) { hour in
+                                            let entry = appState.heatmapData[day * 24 + hour]
+                                            heatmapCell(entry)
+                                        }
+                                    }
+                                }
+
+                                // Legend
+                                HStack(spacing: 4) {
+                                    Spacer()
+                                    Text("Less")
+                                        .font(.caption2)
+                                        .foregroundStyle(.tertiary)
+                                    ForEach(0..<5, id: \.self) { level in
+                                        RoundedRectangle(cornerRadius: 2)
+                                            .fill(legendColor(level: level))
+                                            .frame(width: 12, height: 12)
+                                    }
+                                    Text("More")
+                                        .font(.caption2)
+                                        .foregroundStyle(.tertiary)
+                                }
+                                .padding(.top, 8)
+                            }
+                            .padding(.vertical, 4)
+                        }
+                    }
+
+                    SectionHeader(title: "Summary", icon: "chart.bar.xaxis")
+
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 4), spacing: 12) {
+                        StatCard(
+                            label: "Total Calls",
+                            value: CauditFormatter.tokens(totalCalls),
+                            color: .blue
+                        )
+                        if let peak = peakEntry, peak.messageCount > 0 {
+                            StatCard(
+                                label: "Peak Day",
+                                value: dayFullLabels[peak.dayOfWeek],
+                                color: .purple
+                            )
+                            StatCard(
+                                label: "Peak Hour",
+                                value: String(format: "%d:00", peak.hour),
+                                color: .orange
+                            )
+                            StatCard(
+                                label: "Peak Slot Cost",
+                                value: CauditFormatter.costDetail(peak.totalCost),
+                                detail: "\(peak.messageCount) calls",
+                                color: .green
+                            )
+                        }
+                    }
+                }
+                .padding(20)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func heatmapCell(_ entry: HeatmapEntry) -> some View {
+        let intensity = maxCount > 0 ? Double(entry.messageCount) / Double(maxCount) : 0
+        RoundedRectangle(cornerRadius: 2)
+            .fill(cellColor(intensity))
+            .frame(width: 18, height: 18)
+            .help("\(dayFullLabels[entry.dayOfWeek]) \(entry.hour):00 – \(entry.messageCount) calls, \(CauditFormatter.costDetail(entry.totalCost))")
+    }
+
+    private func cellColor(_ intensity: Double) -> Color {
+        if intensity == 0 { return Color.primary.opacity(0.05) }
+        return Color.accentColor.opacity(0.15 + intensity * 0.75)
+    }
+
+    private func legendColor(level: Int) -> Color {
+        switch level {
+        case 0: return Color.primary.opacity(0.05)
+        case 1: return Color.accentColor.opacity(0.25)
+        case 2: return Color.accentColor.opacity(0.45)
+        case 3: return Color.accentColor.opacity(0.65)
+        case 4: return Color.accentColor.opacity(0.90)
+        default: return .clear
+        }
+    }
 }
 
 // MARK: - Projects

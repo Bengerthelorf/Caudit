@@ -78,6 +78,14 @@ struct ProjectUsage: Identifiable, Sendable {
     var source: String = "Local"
 }
 
+struct HeatmapEntry: Identifiable, Sendable {
+    var id: Int { dayOfWeek * 24 + hour }
+    let dayOfWeek: Int  // 0=Sunday ... 6=Saturday
+    let hour: Int       // 0-23
+    var messageCount: Int = 0
+    var totalCost: Double = 0
+}
+
 struct QuotaInfo: Sendable {
     let fiveHourUtilization: Double
     let fiveHourResetAt: Date?
