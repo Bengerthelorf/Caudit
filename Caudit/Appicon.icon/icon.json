@@ -1,0 +1,82 @@
+{
+  "fill" : {
+    "linear-gradient" : [
+      "display-p3:1.00000,0.67875,0.29288,1.00000",
+      "display-p3:1.00000,0.54791,0.70425,1.00000"
+    ],
+    "orientation" : {
+      "start" : {
+        "x" : 0.5,
+        "y" : 0
+      },
+      "stop" : {
+        "x" : 0.5,
+        "y" : 0.7
+      }
+    }
+  },
+  "groups" : [
+    {
+      "layers" : [
+        {
+          "image-name" : "gauge 2.png",
+          "name" : "gauge 2",
+          "position" : {
+            "scale" : 0.75,
+            "translation-in-points" : [
+              277.51817822729663,
+              268.4949029945908
+            ]
+          }
+        },
+        {
+          "image-name" : "bar3.svg",
+          "name" : "bar3",
+          "position" : {
+            "scale" : 1.15,
+            "translation-in-points" : [
+              228.96636318958986,
+              -54.97616515414677
+            ]
+          }
+        },
+        {
+          "image-name" : "bar2.svg",
+          "name" : "bar2",
+          "position" : {
+            "scale" : 1.15,
+            "translation-in-points" : [
+              1.0925457002911116,
+              41.023834845853344
+            ]
+          }
+        },
+        {
+          "image-name" : "bar1.svg",
+          "name" : "bar1",
+          "position" : {
+            "scale" : 1.15,
+            "translation-in-points" : [
+              -236.724355767288,
+              137.02383484585334
+            ]
+          }
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "circles" : [
+      "watchOS"
+    ],
+    "squares" : "shared"
+  }
+}
