@@ -8,6 +8,8 @@ extension Notification.Name {
 }
 
 class AppDelegate: NSObject, NSApplicationDelegate {
+    static private(set) var shared: AppDelegate!
+
     var statusItem: NSStatusItem!
     var popover: NSPopover!
     let appState = AppState()
@@ -16,6 +18,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var settingsWindowObserver: Any?
     private var dashboardWindow: NSWindow?
     private var dashboardCloseObserver: Any?
+    private var sessionWindows: Set<NSWindow> = []
 
     override init() {
         updaterController = SPUStandardUpdaterController(
@@ -24,6 +27,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             userDriverDelegate: nil
         )
         super.init()
+        Self.shared = self
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -87,6 +91,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         showDashboard()
     }
 
+
+
     func showDashboard() {
         if let window = dashboardWindow {
             NSApp.setActivationPolicy(.regular)
@@ -132,6 +138,39 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         window.makeKeyAndOrderFront(nil)
     }
 
+    // MARK: - Session Detail Window
+
+    func openSessionWindow(session: SessionInfo) {
+        let hostingController = NSHostingController(
+            rootView: SessionReaderView(session: session)
+                .environment(appState)
+        )
+        let window = NSWindow(contentViewController: hostingController)
+        window.title = session.displayName
+        window.styleMask = [.titled, .closable, .resizable, .miniaturizable]
+        window.setContentSize(NSSize(width: 700, height: 550))
+        window.minSize = NSSize(width: 500, height: 400)
+        window.center()
+        window.isReleasedWhenClosed = false
+
+        sessionWindows.insert(window)
+        NotificationCenter.default.addObserver(
+            forName: NSWindow.willCloseNotification,
+            object: window,
+            queue: .main
+        ) { [weak self] notification in
+            guard let window = notification.object as? NSWindow else { return }
+            self?.sessionWindows.remove(window)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                self?.revertToAccessoryIfNeeded()
+            }
+        }
+
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate(ignoringOtherApps: true)
+        window.makeKeyAndOrderFront(nil)
+    }
+
     // MARK: - Activation Policy
 
     private func revertToAccessoryIfNeeded() {
@@ -139,8 +178,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let settingsVisible = NSApp.windows.contains {
             $0.isVisible && ($0.title.contains("Settings") || $0.title.contains("设置"))
         }
+        let sessionVisible = sessionWindows.contains { $0.isVisible }
 
-        if !dashboardVisible && !settingsVisible {
+        if !dashboardVisible && !settingsVisible && !sessionVisible {
             NSApp.setActivationPolicy(.accessory)
         }
     }

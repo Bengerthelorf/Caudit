@@ -11,7 +11,6 @@ struct SessionDetailView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header bar — always pinned to top
             HStack {
                 Button(action: { appState.selectedSessionForDetail = nil }) {
                     Label("Back", systemImage: "chevron.left")
@@ -84,6 +83,16 @@ struct SessionDetailView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    AppDelegate.shared.openSessionWindow(session: session)
+                } label: {
+                    Image(systemName: "arrow.up.right.square")
+                }
+                .help("Open in separate window")
+            }
+        }
         .task {
             await loadSession()
         }
@@ -119,7 +128,7 @@ struct SessionDetailView: View {
 
 // MARK: - Message Row
 
-private struct MessageRow: View {
+struct MessageRow: View {
     let message: SessionMessage
     @State private var isThinkingExpanded = false
     @State private var expandedTools: Set<String> = []

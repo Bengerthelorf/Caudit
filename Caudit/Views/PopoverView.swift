@@ -13,8 +13,8 @@ struct PopoverView: View {
     @State private var selectedTab = 0
     @State private var contentHeight: CGFloat = 0
 
-    private var appDelegate: AppDelegate? {
-        NSApp.delegate as? AppDelegate
+    private var appDelegate: AppDelegate {
+        AppDelegate.shared
     }
 
     private var maxHeight: CGFloat {
@@ -90,7 +90,7 @@ struct PopoverView: View {
                 .buttonStyle(.plain)
 
                 Button {
-                    appDelegate?.showSettings()
+                    appDelegate.showSettings()
                     openSettings()
                 } label: {
                     Image(systemName: "gear")
@@ -163,7 +163,7 @@ struct PopoverView: View {
             contentHeight = measuredHeight
             let height = min(measuredHeight, maxHeight)
             DispatchQueue.main.async {
-                (NSApp.delegate as? AppDelegate)?.popover?.contentSize = NSSize(width: 300, height: height)
+                (AppDelegate.shared)?.popover?.contentSize = NSSize(width: 300, height: height)
             }
         }
     }

@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		C69BBA3B2F63420800F1E822 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = A1B2C3022F5DE001006DEF9B /* Sparkle */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		C673A4092F5DDAE7006DEF9B /* Caudit.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Caudit.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -36,6 +40,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C69BBA3B2F63420800F1E822 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -108,10 +113,10 @@
 			);
 			mainGroup = C673A4002F5DDAE7006DEF9B;
 			minimizedProjectReferenceProxies = 1;
-			preferredProjectObjectVersion = 77;
 			packageReferences = (
 				A1B2C3012F5DE000006DEF9B /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
+			preferredProjectObjectVersion = 77;
 			productRefGroup = C673A40A2F5DDAE7006DEF9B /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
