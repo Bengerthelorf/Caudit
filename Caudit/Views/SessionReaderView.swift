@@ -7,7 +7,30 @@ struct SessionReaderView: View {
     @State private var detail: SessionDetail?
     @State private var isLoading = true
     @State private var loadError: String?
+    @State private var isSearching = false
+    @State private var searchText = ""
+    @FocusState private var isSearchFieldFocused: Bool
     private let service = SessionDetailService()
+
+    private var filteredMessages: [SessionMessage] {
+        guard let detail else { return [] }
+        guard !searchText.isEmpty else { return detail.messages }
+        return detail.messages.filter { message in
+            message.content.contains { item in
+                switch item {
+                case .text(let text):
+                    text.localizedCaseInsensitiveContains(searchText)
+                case .thinking(let text):
+                    text.localizedCaseInsensitiveContains(searchText)
+                case .toolUse(_, let name, let input):
+                    name.localizedCaseInsensitiveContains(searchText) ||
+                    input.localizedCaseInsensitiveContains(searchText)
+                case .toolResult(_, let content, _):
+                    content.localizedCaseInsensitiveContains(searchText)
+                }
+            }
+        }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -45,6 +68,19 @@ struct SessionReaderView: View {
 
             Divider()
 
+            // Search bar
+            if isSearching {
+                SessionSearchBar(
+                    searchText: $searchText,
+                    isSearchFieldFocused: $isSearchFieldFocused,
+                    matchCount: searchText.isEmpty ? nil : filteredMessages.count
+                ) {
+                    isSearching = false
+                    searchText = ""
+                }
+                Divider()
+            }
+
             if isLoading {
                 VStack(spacing: 12) {
                     ProgressView()
@@ -56,25 +92,46 @@ struct SessionReaderView: View {
                         .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if let detail, !detail.messages.isEmpty {
+            } else if !filteredMessages.isEmpty {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 12) {
-                        ForEach(detail.messages) { message in
+                        ForEach(filteredMessages) { message in
                             MessageRow(message: message)
                         }
                     }
                     .padding(16)
                 }
-            } else {
+            } else if searchText.isEmpty {
                 ContentUnavailableView(
                     "No Messages",
                     systemImage: "bubble.left.and.bubble.right",
                     description: Text(loadError ?? "Could not load conversation content.")
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ContentUnavailableView(
+                    "No Results",
+                    systemImage: "magnifyingglass",
+                    description: Text("No messages match \"\(searchText)\"")
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .onKeyPress(characters: CharacterSet(charactersIn: "f")) { keyPress in
+            guard keyPress.modifiers == .command else { return .ignored }
+            isSearching = true
+            isSearchFieldFocused = true
+            return .handled
+        }
+        .onKeyPress(.escape) {
+            if isSearching {
+                isSearching = false
+                searchText = ""
+                return .handled
+            }
+            return .ignored
+        }
         .task {
             await loadSession()
         }

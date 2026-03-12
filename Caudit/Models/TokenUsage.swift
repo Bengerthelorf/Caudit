@@ -60,7 +60,7 @@ struct ToolUsageEntry: Identifiable, Sendable {
     var usageCount: Int = 0
 }
 
-struct SessionInfo: Identifiable, Sendable {
+struct SessionInfo: Identifiable, Sendable, Hashable {
     var id: String { sessionId }
     let sessionId: String
     let slug: String
@@ -72,6 +72,14 @@ struct SessionInfo: Identifiable, Sendable {
     var messageCount: Int = 0
     var totalTokens: Int = 0
     var totalCost: Double = 0
+
+    static func == (lhs: SessionInfo, rhs: SessionInfo) -> Bool {
+        lhs.sessionId == rhs.sessionId
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(sessionId)
+    }
 
     var duration: TimeInterval {
         lastTimestamp.timeIntervalSince(firstTimestamp)

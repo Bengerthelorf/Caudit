@@ -26,6 +26,30 @@ enum DashboardTab: String, CaseIterable, Identifiable {
 struct DashboardView: View {
     @Environment(AppState.self) private var appState
 
+    // MARK: - Back/Forward History
+
+    @State private var backStack: [(tab: DashboardTab?, session: SessionInfo?)] = []
+    @State private var forwardStack: [(tab: DashboardTab?, session: SessionInfo?)] = []
+    @State private var isRestoringHistory = false
+
+    private func goBack() {
+        guard let previous = backStack.popLast() else { return }
+        isRestoringHistory = true
+        forwardStack.append((tab: appState.selectedTab, session: appState.selectedSessionForDetail))
+        appState.selectedTab = previous.tab
+        appState.selectedSessionForDetail = previous.session
+        isRestoringHistory = false
+    }
+
+    private func goForward() {
+        guard let next = forwardStack.popLast() else { return }
+        isRestoringHistory = true
+        backStack.append((tab: appState.selectedTab, session: appState.selectedSessionForDetail))
+        appState.selectedTab = next.tab
+        appState.selectedSessionForDetail = next.session
+        isRestoringHistory = false
+    }
+
     var body: some View {
         @Bindable var state = appState
         NavigationSplitView(columnVisibility: .constant(.all)) {
@@ -38,34 +62,86 @@ struct DashboardView: View {
             .navigationTitle("Caudit")
             .frame(minWidth: 200, idealWidth: 300)
         } detail: {
-            if let session = appState.selectedSessionForDetail {
-                SessionDetailView(session: session)
-            } else {
-                switch appState.selectedTab {
-                case .overview, .none:
-                    OverviewPage()
-                        .navigationTitle("Overview")
-                case .activity:
-                    ActivityPage()
-                        .navigationTitle("Activity")
-                case .sessions:
-                    SessionsPage()
-                        .navigationTitle("Sessions")
-                case .projects:
-                    ProjectsPage()
-                        .navigationTitle("Projects")
-                case .models:
-                    ModelsPage()
-                        .navigationTitle("Models")
-                case .tools:
-                    ToolsPage()
-                        .navigationTitle("Tools")
+            NavigationStack {
+                Group {
+                    if let session = appState.selectedSessionForDetail {
+                        SessionDetailView(session: session)
+                            .id(session.sessionId)
+                            .navigationTitle(session.displayName)
+                            .navigationSubtitle(
+                                "\(session.project) · \(CauditFormatter.duration(session.duration)) · \(CauditFormatter.costDetail(session.totalCost)) · \(CauditFormatter.tokensWithUnit(session.totalTokens))"
+                            )
+                    } else {
+                        tabContent
+                    }
+                }
+                .toolbar {
+                    ToolbarItemGroup(placement: .navigation) {
+                        ControlGroup {
+                            Button(action: goBack) {
+                                Label("Back", systemImage: "chevron.left")
+                            }
+                            .disabled(backStack.isEmpty)
+
+                            Button(action: goForward) {
+                                Label("Forward", systemImage: "chevron.right")
+                            }
+                            .disabled(forwardStack.isEmpty)
+                        }
+                        .controlGroupStyle(.navigation)
+                    }
+
+                    ToolbarItem(placement: .primaryAction) {
+                        Button {
+                            if let session = appState.selectedSessionForDetail {
+                                AppDelegate.shared.openSessionWindow(session: session)
+                            }
+                        } label: {
+                            Image(systemName: "arrow.up.right.square")
+                        }
+                        .disabled(appState.selectedSessionForDetail == nil)
+                        .help("Open in separate window")
+                    }
                 }
             }
         }
         .navigationSplitViewStyle(.prominentDetail)
-        .onChange(of: appState.selectedTab) { _, _ in
+        .onChange(of: appState.selectedTab) { oldValue, newValue in
+            guard !isRestoringHistory, oldValue != newValue else { return }
+            backStack.append((tab: oldValue, session: appState.selectedSessionForDetail))
+            forwardStack.removeAll()
+            isRestoringHistory = true
             appState.selectedSessionForDetail = nil
+            isRestoringHistory = false
+        }
+        .onChange(of: appState.selectedSessionForDetail) { oldValue, newValue in
+            guard !isRestoringHistory, oldValue != newValue, newValue != nil else { return }
+            backStack.append((tab: appState.selectedTab, session: oldValue))
+            forwardStack.removeAll()
+        }
+    }
+
+    @ViewBuilder
+    private var tabContent: some View {
+        switch appState.selectedTab {
+        case .overview, .none:
+            OverviewPage()
+                .navigationTitle("Overview")
+        case .activity:
+            ActivityPage()
+                .navigationTitle("Activity")
+        case .sessions:
+            SessionsPage()
+                .navigationTitle("Sessions")
+        case .projects:
+            ProjectsPage()
+                .navigationTitle("Projects")
+        case .models:
+            ModelsPage()
+                .navigationTitle("Models")
+        case .tools:
+            ToolsPage()
+                .navigationTitle("Tools")
         }
     }
 }
