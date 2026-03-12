@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import Sparkle
 
 extension Notification.Name {
     static let showDashboard = Notification.Name("showDashboard")
@@ -10,10 +11,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem!
     var popover: NSPopover!
     let appState = AppState()
+    let updaterController: SPUStandardUpdaterController
     private var eventMonitor: Any?
     private var settingsWindowObserver: Any?
     private var dashboardWindow: NSWindow?
     private var dashboardCloseObserver: Any?
+
+    override init() {
+        updaterController = SPUStandardUpdaterController(
+            startingUpdater: true,
+            updaterDelegate: nil,
+            userDriverDelegate: nil
+        )
+        super.init()
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupStatusItem()

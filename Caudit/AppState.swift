@@ -72,8 +72,7 @@ final class AppState {
                 } else {
                     try SMAppService.mainApp.unregister()
                 }
-            } catch {
-                }
+            } catch {}
         }
     }
 
@@ -342,13 +341,11 @@ final class AppState {
 
     func toggleSource(_ source: String) {
         if dashboardFilter.selectedSources.isEmpty {
-            // All visible → hide this one
             var all = Set(availableSources)
             all.remove(source)
             dashboardFilter.selectedSources = all
         } else if dashboardFilter.selectedSources.contains(source) {
             dashboardFilter.selectedSources.remove(source)
-            // If none left → reset to show all
         } else {
             dashboardFilter.selectedSources.insert(source)
             if dashboardFilter.selectedSources == Set(availableSources) {
@@ -373,7 +370,6 @@ final class AppState {
         var set = Set<String>()
         for r in records { set.insert(r.source) }
         var result = set.sorted()
-        // Put "Local" first
         if let idx = result.firstIndex(of: "Local") {
             result.remove(at: idx)
             result.insert("Local", at: 0)
@@ -388,7 +384,10 @@ final class AppState {
 
         let service = self.quotaService
         Task.detached {
-            guard let service else { return }
+            guard let service else {
+                await MainActor.run { [weak self] in self?.isLoadingQuota = false }
+                return
+            }
             do {
                 let info = try await service.fetchQuota()
                 await MainActor.run { [weak self] in

@@ -20,6 +20,32 @@ final class UsageParser: @unchecked Sendable {
         }
     }
 
+    private static func discoverOpenClawDirs() -> [(dir: URL, label: String)] {
+        let home = URL(fileURLWithPath: NSHomeDirectory())
+        let fm = FileManager.default
+        var results: [(URL, String)] = []
+        guard let entries = try? fm.contentsOfDirectory(atPath: home.path) else { return [] }
+        for entry in entries {
+            guard entry.hasPrefix(".openclaw") else { continue }
+            let dirURL = home.appendingPathComponent(entry)
+            var isDir: ObjCBool = false
+            guard fm.fileExists(atPath: dirURL.path, isDirectory: &isDir), isDir.boolValue else { continue }
+            let agentsDir = dirURL.appendingPathComponent("agents")
+            guard fm.fileExists(atPath: agentsDir.path) else { continue }
+
+            let suffix = entry.dropFirst(".openclaw".count)
+            let label: String
+            if suffix.isEmpty {
+                label = "OpenClaw"
+            } else {
+                let clean = suffix.replacingOccurrences(of: "_", with: " ").replacingOccurrences(of: "-", with: " ").trimmingCharacters(in: .whitespaces)
+                label = "OpenClaw " + clean.split(separator: " ").map { $0.prefix(1).uppercased() + $0.dropFirst() }.joined(separator: " ")
+            }
+            results.append((agentsDir, label))
+        }
+        return results
+    }
+
     func parseAll() -> ParseResult {
         aggregate(records: scanLocalRecords())
     }
@@ -29,9 +55,18 @@ final class UsageParser: @unchecked Sendable {
     func scanLocalRecords() -> [UsageRecord] {
         let projectsDir = claudeDir.appendingPathComponent("projects")
         let fm = FileManager.default
-        guard fm.fileExists(atPath: projectsDir.path) else { return [] }
 
-        let newFingerprint = computeFingerprint(projectsDir: projectsDir, fm: fm)
+        let claudeExists = fm.fileExists(atPath: projectsDir.path)
+        let openClawDirs = Self.discoverOpenClawDirs()
+
+        guard claudeExists || !openClawDirs.isEmpty else { return [] }
+
+        var fingerParts: [String] = []
+        if claudeExists { fingerParts.append(computeFingerprint(dir: projectsDir, fm: fm)) }
+        for (agentsDir, _) in openClawDirs {
+            fingerParts.append(computeFingerprint(dir: agentsDir, fm: fm))
+        }
+        let newFingerprint = fingerParts.joined(separator: "|")
 
         lock.lock()
         if newFingerprint == cachedFingerprint && !cachedRecords.isEmpty {
@@ -41,7 +76,11 @@ final class UsageParser: @unchecked Sendable {
         }
         lock.unlock()
 
-        let records = nativeScanAndParse(projectsDir: projectsDir)
+        var records: [UsageRecord] = []
+        if claudeExists { records += nativeScanAndParse(projectsDir: projectsDir) }
+        for (agentsDir, label) in openClawDirs {
+            records += nativeScanOpenClaw(agentsDir: agentsDir, projectLabel: label)
+        }
 
         lock.lock()
         cachedFingerprint = newFingerprint
@@ -51,13 +90,12 @@ final class UsageParser: @unchecked Sendable {
         return records
     }
 
-    /// File count + total bytes fingerprint using FileManager stat.
-    private func computeFingerprint(projectsDir: URL, fm: FileManager) -> String {
+    private func computeFingerprint(dir: URL, fm: FileManager) -> String {
         var totalSize: UInt64 = 0
         var fileCount = 0
 
         guard let enumerator = fm.enumerator(
-            at: projectsDir,
+            at: dir,
             includingPropertiesForKeys: [.fileSizeKey, .isRegularFileKey],
             options: [.skipsHiddenFiles]
         ) else {
@@ -77,7 +115,6 @@ final class UsageParser: @unchecked Sendable {
         return "\(fileCount) \(totalSize)"
     }
 
-    /// Native file scanner: reads JSONL files line-by-line without spawning shell processes.
     private func nativeScanAndParse(projectsDir: URL) -> [UsageRecord] {
         let fm = FileManager.default
         guard let enumerator = fm.enumerator(
@@ -181,6 +218,96 @@ final class UsageParser: @unchecked Sendable {
         return records
     }
 
+    private func nativeScanOpenClaw(agentsDir: URL, projectLabel: String = "OpenClaw") -> [UsageRecord] {
+        let fm = FileManager.default
+        guard let enumerator = fm.enumerator(
+            at: agentsDir,
+            includingPropertiesForKeys: [.isRegularFileKey],
+            options: [.skipsHiddenFiles]
+        ) else { return [] }
+
+        var jsonlFiles: [(path: String, sessionId: String)] = []
+        for case let url as URL in enumerator {
+            guard url.pathExtension == "jsonl" else { continue }
+            let sessionId = url.deletingPathExtension().lastPathComponent
+            jsonlFiles.append((url.path, sessionId))
+        }
+
+        var records: [UsageRecord] = []
+        records.reserveCapacity(jsonlFiles.count * 20)
+
+        for (filePath, fileSessionId) in jsonlFiles {
+            guard let file = fopen(filePath, "r") else { continue }
+            defer { fclose(file) }
+
+            var linePtr: UnsafeMutablePointer<CChar>? = nil
+            var lineCapacity: Int = 0
+            defer { free(linePtr) }
+
+            while getline(&linePtr, &lineCapacity, file) > 0 {
+                guard let ptr = linePtr else { continue }
+                guard strstr(ptr, "\"usage\"") != nil else { continue }
+
+                autoreleasepool {
+                    let len = strlen(ptr)
+                    let data = Data(bytes: ptr, count: len)
+
+                    guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                          json["type"] as? String == "message",
+                          let message = json["message"] as? [String: Any],
+                          message["role"] as? String == "assistant",
+                          let usage = message["usage"] as? [String: Any] else {
+                        return
+                    }
+
+                    let inputTokens = usage["input"] as? Int ?? 0
+                    let outputTokens = usage["output"] as? Int ?? 0
+                    let cacheReadTokens = usage["cacheRead"] as? Int ?? 0
+                    let cacheCreationTokens = usage["cacheWrite"] as? Int ?? 0
+
+                    guard inputTokens + outputTokens + cacheReadTokens + cacheCreationTokens > 0 else { return }
+
+                    let model = message["model"] as? String ?? "unknown"
+
+                    let timestamp: Date
+                    if let ts = json["timestamp"] as? String {
+                        timestamp = CauditFormatter.parseISO8601(ts) ?? Date()
+                    } else {
+                        timestamp = Date()
+                    }
+
+                    let pricing = PricingTable.shared.pricing(for: model)
+                    let cost = pricing.cost(
+                        input: inputTokens, output: outputTokens,
+                        cacheRead: cacheReadTokens, cacheCreation: cacheCreationTokens
+                    )
+
+                    var toolNames: [String] = []
+                    if let contentArray = message["content"] as? [[String: Any]] {
+                        for item in contentArray {
+                            let itemType = item["type"] as? String
+                            if (itemType == "tool_use" || itemType == "toolCall"),
+                               let name = item["name"] as? String {
+                                toolNames.append(name)
+                            }
+                        }
+                    }
+
+                    records.append(UsageRecord(
+                        inputTokens: inputTokens, outputTokens: outputTokens,
+                        cacheReadTokens: cacheReadTokens, cacheCreationTokens: cacheCreationTokens,
+                        model: model, timestamp: timestamp, cost: cost,
+                        project: projectLabel, source: "Local",
+                        sessionId: fileSessionId, slug: "",
+                        toolCalls: toolNames, projectDir: projectLabel
+                    ))
+                }
+            }
+        }
+
+        return records
+    }
+
     // MARK: - Grep Output Parser
 
     static func parseGrepOutput(_ output: String, projectPrefix: String = "", source: String = "Local") -> [UsageRecord] {
@@ -189,29 +316,54 @@ final class UsageParser: @unchecked Sendable {
         records.reserveCapacity(lines.count / 3)
         var currentProject = "unknown"
         var currentProjectDir = ""
+        var currentOCSessionId = ""
 
         for line in lines {
             if line.hasPrefix("===CAUDIT_PROJECT:") && line.hasSuffix("===") {
                 let raw = String(line.dropFirst("===CAUDIT_PROJECT:".count).dropLast(3))
                 currentProject = readableProjectName(raw)
                 currentProjectDir = raw
+                currentOCSessionId = ""
+                continue
+            }
+
+            if line.hasPrefix("===CAUDIT_OC:") && line.hasSuffix("===") {
+                let payload = String(line.dropFirst("===CAUDIT_OC:".count).dropLast(3))
+                if let slashIdx = payload.firstIndex(of: "/") {
+                    let dirName = String(payload[payload.startIndex..<slashIdx])
+                    currentOCSessionId = String(payload[payload.index(after: slashIdx)...])
+                    let suffix = dirName.dropFirst(".openclaw".count)
+                    if suffix.isEmpty {
+                        currentProject = "OpenClaw"
+                    } else {
+                        let clean = suffix.replacingOccurrences(of: "_", with: " ").replacingOccurrences(of: "-", with: " ").trimmingCharacters(in: .whitespaces)
+                        currentProject = "OpenClaw " + clean.split(separator: " ").map { $0.prefix(1).uppercased() + $0.dropFirst() }.joined(separator: " ")
+                    }
+                } else {
+                    currentOCSessionId = payload
+                    currentProject = "OpenClaw"
+                }
+                currentProjectDir = currentProject
                 continue
             }
 
             autoreleasepool {
                 guard let data = line.data(using: .utf8),
                       let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                      json["type"] as? String == "assistant",
                       let message = json["message"] as? [String: Any],
                       let usage = message["usage"] as? [String: Any] else {
                     return
                 }
 
-                let inputTokens = usage["input_tokens"] as? Int ?? 0
-                let outputTokens = usage["output_tokens"] as? Int ?? 0
-                let cacheReadTokens = usage["cache_read_input_tokens"] as? Int ?? 0
+                let type = json["type"] as? String
+                let role = message["role"] as? String
+                guard type == "assistant" || (type == "message" && role == "assistant") else { return }
 
-                var cacheCreationTokens = usage["cache_creation_input_tokens"] as? Int ?? 0
+                let inputTokens = (usage["input_tokens"] as? Int) ?? (usage["input"] as? Int) ?? 0
+                let outputTokens = (usage["output_tokens"] as? Int) ?? (usage["output"] as? Int) ?? 0
+                let cacheReadTokens = (usage["cache_read_input_tokens"] as? Int) ?? (usage["cacheRead"] as? Int) ?? 0
+
+                var cacheCreationTokens = (usage["cache_creation_input_tokens"] as? Int) ?? (usage["cacheWrite"] as? Int) ?? 0
                 if let cacheDict = usage["cache_creation"] as? [String: Any] {
                     let ephemeral5m = cacheDict["ephemeral_5m_input_tokens"] as? Int ?? 0
                     let ephemeral1h = cacheDict["ephemeral_1h_input_tokens"] as? Int ?? 0
@@ -236,13 +388,14 @@ final class UsageParser: @unchecked Sendable {
                     cacheRead: cacheReadTokens, cacheCreation: cacheCreationTokens
                 )
 
-                let sessionId = json["sessionId"] as? String ?? ""
+                let sessionId = json["sessionId"] as? String ?? currentOCSessionId
                 let slug = json["slug"] as? String ?? ""
 
                 var toolNames: [String] = []
                 if let contentArray = message["content"] as? [[String: Any]] {
                     for item in contentArray {
-                        if item["type"] as? String == "tool_use",
+                        let itemType = item["type"] as? String
+                        if (itemType == "tool_use" || itemType == "toolCall"),
                            let name = item["name"] as? String {
                             toolNames.append(name)
                         }
@@ -301,6 +454,7 @@ final class UsageParser: @unchecked Sendable {
         var allTimeDailyMap: [String: DailyUsage] = [:]
         var hourlyMap: [Int: DailyUsage] = [:]
         var projectMap: [String: ProjectUsage] = [:]
+        var projectSessionSets: [String: Set<String>] = [:]
         var sessionMap: [String: SessionInfo] = [:]
         var toolMap: [String: Int] = [:]
         var dayHourMap: [String: (date: Date, slots: [Double])] = [:]
@@ -308,6 +462,7 @@ final class UsageParser: @unchecked Sendable {
         let dayFormatter = Self.dayFormatter
 
         for record in records {
+            let tokens = record.inputTokens + record.outputTokens + record.cacheReadTokens + record.cacheCreationTokens
             let entry = AggregatedUsage(
                 inputTokens: record.inputTokens,
                 outputTokens: record.outputTokens,
@@ -325,10 +480,8 @@ final class UsageParser: @unchecked Sendable {
             if record.timestamp >= startOfToday {
                 today.add(entry)
 
-                // Hourly bucketing for today
                 let hour = calendar.component(.hour, from: record.timestamp)
                 let hourDate = calendar.date(bySettingHour: hour, minute: 0, second: 0, of: startOfToday) ?? record.timestamp
-                let tokens = record.inputTokens + record.outputTokens + record.cacheReadTokens + record.cacheCreationTokens
                 var hourEntry = hourlyMap[hour] ?? DailyUsage(date: hourDate, dateString: String(format: "%d:00", hour))
                 hourEntry.totalCost += record.cost
                 hourEntry.totalTokens += tokens
@@ -336,10 +489,8 @@ final class UsageParser: @unchecked Sendable {
                 hourlyMap[hour] = hourEntry
             }
 
-            // All-time daily collection
             let dayStart = calendar.startOfDay(for: record.timestamp)
             let key = dayFormatter.string(from: dayStart)
-            let tokens = record.inputTokens + record.outputTokens + record.cacheReadTokens + record.cacheCreationTokens
 
             var allDay = allTimeDailyMap[key] ?? DailyUsage(date: dayStart, dateString: key)
             allDay.totalCost += record.cost
@@ -347,7 +498,6 @@ final class UsageParser: @unchecked Sendable {
             allDay.costBySource[record.source, default: 0] += record.cost
             allTimeDailyMap[key] = allDay
 
-            // Day-hour breakdown: bucket by day + 4-hour slot
             let hourOfDay = calendar.component(.hour, from: record.timestamp)
             let slot = hourOfDay / 4
             if dayHourMap[key] == nil {
@@ -355,7 +505,6 @@ final class UsageParser: @unchecked Sendable {
             }
             dayHourMap[key]!.slots[slot] += record.cost
 
-            // 7-day chart subset
             if record.timestamp >= sevenDaysAgo {
                 var day = dailyMap[key] ?? DailyUsage(date: dayStart, dateString: key)
                 day.totalCost += record.cost
@@ -364,12 +513,13 @@ final class UsageParser: @unchecked Sendable {
                 dailyMap[key] = day
             }
 
-            // Tables: use filter's time range
             if record.timestamp >= tableStart {
                 var proj = projectMap[record.project] ?? ProjectUsage(project: record.project, source: record.source)
                 proj.totalCost += record.cost
-                proj.totalTokens += record.inputTokens + record.outputTokens + record.cacheReadTokens + record.cacheCreationTokens
-                proj.sessionCount += 1
+                proj.totalTokens += tokens
+                if !record.sessionId.isEmpty {
+                    projectSessionSets[record.project, default: []].insert(record.sessionId)
+                }
                 if record.timestamp > proj.lastActive {
                     proj.lastActive = record.timestamp
                 }
@@ -384,9 +534,7 @@ final class UsageParser: @unchecked Sendable {
                 modelEntry.totalCost += record.cost
                 modelMap[shortModel] = modelEntry
 
-                // Session grouping
                 if !record.sessionId.isEmpty {
-                    let tokens = record.inputTokens + record.outputTokens + record.cacheReadTokens + record.cacheCreationTokens
                     var session = sessionMap[record.sessionId] ?? SessionInfo(
                         sessionId: record.sessionId,
                         slug: record.slug,
@@ -421,7 +569,6 @@ final class UsageParser: @unchecked Sendable {
             dailyHistory.append(dailyMap[key] ?? DailyUsage(date: date, dateString: key))
         }
 
-        // Build today's hourly history (all 24 hours)
         var todayHourlyHistory: [DailyUsage] = []
         for hour in 0..<24 {
             let hourDate = calendar.date(bySettingHour: hour, minute: 0, second: 0, of: startOfToday) ?? startOfToday
@@ -432,13 +579,18 @@ final class UsageParser: @unchecked Sendable {
             DayHourlyBreakdown(date: value.date, slotCosts: value.slots)
         }.sorted { $0.date < $1.date }
 
+        var finalProjects = Array(projectMap.values)
+        for i in finalProjects.indices {
+            finalProjects[i].sessionCount = projectSessionSets[finalProjects[i].project]?.count ?? 0
+        }
+
         return ParseResult(
             today: today,
             month: month,
             allTime: allTime,
             modelBreakdown: Array(modelMap.values),
             dailyHistory: dailyHistory,
-            projectBreakdown: projectMap.values.sorted { $0.totalCost > $1.totalCost },
+            projectBreakdown: finalProjects.sorted { $0.totalCost > $1.totalCost },
             sessionBreakdown: sessionMap.values.sorted { $0.lastTimestamp > $1.lastTimestamp },
             toolBreakdown: toolMap.map { ToolUsageEntry(name: $0.key, usageCount: $0.value) }
                 .sorted { $0.usageCount > $1.usageCount },

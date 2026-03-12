@@ -119,7 +119,7 @@ struct ProjectUsage: Identifiable, Sendable {
 struct DayHourlyBreakdown: Identifiable, Sendable {
     var id: Date { date }
     let date: Date
-    var slotCosts: [Double]  // 6 four-hour slots (0-3, 4-7, 8-11, 12-15, 16-19, 20-23)
+    var slotCosts: [Double]
 
     var totalCost: Double { slotCosts.reduce(0, +) }
 }
@@ -145,8 +145,6 @@ struct QuotaInfo: Sendable {
         return remaining > 0 ? remaining : nil
     }
 }
-
-// MARK: - Dashboard Filter
 
 enum TimeRange: String, CaseIterable, Identifiable {
     case today = "Today"

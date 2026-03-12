@@ -12,6 +12,31 @@ final class SessionDetailService: Sendable {
     }
 
     func loadSession(sessionId: String, projectDir: String) async -> SessionDetail? {
+        if projectDir.hasPrefix("OpenClaw") {
+            let home = URL(fileURLWithPath: NSHomeDirectory())
+            let fm = FileManager.default
+            if let entries = try? fm.contentsOfDirectory(atPath: home.path) {
+                for entry in entries where entry.hasPrefix(".openclaw") {
+                    let sessionsGlob = home.appendingPathComponent(entry).appendingPathComponent("agents")
+                    if let agentDirs = try? fm.contentsOfDirectory(atPath: sessionsGlob.path) {
+                        for agent in agentDirs {
+                            let filePath = sessionsGlob
+                                .appendingPathComponent(agent)
+                                .appendingPathComponent("sessions")
+                                .appendingPathComponent("\(sessionId).jsonl")
+                                .path
+                            if fm.fileExists(atPath: filePath) {
+                                return await Task.detached {
+                                    self.parseSessionFile(path: filePath, sessionId: sessionId, isOpenClaw: true)
+                                }.value
+                            }
+                        }
+                    }
+                }
+            }
+            return nil
+        }
+
         let filePath = claudeDir
             .appendingPathComponent("projects")
             .appendingPathComponent(projectDir)
@@ -26,6 +51,19 @@ final class SessionDetailService: Sendable {
     }
 
     func loadRemoteSession(sessionId: String, projectDir: String, device: RemoteDevice) async throws -> SessionDetail? {
+        if projectDir.hasPrefix("OpenClaw") {
+            for ocPath in device.openClawPaths {
+                let remotePath = "\(ocPath)/agents/main/sessions/\(sessionId).jsonl"
+                let output = try await runSSH(device: device, command: "cat \(remotePath) 2>/dev/null")
+                if !output.isEmpty {
+                    return await Task.detached {
+                        self.parseLines(output, sessionId: sessionId, isOpenClaw: true)
+                    }.value
+                }
+            }
+            return nil
+        }
+
         let remotePath = "\(device.claudePath)/projects/\(projectDir)/\(sessionId).jsonl"
         let output = try await runSSH(device: device, command: "cat \(remotePath) 2>/dev/null")
         guard !output.isEmpty else { return nil }
@@ -35,7 +73,7 @@ final class SessionDetailService: Sendable {
         }.value
     }
 
-    private func parseLines(_ content: String, sessionId: String) -> SessionDetail {
+    private func parseLines(_ content: String, sessionId: String, isOpenClaw: Bool = false) -> SessionDetail {
         let lines = content.split(separator: "\n", omittingEmptySubsequences: true)
         var messages: [SessionMessage] = []
 
@@ -44,35 +82,15 @@ final class SessionDetailService: Sendable {
                 guard let data = line.data(using: .utf8),
                       let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return }
 
-                let type = json["type"] as? String ?? ""
-                guard type == "user" || type == "assistant" else { return }
-                if json["isMeta"] as? Bool == true { return }
-                if json["isSidechain"] as? Bool == true { return }
-
-                let uuid = json["uuid"] as? String ?? UUID().uuidString
-                let timestamp: Date
-                if let ts = json["timestamp"] as? String {
-                    timestamp = CauditFormatter.parseISO8601(ts) ?? Date()
-                } else {
-                    timestamp = Date()
-                }
-
-                let role: SessionMessage.MessageRole = type == "user" ? .user : .assistant
-                let message = json["message"] as? [String: Any] ?? [:]
-                let contentItems = parseContent(message: message, role: role)
-
-                guard !contentItems.isEmpty else { return }
-
-                messages.append(SessionMessage(
-                    id: uuid, role: role, timestamp: timestamp, content: contentItems
-                ))
+                guard let parsed = self.parseMessageJSON(json, isOpenClaw: isOpenClaw) else { return }
+                messages.append(parsed)
             }
         }
 
         return SessionDetail(sessionId: sessionId, messages: messages)
     }
 
-    private func parseSessionFile(path: String, sessionId: String) -> SessionDetail {
+    private func parseSessionFile(path: String, sessionId: String, isOpenClaw: Bool = false) -> SessionDetail {
         guard let file = fopen(path, "r") else {
             return SessionDetail(sessionId: sessionId, messages: [])
         }
@@ -86,43 +104,54 @@ final class SessionDetailService: Sendable {
 
         while getline(&linePtr, &lineCapacity, file) > 0 {
             guard let ptr = linePtr else { continue }
-            let len = strlen(ptr)
-            let data = Data(bytes: ptr, count: len)
 
             autoreleasepool {
+                let len = strlen(ptr)
+                let data = Data(bytes: ptr, count: len)
                 guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return }
-
-                let type = json["type"] as? String ?? ""
-                guard type == "user" || type == "assistant" else { return }
-
-                // Skip meta and sidechain messages
-                if json["isMeta"] as? Bool == true { return }
-                if json["isSidechain"] as? Bool == true { return }
-
-                let uuid = json["uuid"] as? String ?? UUID().uuidString
-                let timestamp: Date
-                if let ts = json["timestamp"] as? String {
-                    timestamp = CauditFormatter.parseISO8601(ts) ?? Date()
-                } else {
-                    timestamp = Date()
-                }
-
-                let role: SessionMessage.MessageRole = type == "user" ? .user : .assistant
-                let message = json["message"] as? [String: Any] ?? [:]
-                let contentItems = parseContent(message: message, role: role)
-
-                guard !contentItems.isEmpty else { return }
-
-                messages.append(SessionMessage(
-                    id: uuid, role: role, timestamp: timestamp, content: contentItems
-                ))
+                guard let parsed = self.parseMessageJSON(json, isOpenClaw: isOpenClaw) else { return }
+                messages.append(parsed)
             }
         }
 
         return SessionDetail(sessionId: sessionId, messages: messages)
     }
 
-    private func parseContent(message: [String: Any], role: SessionMessage.MessageRole) -> [SessionContentItem] {
+    private func parseMessageJSON(_ json: [String: Any], isOpenClaw: Bool) -> SessionMessage? {
+        let type = json["type"] as? String ?? ""
+        let message = json["message"] as? [String: Any] ?? [:]
+
+        let role: SessionMessage.MessageRole
+        if isOpenClaw {
+            guard type == "message" else { return nil }
+            let msgRole = message["role"] as? String ?? ""
+            switch msgRole {
+            case "user": role = .user
+            case "assistant": role = .assistant
+            default: return nil
+            }
+        } else {
+            guard type == "user" || type == "assistant" else { return nil }
+            if json["isMeta"] as? Bool == true { return nil }
+            if json["isSidechain"] as? Bool == true { return nil }
+            role = type == "user" ? .user : .assistant
+        }
+
+        let uuid = json["uuid"] as? String ?? json["id"] as? String ?? UUID().uuidString
+        let timestamp: Date
+        if let ts = json["timestamp"] as? String {
+            timestamp = CauditFormatter.parseISO8601(ts) ?? Date()
+        } else {
+            timestamp = Date()
+        }
+
+        let contentItems = parseContent(message: message, role: role, isOpenClaw: isOpenClaw)
+        guard !contentItems.isEmpty else { return nil }
+
+        return SessionMessage(id: uuid, role: role, timestamp: timestamp, content: contentItems)
+    }
+
+    private func parseContent(message: [String: Any], role: SessionMessage.MessageRole, isOpenClaw: Bool = false) -> [SessionContentItem] {
         let rawContent = message["content"]
         var items: [SessionContentItem] = []
 
@@ -153,11 +182,11 @@ final class SessionDetailService: Sendable {
                     items.append(.thinking(text))
                 }
 
-            case "tool_use":
+            case "tool_use", "toolCall":
                 let id = block["id"] as? String ?? UUID().uuidString
                 let name = block["name"] as? String ?? "unknown"
                 let input: String
-                if let inputDict = block["input"] {
+                if let inputDict = block["input"] ?? block["arguments"] {
                     if let inputData = try? JSONSerialization.data(withJSONObject: inputDict, options: [.prettyPrinted]),
                        let inputStr = String(data: inputData, encoding: .utf8) {
                         input = inputStr
@@ -169,7 +198,7 @@ final class SessionDetailService: Sendable {
                 }
                 items.append(.toolUse(id: id, name: name, input: input))
 
-            case "tool_result":
+            case "tool_result", "toolResult":
                 let id = block["tool_use_id"] as? String ?? UUID().uuidString
                 let isError = block["is_error"] as? Bool ?? false
                 let content: String
@@ -191,12 +220,10 @@ final class SessionDetailService: Sendable {
     }
 
     private func stripXMLTags(_ text: String) -> String {
-        // Remove XML-style tags like <local-command-caveat>...</local-command-caveat>
         var result = text
         while let range = result.range(of: "<[^>]+>[\\s\\S]*?</[^>]+>", options: .regularExpression) {
             result.removeSubrange(range)
         }
-        // Also remove self-closing tags
         while let range = result.range(of: "<[^>]+/>", options: .regularExpression) {
             result.removeSubrange(range)
         }

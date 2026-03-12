@@ -1,10 +1,10 @@
 import Foundation
 
 struct ModelPricing: Sendable {
-    let inputPrice: Double      // USD per 1M tokens
-    let outputPrice: Double     // USD per 1M tokens
-    let cacheReadPrice: Double  // USD per 1M tokens
-    let cacheCreationPrice: Double // USD per 1M tokens
+    let inputPrice: Double
+    let outputPrice: Double
+    let cacheReadPrice: Double
+    let cacheCreationPrice: Double
 
     init(inputPrice: Double, outputPrice: Double, cacheReadPrice: Double? = nil, cacheCreationPrice: Double? = nil) {
         self.inputPrice = inputPrice
@@ -42,8 +42,24 @@ final class PricingTable: @unchecked Sendable {
         defer { lock.unlock() }
 
         if let p = models[model] { return p }
-        for (key, p) in models where model.hasPrefix(key) { return p }
-        for (key, p) in models where model.contains(key) { return p }
+
+        // Prefer longest prefix match to avoid e.g. "opus-4" matching "opus-4-6"
+        var bestMatch: (key: String, pricing: ModelPricing)?
+        for (key, p) in models where model.hasPrefix(key) {
+            if bestMatch == nil || key.count > bestMatch!.key.count {
+                bestMatch = (key, p)
+            }
+        }
+        if let match = bestMatch { return match.pricing }
+
+        var containsMatch: (key: String, pricing: ModelPricing)?
+        for (key, p) in models where model.contains(key) {
+            if containsMatch == nil || key.count > containsMatch!.key.count {
+                containsMatch = (key, p)
+            }
+        }
+        if let match = containsMatch { return match.pricing }
+
         return fallback
     }
 
@@ -71,7 +87,8 @@ final class PricingTable: @unchecked Sendable {
             var newPricing: [String: ModelPricing] = [:]
 
             for (key, value) in json {
-                guard key.contains("claude"), let info = value as? [String: Any] else { continue }
+                guard key.contains("claude") || key.contains("gemini"),
+                      let info = value as? [String: Any] else { continue }
                 guard let inputCPT = info["input_cost_per_token"] as? Double,
                       let outputCPT = info["output_cost_per_token"] as? Double else { continue }
 

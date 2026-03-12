@@ -1,7 +1,9 @@
 import SwiftUI
+import Sparkle
 
 struct SettingsView: View {
     @Environment(AppState.self) private var appState
+    let updater: SPUUpdater
 
     var body: some View {
         TabView {
@@ -20,7 +22,7 @@ struct SettingsView: View {
                     Label("Devices", systemImage: "desktopcomputer")
                 }
 
-            AboutSettingsView()
+            AboutSettingsView(updater: updater)
                 .tabItem {
                     Label("About", systemImage: "info.circle")
                 }
@@ -164,7 +166,7 @@ struct DeviceSettingsView: View {
             } header: {
                 Text("Remote Devices")
             } footer: {
-                Text("Aggregate Claude Code usage from other machines via SSH. Supports SSH config aliases, Tailscale hostnames, or direct IP addresses.")
+                Text("Aggregate Claude Code and OpenClaw usage from other machines via SSH.")
             }
 
             Section {
@@ -233,8 +235,41 @@ private struct DeviceFormSheet: View {
                     TextField("SSH Host", text: $device.sshHost, prompt: Text("e.g. user@192.168.1.100 or ssh-alias"))
                 }
 
-                Section("Options") {
+                Section("Paths") {
                     TextField("Claude Config Path", text: $device.claudePath, prompt: Text("~/.claude"))
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Text("OpenClaw Paths")
+                                .foregroundStyle(.secondary)
+                                .font(.callout)
+                            Spacer()
+                            Button {
+                                device.openClawPaths.append("")
+                            } label: {
+                                Image(systemName: "plus.circle")
+                            }
+                            .buttonStyle(.borderless)
+                        }
+
+                        ForEach(device.openClawPaths.indices, id: \.self) { index in
+                            HStack(spacing: 4) {
+                                TextField("Path", text: $device.openClawPaths[index], prompt: Text("~/.openclaw"))
+                                    .textFieldStyle(.roundedBorder)
+
+                                Button {
+                                    device.openClawPaths.remove(at: index)
+                                } label: {
+                                    Image(systemName: "minus.circle")
+                                        .foregroundStyle(.red)
+                                }
+                                .buttonStyle(.borderless)
+                            }
+                        }
+                    }
+                }
+
+                Section("Options") {
                     TextField("SSH Key Path", text: $device.identityFile, prompt: Text("Optional, e.g. ~/.ssh/id_ed25519"))
                 }
             }
@@ -269,6 +304,7 @@ private struct DeviceFormSheet: View {
 
                 Button("Save") {
                     if device.claudePath.isEmpty { device.claudePath = "~/.claude" }
+                    device.openClawPaths = device.openClawPaths.filter { !$0.isEmpty }
                     onSave(device)
                     dismiss()
                 }
@@ -277,7 +313,7 @@ private struct DeviceFormSheet: View {
             }
             .padding()
         }
-        .frame(width: 440, height: 340)
+        .frame(width: 440, height: 420)
     }
 
     private func testConnection() {
@@ -287,6 +323,7 @@ private struct DeviceFormSheet: View {
             let service = RemoteUsageService()
             var testDevice = device
             if testDevice.claudePath.isEmpty { testDevice.claudePath = "~/.claude" }
+            testDevice.openClawPaths = testDevice.openClawPaths.filter { !$0.isEmpty }
             let result = await service.testConnection(testDevice)
             testResult = result
             isTesting = false
@@ -297,16 +334,21 @@ private struct DeviceFormSheet: View {
 // MARK: - About
 
 struct AboutSettingsView: View {
+    private let updater: SPUUpdater
     @State private var avatarImage: NSImage?
     @State private var fetchTask: Task<Void, Never>?
     private static var memoryCache: NSImage?
 
+    init(updater: SPUUpdater) {
+        self.updater = updater
+    }
+
     private var appVersion: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as! String
     }
 
     private var buildNumber: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as! String
     }
 
     var body: some View {
@@ -336,18 +378,21 @@ struct AboutSettingsView: View {
                 .font(.title.bold())
 
             Text("Version \(appVersion) (\(buildNumber))")
-                .foregroundStyle(.secondary)
+                .foregroundColor(.secondary)
 
             VStack(spacing: 6) {
                 Link("GitHub Repository", destination: URL(string: "https://github.com/Bengerthelorf/Caudit")!)
             }
             .font(.callout)
 
+            CheckForUpdatesView(updater: updater)
+                .padding(.top, 4)
+
             Spacer()
 
             Text("Made by Bengerthelorf")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundColor(.secondary)
                 .padding(.bottom, 8)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -360,20 +405,18 @@ struct AboutSettingsView: View {
         }
     }
 
-    // MARK: - Avatar Caching (memory + disk)
+    // MARK: - Avatar Caching (memory + disk + bundled asset)
 
     private static let avatarCacheURL: URL = {
         let cacheDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
-            .appendingPathComponent("cc.ffitch.Caudit", isDirectory: true)
+            .appendingPathComponent(Bundle.main.bundleIdentifier!, isDirectory: true)
         try? FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
         return cacheDir.appendingPathComponent("avatar.png")
     }()
 
-    /// Max disk cache age: 24 hours
     private static let cacheMaxAge: TimeInterval = 86400
 
     private func loadAvatar() {
-        // 1. Memory cache
         if let cached = Self.memoryCache {
             avatarImage = cached
             if Self.isDiskCacheStale {
@@ -382,7 +425,6 @@ struct AboutSettingsView: View {
             return
         }
 
-        // 2. Disk cache
         let cacheURL = Self.avatarCacheURL
         if FileManager.default.fileExists(atPath: cacheURL.path),
            let data = try? Data(contentsOf: cacheURL),
@@ -395,12 +437,10 @@ struct AboutSettingsView: View {
             return
         }
 
-        // 3. Bundled fallback
         if let bundled = NSImage(named: "AuthorAvatar") {
             avatarImage = bundled
         }
 
-        // 4. Network fetch
         fetchTask = Task { await fetchAndCacheAvatar() }
     }
 
@@ -413,7 +453,7 @@ struct AboutSettingsView: View {
     }
 
     private func fetchAndCacheAvatar() async {
-        guard let url = URL(string: "https://github.com/Bengerthelorf.png?size=48") else { return }
+        guard let url = URL(string: "https://github.com/Bengerthelorf.png?size=64") else { return }
         do {
             let (data, _) = try await URLSession.shared.data(from: url)
             try Task.checkCancellation()

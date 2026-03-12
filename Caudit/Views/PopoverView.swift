@@ -29,7 +29,6 @@ struct PopoverView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // MARK: Header
             HStack {
                 Picker("", selection: $selectedTab) {
                     Text("Usage").tag(0)
@@ -44,7 +43,6 @@ struct PopoverView: View {
             Divider()
                 .padding(.horizontal, 16)
 
-            // MARK: Scrollable Content
             ScrollView(.vertical) {
                 Group {
                     switch selectedTab {
@@ -60,7 +58,6 @@ struct PopoverView: View {
             .scrollBounceBehavior(.basedOnSize)
             .scrollIndicators(.hidden)
 
-            // MARK: Footer
             Divider()
                 .padding(.horizontal, 16)
 
@@ -116,7 +113,7 @@ struct PopoverView: View {
         }
         .frame(width: 300, height: popoverHeight)
         .background(
-            // Hidden full layout without ScrollView for accurate total height measurement
+            // Mirror the main layout without ScrollView to measure true content height
             VStack(spacing: 0) {
                 HStack {
                     Picker("", selection: .constant(selectedTab)) {
@@ -141,7 +138,6 @@ struct PopoverView: View {
 
                 Divider().padding(.horizontal, 16)
 
-                // Footer placeholder with same sizing
                 HStack(spacing: 12) {
                     Text(" ").font(.caption2)
                     Spacer()

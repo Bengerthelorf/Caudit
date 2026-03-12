@@ -28,14 +28,15 @@ struct DashboardView: View {
 
     var body: some View {
         @Bindable var state = appState
-        NavigationSplitView {
+        NavigationSplitView(columnVisibility: .constant(.all)) {
             List(DashboardTab.allCases, selection: $state.selectedTab) { tab in
                 NavigationLink(value: tab) {
                     Label(tab.rawValue, systemImage: tab.icon)
                 }
             }
+            .listStyle(.sidebar)
             .navigationTitle("Caudit")
-            .navigationSplitViewColumnWidth(min: 160, ideal: 180, max: 220)
+            .frame(minWidth: 200, idealWidth: 300)
         } detail: {
             if let session = appState.selectedSessionForDetail {
                 SessionDetailView(session: session)
@@ -62,6 +63,7 @@ struct DashboardView: View {
                 }
             }
         }
+        .navigationSplitViewStyle(.prominentDetail)
         .onChange(of: appState.selectedTab) { _, _ in
             appState.selectedSessionForDetail = nil
         }
@@ -71,14 +73,14 @@ struct DashboardView: View {
 // MARK: - Source Colors
 
 enum SourceColor {
-    static let localColor: Color = .init(red: 0.35, green: 0.60, blue: 1.0)  // Soft blue
+    static let localColor: Color = .init(red: 0.56, green: 0.65, blue: 0.75)
     private static let remotePalette: [Color] = [
-        .init(red: 1.0, green: 0.62, blue: 0.30),  // Warm orange
-        .init(red: 0.40, green: 0.82, blue: 0.70),  // Teal
-        .init(red: 0.95, green: 0.55, blue: 0.60),  // Coral
-        .init(red: 0.60, green: 0.75, blue: 0.95),  // Light blue
-        .init(red: 0.85, green: 0.70, blue: 0.95),  // Lavender
-        .init(red: 0.95, green: 0.80, blue: 0.45),  // Gold
+        .init(red: 0.78, green: 0.62, blue: 0.56),
+        .init(red: 0.60, green: 0.72, blue: 0.68),
+        .init(red: 0.76, green: 0.58, blue: 0.63),
+        .init(red: 0.68, green: 0.72, blue: 0.80),
+        .init(red: 0.72, green: 0.66, blue: 0.76),
+        .init(red: 0.78, green: 0.74, blue: 0.60),
     ]
 
     static func color(for source: String, allSources: [String]) -> Color {
@@ -91,71 +93,21 @@ enum SourceColor {
     }
 }
 
-// MARK: - Filter Bar
+// MARK: - Palette
 
-private struct FilterBar: View {
-    @Environment(AppState.self) private var appState
-    var showTimeRange: Bool = false
+enum Palette {
+    static let blue       = Color(red: 0.56, green: 0.65, blue: 0.75)
+    static let rose       = Color(red: 0.76, green: 0.58, blue: 0.63)
+    static let sage       = Color(red: 0.60, green: 0.72, blue: 0.68)
+    static let terracotta = Color(red: 0.78, green: 0.62, blue: 0.56)
+    static let lavender   = Color(red: 0.72, green: 0.66, blue: 0.76)
+    static let sand       = Color(red: 0.78, green: 0.74, blue: 0.60)
+    static let olive      = Color(red: 0.62, green: 0.66, blue: 0.56)
+    static let coral      = Color(red: 0.82, green: 0.62, blue: 0.58)
 
-    var body: some View {
-        HStack(spacing: 8) {
-            if appState.availableSources.count > 1 {
-                ForEach(appState.availableSources, id: \.self) { source in
-                    SourceChip(
-                        name: source,
-                        color: SourceColor.color(for: source, allSources: appState.availableSources),
-                        isSelected: isSourceVisible(source)
-                    ) {
-                        appState.toggleSource(source)
-                    }
-                }
-            }
-
-            Spacer()
-
-            if showTimeRange {
-                @Bindable var state = appState
-                Picker("Period", selection: $state.dashboardFilter.timeRange) {
-                    ForEach(TimeRange.allCases) { range in
-                        Text(range.rawValue).tag(range)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-                .frame(maxWidth: 280)
-            }
-        }
-    }
-
-    private func isSourceVisible(_ source: String) -> Bool {
-        appState.dashboardFilter.selectedSources.isEmpty
-            || appState.dashboardFilter.selectedSources.contains(source)
-    }
-}
-
-private struct SourceChip: View {
-    let name: String
-    let color: Color
-    let isSelected: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 4) {
-                Circle()
-                    .fill(isSelected ? color : color.opacity(0.3))
-                    .frame(width: 8, height: 8)
-                Text(name)
-                    .font(.caption)
-                    .foregroundStyle(isSelected ? .primary : .tertiary)
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(isSelected ? color.opacity(0.1) : .clear, in: Capsule())
-            .overlay(Capsule().stroke(isSelected ? color.opacity(0.3) : Color.gray.opacity(0.2), lineWidth: 1))
-        }
-        .buttonStyle(.plain)
-    }
+    static let quotaGood   = Color(red: 0.60, green: 0.72, blue: 0.64)
+    static let quotaWarn   = Color(red: 0.80, green: 0.72, blue: 0.52)
+    static let quotaDanger = Color(red: 0.78, green: 0.54, blue: 0.54)
 }
 
 // MARK: - Loading Placeholder
@@ -189,7 +141,7 @@ private struct OverviewPage: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     if hasSources {
-                        FilterBar()
+                        UnifiedFilterBar(showTimeRange: false)
                     }
 
                     SectionHeader(title: "Usage Summary", icon: "dollarsign.circle")
@@ -199,26 +151,26 @@ private struct OverviewPage: View {
                             label: "Today",
                             value: CauditFormatter.costDetail(appState.todayUsage.totalCost),
                             detail: CauditFormatter.tokensWithUnit(appState.todayUsage.totalTokens),
-                            color: .blue
+                            color: Palette.blue
                         )
                         StatCard(
                             label: "This Month",
                             value: CauditFormatter.costDetail(appState.monthUsage.totalCost),
                             detail: CauditFormatter.tokensWithUnit(appState.monthUsage.totalTokens),
-                            color: .purple
+                            color: Palette.lavender
                         )
                         StatCard(
                             label: "All Time",
                             value: CauditFormatter.costDetail(appState.allTimeUsage.totalCost),
                             detail: CauditFormatter.tokensWithUnit(appState.allTimeUsage.totalTokens),
-                            color: .green
+                            color: Palette.sage
                         )
                         if let rate = appState.burnRate {
                             StatCard(
                                 label: "Burn Rate",
                                 value: CauditFormatter.costDetail(rate),
                                 detail: "per day · ~\(CauditFormatter.cost(rate * 30))/mo",
-                                color: .orange
+                                color: Palette.terracotta
                             )
                         }
                     }
@@ -257,15 +209,13 @@ private struct OverviewPage: View {
     }
 
     private func quotaColor(_ pct: Double) -> Color {
-        if pct < 50 { return .green }
-        if pct < 80 { return .orange }
-        return .red
+        if pct < 50 { return Palette.quotaGood }
+        if pct < 80 { return Palette.quotaWarn }
+        return Palette.quotaDanger
     }
 }
 
-// MARK: - GitHub Calendar Heatmap
-
-// MARK: - Heatmap Color Palette
+// MARK: - Heatmap
 
 private let heatmapGreens: [Color] = [
     Color(red: 0.92, green: 0.93, blue: 0.90),
@@ -299,7 +249,7 @@ private struct HeatmapLegend: View {
     }
 }
 
-// MARK: - Today Heatmap (1 row × 24 hourly cells)
+// MARK: - Today Heatmap
 
 private struct TodayHeatmap: View {
     let hourlyData: [DailyUsage]
@@ -347,7 +297,7 @@ private struct TodayHeatmap: View {
     }
 }
 
-// MARK: - Week Heatmap (7 day-columns × 6 four-hour rows)
+// MARK: - Week Heatmap
 
 private struct WeekHeatmap: View {
     let data: [DayHourlyBreakdown]
@@ -369,7 +319,6 @@ private struct WeekHeatmap: View {
                     .frame(maxWidth: .infinity, minHeight: 80)
             } else {
                 VStack(alignment: .leading, spacing: 2) {
-                    // Column headers (day labels)
                     HStack(spacing: 2) {
                         Color.clear.frame(width: 40, height: 1)
                         ForEach(data) { day in
@@ -381,7 +330,6 @@ private struct WeekHeatmap: View {
                         }
                     }
 
-                    // Rows (one per 4-hour slot)
                     ForEach(0..<6, id: \.self) { slot in
                         HStack(spacing: 2) {
                             Text(Self.timeLabels[slot])
@@ -407,7 +355,7 @@ private struct WeekHeatmap: View {
     }
 }
 
-// MARK: - Month Heatmap (4 rows × 8 columns, fill vertically)
+// MARK: - Month Heatmap
 
 private struct MonthHeatmap: View {
     let dailyData: [DailyUsage]
@@ -429,7 +377,6 @@ private struct MonthHeatmap: View {
                     .frame(maxWidth: .infinity, minHeight: 80)
             } else {
                 VStack(spacing: 2) {
-                    // Column date labels
                     HStack(spacing: 2) {
                         ForEach(0..<columns, id: \.self) { col in
                             let i = col * rows
@@ -442,7 +389,6 @@ private struct MonthHeatmap: View {
                         }
                     }
 
-                    // Grid: columns fill vertically
                     HStack(spacing: 2) {
                         ForEach(0..<columns, id: \.self) { col in
                             VStack(spacing: 2) {
@@ -572,7 +518,6 @@ private struct GitHubCalendarHeatmap: View {
         let labelFormatter = DateFormatter()
         labelFormatter.dateFormat = "MMM d, yyyy"
 
-        // Build lookup: julian day → cost
         var costByJulian: [Int: Double] = [:]
         for day in dailyHistory {
             if let jd = calendar.ordinality(of: .day, in: .era, for: day.date) {
@@ -582,11 +527,9 @@ private struct GitHubCalendarHeatmap: View {
 
         let lastDate = dailyHistory.last!.date
 
-        // Pad end to Saturday
         let endWeekday = calendar.component(.weekday, from: lastDate)
         let endDate = calendar.date(byAdding: .day, value: 7 - endWeekday, to: lastDate)!
 
-        // Optionally pad to minimum weeks for scrollable range
         let firstDate = dailyHistory.first!.date
         let dataStart: Date
         if minWeeks > 0 {
@@ -596,7 +539,6 @@ private struct GitHubCalendarHeatmap: View {
             dataStart = firstDate
         }
 
-        // Pad start to Sunday
         let startWeekday = calendar.component(.weekday, from: dataStart)
         let startDate = calendar.date(byAdding: .day, value: -(startWeekday - 1), to: dataStart)!
 
@@ -623,7 +565,7 @@ private struct GitHubCalendarHeatmap: View {
     }
 }
 
-// MARK: - Trend Chart (reusable)
+// MARK: - Trend Chart
 
 enum ChartGranularity {
     case daily
@@ -689,7 +631,7 @@ private struct TrendChart: View {
                         x: .value("Time", day.date, unit: calendarUnit),
                         y: .value("Cost", day.totalCost)
                     )
-                    .foregroundStyle(.blue.gradient)
+                    .foregroundStyle(Palette.blue.gradient)
                     .cornerRadius(3)
                 }
                 .chartYAxis { costAxisMarks }
@@ -762,7 +704,7 @@ private struct ActivityPage: View {
         } else {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    FilterBar(showTimeRange: true)
+                    UnifiedFilterBar(showTimeRange: false)
 
                     SectionHeader(title: "Activity", icon: "chart.dots.scatter")
 
@@ -787,22 +729,22 @@ private struct ActivityPage: View {
                             StatCard(
                                 label: "Total Sessions",
                                 value: "\(sessionDurations.count)",
-                                color: .blue
+                                color: Palette.blue
                             )
                             StatCard(
                                 label: "Avg Duration",
                                 value: CauditFormatter.duration(avgDuration),
-                                color: .purple
+                                color: Palette.lavender
                             )
                             StatCard(
                                 label: "Longest",
                                 value: CauditFormatter.duration(sessionDurations.max() ?? 0),
-                                color: .orange
+                                color: Palette.terracotta
                             )
                             StatCard(
                                 label: "Shortest",
                                 value: CauditFormatter.duration(sessionDurations.min() ?? 0),
-                                color: .green
+                                color: Palette.sage
                             )
                         }
                     }
@@ -820,7 +762,6 @@ private struct ActivityPage: View {
         }
     }
 
-    // Week heatmap: 7 days × 6 four-hour slots, gap-filled
     private var weekHeatmapDays: [DayHourlyBreakdown] {
         let calendar = Calendar.current
         let start = TimeRange.week.filterStart
@@ -901,7 +842,7 @@ private struct SessionsPage: View {
                         .buttonStyle(.plain)
                     }
 
-                    FilterBar(showTimeRange: true)
+                    UnifiedFilterBar(showTimeRange: false)
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
@@ -960,9 +901,7 @@ private struct SessionsPage: View {
                     }
                     .width(ideal: 120)
                 }
-                .onChange(of: selectedSessionId) { _, newValue in
-                    // Double-click detected via selection + keyboard enter, or use contextual menu
-                }
+                .onChange(of: selectedSessionId) { _, _ in }
                 .onKeyPress(.return) {
                     if let id = selectedSessionId,
                        let session = filteredSessions.first(where: { $0.id == id }) {
@@ -1007,7 +946,7 @@ private struct ProjectsPage: View {
             ContentUnavailableView("No Projects", systemImage: "folder", description: Text("Project data will appear here once usage is recorded."))
         } else {
             VStack(spacing: 0) {
-                FilterBar(showTimeRange: true)
+                UnifiedFilterBar(showTimeRange: false)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
 
@@ -1074,6 +1013,7 @@ private struct ProjectsPage: View {
 
 private struct UnifiedFilterBar: View {
     @Environment(AppState.self) private var appState
+    var showTimeRange: Bool = true
 
     var body: some View {
         @Bindable var state = appState
@@ -1124,14 +1064,16 @@ private struct UnifiedFilterBar: View {
 
             Spacer()
 
-            Picker("Period", selection: $state.dashboardFilter.timeRange) {
-                ForEach(TimeRange.allCases) { range in
-                    Text(range.rawValue).tag(range)
+            if showTimeRange {
+                Picker("Period", selection: $state.dashboardFilter.timeRange) {
+                    ForEach(TimeRange.allCases) { range in
+                        Text(range.rawValue).tag(range)
+                    }
                 }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .frame(maxWidth: 280)
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .frame(maxWidth: 280)
         }
     }
 
@@ -1177,7 +1119,7 @@ private struct ModelsPage: View {
             ContentUnavailableView("No Models", systemImage: "cpu", description: Text("Model data will appear here once usage is recorded."))
         } else {
             VStack(spacing: 0) {
-                UnifiedFilterBar()
+                UnifiedFilterBar(showTimeRange: false)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
 
@@ -1242,7 +1184,7 @@ private struct ToolsPage: View {
             ContentUnavailableView("No Tool Data", systemImage: "wrench.and.screwdriver", description: Text("Tool usage data will appear here once recorded."))
         } else {
             VStack(spacing: 0) {
-                UnifiedFilterBar()
+                UnifiedFilterBar(showTimeRange: false)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
 

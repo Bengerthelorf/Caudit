@@ -4,33 +4,46 @@ final class RemoteUsageService: @unchecked Sendable {
 
     // MARK: - Public
 
-    /// File count + total bytes fingerprint for change detection.
     func fingerprint(for device: RemoteDevice) async throws -> String {
-        let cmd = "find \(device.claudePath)/projects -name '*.jsonl' 2>/dev/null | xargs ls -ln 2>/dev/null | awk '{s+=$5} END{print NR,s}'; true"
+        let ocFinds = device.openClawPaths.map { "find \($0)/agents -name '*.jsonl' 2>/dev/null" }.joined(separator: "; ")
+        let cmd = "{ find \(device.claudePath)/projects -name '*.jsonl' 2>/dev/null; \(ocFinds); } | xargs ls -ln 2>/dev/null | awk '{s+=$5} END{print NR,s}'; true"
         return try await runSSH(device: device, command: cmd, connectTimeout: 10)
             .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     func fetchRecords(from device: RemoteDevice) async throws -> [UsageRecord] {
-        // Pre-filter with grep to only transfer usage lines
-        let script = """
+        // Claude Code grep
+        var parts = ["""
         find \(device.claudePath)/projects -name '*.jsonl' 2>/dev/null | while IFS= read -r f; do \
         rel="${f#*/projects/}"; proj="${rel%%/*}"; \
-        echo "===CAUDIT_PROJECT:${proj}==="; grep '"input_tokens"' "$f" 2>/dev/null; done; true
-        """
+        echo "===CAUDIT_PROJECT:${proj}==="; grep '"input_tokens"' "$f" 2>/dev/null; done
+        """]
+
+        // OpenClaw grep for each configured path
+        for ocPath in device.openClawPaths {
+            let dirName = (ocPath as NSString).lastPathComponent
+            parts.append("""
+            find \(ocPath)/agents -name '*.jsonl' 2>/dev/null | while IFS= read -r f; do \
+            sess=$(basename "$f" .jsonl); \
+            echo "===CAUDIT_OC:\(dirName)/${sess}==="; grep '"usage":{' "$f" 2>/dev/null; done
+            """)
+        }
+
+        let script = parts.joined(separator: "; ") + "; true"
         let output = try await runSSH(device: device, command: script)
         return UsageParser.parseGrepOutput(output, projectPrefix: device.name, source: device.name)
     }
 
     func testConnection(_ device: RemoteDevice) async -> (success: Bool, message: String) {
         do {
-            let cmd = "echo ok && ls -d \(device.claudePath)/projects 2>/dev/null && echo found || echo missing"
+            let ocChecks = device.openClawPaths.map { "ls -d \($0)/agents 2>/dev/null" }.joined(separator: " || ")
+            let cmd = "echo ok && (ls -d \(device.claudePath)/projects 2>/dev/null || \(ocChecks)) && echo found || echo missing"
             let output = try await runSSH(device: device, command: cmd, connectTimeout: 10)
             let lines = output.trimmingCharacters(in: .whitespacesAndNewlines).split(separator: "\n")
             if lines.first == "ok" {
                 return lines.contains("found")
-                    ? (true, "Connected. Claude data found.")
-                    : (true, "Connected, but no Claude data at \(device.claudePath)/projects")
+                    ? (true, "Connected. Usage data found.")
+                    : (true, "Connected, but no usage data found")
             }
             return (false, "Unexpected response")
         } catch {
@@ -114,7 +127,6 @@ final class RemoteUsageService: @unchecked Sendable {
         }
     }
 
-    /// Get SSH_AUTH_SOCK from launchd for GUI app context.
     private static func launchdSSHAuthSocket() -> String? {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/bin/launchctl")

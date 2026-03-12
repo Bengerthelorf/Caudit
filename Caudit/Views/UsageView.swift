@@ -26,10 +26,10 @@ struct UsageView: View {
                 }
 
                 VStack(spacing: 6) {
-                    TokenRow(label: "Input", tokens: appState.todayUsage.inputTokens, color: .blue)
-                    TokenRow(label: "Output", tokens: appState.todayUsage.outputTokens, color: .green)
-                    TokenRow(label: "Cache Read", tokens: appState.todayUsage.cacheReadTokens, color: .cyan)
-                    TokenRow(label: "Cache Write", tokens: appState.todayUsage.cacheCreationTokens, color: .orange)
+                    TokenRow(label: "Input", tokens: appState.todayUsage.inputTokens, color: Palette.blue)
+                    TokenRow(label: "Output", tokens: appState.todayUsage.outputTokens, color: Palette.sage)
+                    TokenRow(label: "Cache Read", tokens: appState.todayUsage.cacheReadTokens, color: Palette.lavender)
+                    TokenRow(label: "Cache Write", tokens: appState.todayUsage.cacheCreationTokens, color: Palette.terracotta)
                 }
 
                 Divider()

@@ -16,7 +16,6 @@ struct SessionMessage: Identifiable, Sendable {
         case assistant
     }
 
-    /// True when a user message contains only tool_result blocks (no actual user text)
     var isToolResultOnly: Bool {
         guard role == .user else { return false }
         return content.allSatisfy {
@@ -36,8 +35,8 @@ enum SessionContentItem: Identifiable, Sendable {
 
     var id: String {
         switch self {
-        case .text(let s): return "text-\(s.prefix(20).hashValue)"
-        case .thinking(let s): return "think-\(s.prefix(20).hashValue)"
+        case .text(let s): return "text-\(s.prefix(40))"
+        case .thinking(let s): return "think-\(s.prefix(40))"
         case .toolUse(let id, _, _): return "tool-\(id)"
         case .toolResult(let id, _, _): return "result-\(id)"
         }

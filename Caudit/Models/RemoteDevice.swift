@@ -5,6 +5,7 @@ struct RemoteDevice: Identifiable, Codable, Hashable {
     var name: String
     var sshHost: String
     var claudePath: String = "~/.claude"
+    var openClawPaths: [String] = ["~/.openclaw"]
     var identityFile: String = ""
     var isEnabled: Bool = true
 }

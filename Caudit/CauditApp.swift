@@ -1,4 +1,5 @@
 import SwiftUI
+import Sparkle
 
 @main
 struct CauditApp: App {
@@ -6,8 +7,13 @@ struct CauditApp: App {
 
     var body: some Scene {
         Settings {
-            SettingsView()
+            SettingsView(updater: appDelegate.updaterController.updater)
                 .environment(appDelegate.appState)
+        }
+        .commands {
+            CommandGroup(after: .appInfo) {
+                CheckForUpdatesView(updater: appDelegate.updaterController.updater)
+            }
         }
     }
 }

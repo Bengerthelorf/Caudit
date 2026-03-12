@@ -11,7 +11,7 @@ struct SessionDetailView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header bar
+            // Header bar — always pinned to top
             HStack {
                 Button(action: { appState.selectedSessionForDetail = nil }) {
                     Label("Back", systemImage: "chevron.left")
@@ -80,8 +80,10 @@ struct SessionDetailView: View {
                     systemImage: "bubble.left.and.bubble.right",
                     description: Text(loadError ?? "Could not load conversation content.")
                 )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .task {
             await loadSession()
         }

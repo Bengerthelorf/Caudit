@@ -88,8 +88,8 @@ struct QuotaView: View {
 
     private func quotaColor(_ pct: Double) -> Color {
         if pct < 50 { return .primary }
-        if pct < 80 { return .orange }
-        return .red
+        if pct < 80 { return Palette.quotaWarn }
+        return Palette.quotaDanger
     }
 }
 
@@ -124,9 +124,9 @@ struct QuotaBar: View {
     var height: CGFloat = 6
 
     private var color: Color {
-        if percentage < 50 { return .green }
-        if percentage < 80 { return .yellow }
-        return .red
+        if percentage < 50 { return Palette.quotaGood }
+        if percentage < 80 { return Palette.quotaWarn }
+        return Palette.quotaDanger
     }
 
     var body: some View {
