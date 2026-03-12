@@ -1,0 +1,318 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [main]
+    tags:
+      - 'v*.*.*'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build
+    runs-on: macos-26
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve packages
+        run: xcodebuild -resolvePackageDependencies -project Caudit.xcodeproj -scheme Caudit
+
+      - name: Build (CI check)
+        if: "!startsWith(github.ref, 'refs/tags/')"
+        run: |
+          xcodebuild build \
+            -project Caudit.xcodeproj \
+            -scheme Caudit \
+            -configuration Release \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            -quiet
+
+      - name: Import signing certificate
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          CERTIFICATE_P12: ${{ secrets.CERTIFICATE_P12 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
+        run: |
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          echo "$CERTIFICATE_P12" | base64 --decode > $RUNNER_TEMP/certificate.p12
+          security import $RUNNER_TEMP/certificate.p12 \
+            -P "$CERTIFICATE_PASSWORD" \
+            -A -t cert -f pkcs12 \
+            -k "$KEYCHAIN_PATH"
+
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain-db
+
+      - name: Archive
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          xcodebuild archive \
+            -project Caudit.xcodeproj \
+            -scheme Caudit \
+            -configuration Release \
+            -archivePath build/Caudit.xcarchive \
+            -quiet
+
+      - name: Export app
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          cp -R build/Caudit.xcarchive/Products/Applications/Caudit.app build/
+
+      - name: Create DMG
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          mkdir -p build/dmg
+          cp -R build/Caudit.app build/dmg/
+          ln -s /Applications build/dmg/Applications
+          hdiutil create \
+            -volname "Caudit" \
+            -srcfolder build/dmg \
+            -ov -format UDZO \
+            build/Caudit.dmg
+
+      - name: Sign DMG with Sparkle EdDSA
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          SPARKLE_KEY: ${{ secrets.SPARKLE_EDDSA_KEY }}
+        run: |
+          curl -sL "https://github.com/sparkle-project/Sparkle/releases/download/2.8.0/Sparkle-2.8.0.tar.xz" -o /tmp/sparkle.tar.xz
+          mkdir -p /tmp/sparkle
+          tar xf /tmp/sparkle.tar.xz -C /tmp/sparkle
+          SIGN_UPDATE="/tmp/sparkle/bin/sign_update"
+
+          echo "$SPARKLE_KEY" > /tmp/sparkle_key
+          SIGNATURE=$("$SIGN_UPDATE" build/Caudit.dmg --ed-key-file /tmp/sparkle_key)
+          rm -f /tmp/sparkle_key
+
+          DMG_SIZE=$(stat -f%z build/Caudit.dmg)
+          echo "DMG_SIZE=$DMG_SIZE" >> $GITHUB_ENV
+
+          ED_SIG=$(echo "$SIGNATURE" | grep -o 'sparkle:edSignature="[^"]*"' | sed 's/sparkle:edSignature="//;s/"//')
+          echo "ED_SIGNATURE=$ED_SIG" >> $GITHUB_ENV
+
+      - name: Generate changelog
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+
+          echo "## What's Changed" > CHANGELOG.md
+          echo "" >> CHANGELOG.md
+
+          if [ -n "$PREVIOUS_TAG" ]; then
+            git log --pretty=format:"- %s" ${PREVIOUS_TAG}..HEAD -- ':!Caudit/Resources/sparkle.xml' >> CHANGELOG.md
+            echo "" >> CHANGELOG.md
+            echo "" >> CHANGELOG.md
+            echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/${PREVIOUS_TAG}...${TAG}" >> CHANGELOG.md
+          else
+            git log --pretty=format:"- %s" >> CHANGELOG.md
+          fi
+
+      - name: Update sparkle.xml
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          BUILD_NUMBER=$(grep -m1 'CURRENT_PROJECT_VERSION' Caudit.xcodeproj/project.pbxproj | tr -dc '0-9')
+          TAG=${GITHUB_REF#refs/tags/}
+          PUBDATE=$(date -u "+%a, %d %b %Y %H:%M:%S +0000")
+          DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/${TAG}/Caudit.dmg"
+
+          export SPARKLE_VERSION="$VERSION"
+          export SPARKLE_BUILD="$BUILD_NUMBER"
+          export SPARKLE_PUBDATE="$PUBDATE"
+          export SPARKLE_DOWNLOAD_URL="$DOWNLOAD_URL"
+          export SPARKLE_ED_SIG="$ED_SIGNATURE"
+          export SPARKLE_DMG_SIZE="$DMG_SIZE"
+          export SPARKLE_REPO="${{ github.repository }}"
+
+          python3 << 'PYEOF'
+          import sys, re, os
+
+          version = os.environ["SPARKLE_VERSION"]
+          build = os.environ["SPARKLE_BUILD"]
+          pubdate = os.environ["SPARKLE_PUBDATE"]
+          download_url = os.environ["SPARKLE_DOWNLOAD_URL"]
+          ed_sig = os.environ["SPARKLE_ED_SIG"]
+          dmg_size = os.environ["SPARKLE_DMG_SIZE"]
+          repo = os.environ["SPARKLE_REPO"]
+
+          changelog_html = ""
+          try:
+              with open("CHANGELOG.md") as f:
+                  lines = f.readlines()
+              items = []
+              for line in lines:
+                  line = line.strip()
+                  if line.startswith("- "):
+                      msg = line[2:]
+                      if msg.startswith(("release:", "chore:", "Merge ")):
+                          continue
+                      if msg.startswith("feat:"):
+                          items.append(f"<li><strong>New:</strong> {msg[5:].strip()}</li>")
+                      elif msg.startswith("fix:"):
+                          items.append(f"<li><strong>Fixed:</strong> {msg[4:].strip()}</li>")
+                      elif msg.startswith("perf:"):
+                          items.append(f"<li><strong>Perf:</strong> {msg[5:].strip()}</li>")
+                      elif msg.startswith("docs:"):
+                          items.append(f"<li><strong>Docs:</strong> {msg[5:].strip()}</li>")
+                      elif msg.startswith("refactor:"):
+                          items.append(f"<li><strong>Refactor:</strong> {msg[9:].strip()}</li>")
+                      else:
+                          items.append(f"<li>{msg}</li>")
+              if items:
+                  changelog_html = "\n".join(f"                        {i}" for i in items)
+          except Exception:
+              pass
+
+          desc_block = ""
+          if changelog_html:
+              desc_block = (
+                  "\n                    <description>\n"
+                  "                        <![CDATA[\n"
+                  "                    <h2>Version " + version + "</h2>\n"
+                  "                    <ul>\n"
+                  + changelog_html + "\n"
+                  "                    </ul>\n"
+                  "                        ]]>\n"
+                  "                    </description>"
+              )
+
+          item = (
+              "        <item>\n"
+              "                    <title>Version " + version + "</title>\n"
+              "                    <link>https://github.com/" + repo + "</link>\n"
+              "                    <sparkle:version>" + build + "</sparkle:version>\n"
+              "                    <sparkle:shortVersionString>" + version + "</sparkle:shortVersionString>\n"
+              "                    <pubDate>" + pubdate + "</pubDate>\n"
+              "                    <enclosure url=\"" + download_url + "\"\n"
+              "                    sparkle:edSignature=\"" + ed_sig + "\" length=\"" + dmg_size + "\"\n"
+              "                    type=\"application/octet-stream\"/>" + desc_block + "\n"
+              "                </item>"
+          )
+
+          xml = open("Caudit/Resources/sparkle.xml").read()
+
+          existing = re.search(
+              r'<item>\s*<title>Version ' + re.escape(version) + r'</title>.*?</item>',
+              xml, flags=re.DOTALL
+          )
+          if existing:
+              updated_item = existing.group(0)
+              updated_item = re.sub(
+                  r'sparkle:edSignature="[^"]*"',
+                  f'sparkle:edSignature="{ed_sig}"',
+                  updated_item
+              )
+              updated_item = re.sub(
+                  r'length="[^"]*"',
+                  f'length="{dmg_size}"',
+                  updated_item
+              )
+              updated_item = re.sub(
+                  r'<sparkle:version>[^<]*</sparkle:version>',
+                  f'<sparkle:version>{build}</sparkle:version>',
+                  updated_item
+              )
+              updated_item = re.sub(
+                  r'<pubDate>[^<]*</pubDate>',
+                  f'<pubDate>{pubdate}</pubDate>',
+                  updated_item
+              )
+              xml = xml[:existing.start()] + updated_item + xml[existing.end():]
+              print(f"Found existing entry for {version}, updated enclosure only.")
+          else:
+              marker = '<title>Caudit</title>'
+              idx = xml.find(marker)
+              if idx == -1:
+                  sys.exit('marker not found')
+              insert_pos = xml.index('\n', idx) + 1
+              xml = xml[:insert_pos] + item + '\n' + xml[insert_pos:]
+              print(f"No existing entry for {version}, generated new item.")
+
+          open("Caudit/Resources/sparkle.xml", "w").write(xml)
+          PYEOF
+
+      - name: Commit and push appcast
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          cp Caudit/Resources/sparkle.xml /tmp/sparkle.xml.updated
+          git fetch origin main
+          git checkout -B main origin/main
+          cp /tmp/sparkle.xml.updated Caudit/Resources/sparkle.xml
+          git add Caudit/Resources/sparkle.xml
+          git diff --cached --quiet && echo "No changes" || git commit -m "release: update appcast for ${GITHUB_REF#refs/tags/}"
+          git push origin main
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: build/Caudit.dmg
+          body_path: CHANGELOG.md
+          draft: false
+          prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') || contains(github.ref, 'rc') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Homebrew Cask
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          TAG=${GITHUB_REF#refs/tags/}
+          DMG_URL="https://github.com/${{ github.repository }}/releases/download/${TAG}/Caudit.dmg"
+
+          SHA256=$(shasum -a 256 build/Caudit.dmg | cut -d ' ' -f 1)
+
+          git clone https://x-access-token:${TAP_GITHUB_TOKEN}@github.com/Bengerthelorf/homebrew-tap.git /tmp/homebrew-tap
+          cd /tmp/homebrew-tap
+          mkdir -p Casks
+
+          cat > Casks/caudit.rb <<CASK
+          cask "caudit" do
+            version "${VERSION}"
+            sha256 "${SHA256}"
+
+            url "${DMG_URL}"
+            name "Caudit"
+            desc "Claude API usage tracker for macOS menu bar"
+            homepage "https://github.com/Bengerthelorf/Caudit"
+
+            depends_on macos: ">= :ventura"
+
+            app "Caudit.app"
+
+            zap trash: [
+              "~/Library/Preferences/homes.snaix.Caudit.plist",
+            ]
+          end
+          CASK
+
+          sed -i '' 's/^          //' Casks/caudit.rb
+
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add Casks/caudit.rb
+          git diff --cached --quiet && echo "No changes" || git commit -m "Update caudit to ${TAG}"
+          git push origin main
+
+      - name: Cleanup keychain
+        if: always() && startsWith(github.ref, 'refs/tags/')
+        run: |
+          security delete-keychain $RUNNER_TEMP/app-signing.keychain-db 2>/dev/null || true
