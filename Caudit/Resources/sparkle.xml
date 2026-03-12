@@ -3,6 +3,24 @@
     <channel>
         <title>Caudit</title>
         <item>
+                    <title>Version 0.0.2</title>
+                    <link>https://github.com/Bengerthelorf/Caudit</link>
+                    <sparkle:version>2026031300</sparkle:version>
+                    <sparkle:shortVersionString>0.0.2</sparkle:shortVersionString>
+                    <pubDate>Thu, 12 Mar 2026 18:51:40 +0000</pubDate>
+                    <enclosure url="https://github.com/Bengerthelorf/Caudit/releases/download/v0.0.2/Caudit.dmg"
+                    sparkle:edSignature="9BJ6GZI3Eg1YuSCdBckZ4zmKu40+n2y5LwgXVBEOwv0BFGvx+B5i7isi4YJXrpSetGisPtubcdBCjpIOz2nLDg==" length="4186926"
+                    type="application/octet-stream"/>
+                    <description>
+                        <![CDATA[
+                    <h2>Version 0.0.2</h2>
+                    <ul>
+                        <li><strong>New:</strong> Sparkle auto-update, muted palette, NavigationSplitView alignment, code quality audit</li>
+                    </ul>
+                        ]]>
+                    </description>
+                </item>
+        <item>
                     <title>Version 0.0.1</title>
                     <link>https://github.com/Bengerthelorf/Caudit</link>
                     <sparkle:version>1</sparkle:version>
