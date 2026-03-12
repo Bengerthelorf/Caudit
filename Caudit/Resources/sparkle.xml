@@ -2,5 +2,49 @@
 <rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
     <channel>
         <title>Caudit</title>
+        <item>
+                    <title>Version 0.0.1</title>
+                    <link>https://github.com/Bengerthelorf/Caudit</link>
+                    <sparkle:version>1</sparkle:version>
+                    <sparkle:shortVersionString>0.0.1</sparkle:shortVersionString>
+                    <pubDate>Thu, 12 Mar 2026 16:18:17 +0000</pubDate>
+                    <enclosure url="https://github.com/Bengerthelorf/Caudit/releases/download/v0.0.1/Caudit.dmg"
+                    sparkle:edSignature="nc+hsCHyWTELOqQAbAwMjQITaWhMXueWYmxBsWVmREeTsVhX6+iOVk9L9OvWmzlW9ZSc64QQe8Z/r5yUqWlpAw==" length="3247035"
+                    type="application/octet-stream"/>
+                    <description>
+                        <![CDATA[
+                    <h2>Version 0.0.1</h2>
+                    <ul>
+                        <li>ci: add contents write permission for appcast push</li>
+                        <li>ci: add build and release workflow with Sparkle appcast</li>
+                        <li>Month heatmap: 4 rows × 8 columns grid, fill vertically with date labels</li>
+                        <li>Month heatmap: fill width with flat cells and date labels per column</li>
+                        <li>Use wider flat cells for Month heatmap, keep square cells for All Time</li>
+                        <li>Unify Month heatmap with calendar grid layout, add cellSize parameter</li>
+                        <li>Redesign Activity heatmaps: Today=24h hourly, Week=7d×4h grid, Month=31d compact grid</li>
+                        <li>Add adaptive heatmap layout for short time ranges</li>
+                        <li>Replace Activity hour×day heatmap with GitHub calendar heatmap</li>
+                        <li>Fix calendar heatmap scrolling and chart x-axis label overlap</li>
+                        <li>Fix session detail: tool_result display and remote session loading</li>
+                        <li>Restructure Overview and Activity pages, fix navigation and heatmap filter</li>
+                        <li>Replace source capsule chips with Menu-based device filter on Models and Tools pages</li>
+                        <li>Add Project→Sessions and Session→Detail drill-down navigation</li>
+                        <li>Add session detail view with conversation display</li>
+                        <li>Add session detail model and JSONL parser service</li>
+                        <li>Add all-time daily trend chart to Overview</li>
+                        <li>Add time range filter to Activity page</li>
+                        <li>Change heatmap to GitHub-style green color scheme</li>
+                        <li>Replace shell grep with native Swift JSONL parser</li>
+                        <li>Add session duration stats to activity page</li>
+                        <li>Add tool usage statistics to dashboard</li>
+                        <li>Add session browser to dashboard</li>
+                        <li>Add activity heatmap to dashboard</li>
+                        <li>Add app icon designed with Icon Composer</li>
+                        <li>Add dashboard filters, multi-device support, adaptive popover, and UI improvements</li>
+                        <li>Initial Commit</li>
+                    </ul>
+                        ]]>
+                    </description>
+                </item>
     </channel>
 </rss>
