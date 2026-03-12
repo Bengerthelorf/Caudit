@@ -9,29 +9,50 @@ struct SessionDetailView: View {
     @State private var loadError: String?
     @State private var isSearching = false
     @State private var searchText = ""
+    @State private var currentMatchIndex = 0
+    @State private var scrollPosition = ScrollPosition()
     @FocusState private var isSearchFieldFocused: Bool
     private let service = SessionDetailService()
 
     // MARK: - Search
 
-    private var filteredMessages: [SessionMessage] {
-        guard let detail else { return [] }
-        guard !searchText.isEmpty else { return detail.messages }
-        return detail.messages.filter { message in
-            message.content.contains { item in
+    private var allMessages: [SessionMessage] {
+        detail?.messages ?? []
+    }
+
+    private var matchingIndices: [Int] {
+        guard !searchText.isEmpty else { return [] }
+        return allMessages.indices.filter { idx in
+            allMessages[idx].content.contains { item in
                 switch item {
-                case .text(let text):
-                    text.localizedCaseInsensitiveContains(searchText)
-                case .thinking(let text):
-                    text.localizedCaseInsensitiveContains(searchText)
-                case .toolUse(_, let name, let input):
-                    name.localizedCaseInsensitiveContains(searchText) ||
-                    input.localizedCaseInsensitiveContains(searchText)
-                case .toolResult(_, let content, _):
-                    content.localizedCaseInsensitiveContains(searchText)
+                case .text(let t): t.localizedCaseInsensitiveContains(searchText)
+                case .thinking(let t): t.localizedCaseInsensitiveContains(searchText)
+                case .toolUse(_, let n, let i):
+                    n.localizedCaseInsensitiveContains(searchText) ||
+                    i.localizedCaseInsensitiveContains(searchText)
+                case .toolResult(_, let c, _): c.localizedCaseInsensitiveContains(searchText)
                 }
             }
         }
+    }
+
+    private func gotoNextMatch() {
+        guard !matchingIndices.isEmpty else { return }
+        currentMatchIndex = (currentMatchIndex + 1) % matchingIndices.count
+        scrollToCurrentMatch()
+    }
+
+    private func gotoPreviousMatch() {
+        guard !matchingIndices.isEmpty else { return }
+        currentMatchIndex = (currentMatchIndex - 1 + matchingIndices.count) % matchingIndices.count
+        scrollToCurrentMatch()
+    }
+
+    private func scrollToCurrentMatch() {
+        guard !matchingIndices.isEmpty else { return }
+        let idx = min(currentMatchIndex, matchingIndices.count - 1)
+        let messageId = allMessages[matchingIndices[idx]].id
+        scrollPosition.scrollTo(id: messageId, anchor: .center)
     }
 
     var body: some View {
@@ -41,10 +62,14 @@ struct SessionDetailView: View {
                 SessionSearchBar(
                     searchText: $searchText,
                     isSearchFieldFocused: $isSearchFieldFocused,
-                    matchCount: searchText.isEmpty ? nil : filteredMessages.count
+                    currentMatch: currentMatchIndex,
+                    totalMatches: matchingIndices.count,
+                    onPrevious: gotoPreviousMatch,
+                    onNext: gotoNextMatch
                 ) {
                     isSearching = false
                     searchText = ""
+                    currentMatchIndex = 0
                 }
                 Divider()
             }
@@ -61,37 +86,42 @@ struct SessionDetailView: View {
                         .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if !filteredMessages.isEmpty {
+            } else if !allMessages.isEmpty {
+                let matchSet = Set(matchingIndices)
+                let currentMessageIndex = matchingIndices.isEmpty ? -1 : matchingIndices[min(currentMatchIndex, matchingIndices.count - 1)]
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 12) {
-                        ForEach(filteredMessages) { message in
-                            MessageRow(message: message)
+                        ForEach(Array(allMessages.enumerated()), id: \.element.id) { index, message in
+                            MessageRow(
+                                message: message,
+                                highlight: matchSet.contains(index) ? searchText : "",
+                                isCurrentMatch: index == currentMessageIndex
+                            )
                         }
                     }
+                    .scrollTargetLayout()
                     .padding(16)
                 }
-            } else if searchText.isEmpty {
+                .scrollPosition($scrollPosition)
+            } else {
                 ContentUnavailableView(
                     "No Messages",
                     systemImage: "bubble.left.and.bubble.right",
                     description: Text(loadError ?? "Could not load conversation content.")
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                ContentUnavailableView(
-                    "No Results",
-                    systemImage: "magnifyingglass",
-                    description: Text("No messages match \"\(searchText)\"")
-                )
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .onKeyPress(characters: CharacterSet(charactersIn: "f")) { keyPress in
-            guard keyPress.modifiers == .command else { return .ignored }
-            isSearching = true
-            isSearchFieldFocused = true
-            return .handled
+        .onChange(of: searchText) { _, _ in currentMatchIndex = 0 }
+        .background {
+            Button(action: {
+                isSearching = true
+                DispatchQueue.main.async { isSearchFieldFocused = true }
+            }) { EmptyView() }
+            .keyboardShortcut("f", modifiers: .command)
+            .opacity(0)
+            .allowsHitTesting(false)
         }
         .onKeyPress(.escape) {
             if isSearching {
@@ -138,8 +168,29 @@ struct SessionDetailView: View {
 
 struct MessageRow: View {
     let message: SessionMessage
+    var highlight: String = ""
+    var isCurrentMatch: Bool = false
     @State private var isThinkingExpanded = false
     @State private var expandedTools: Set<String> = []
+
+    private func highlighted(_ content: String) -> AttributedString {
+        var attributed = AttributedString(content)
+        guard !highlight.isEmpty else { return attributed }
+        let highlightColor: Color = isCurrentMatch
+            ? Color(nsColor: .findHighlightColor)
+            : .yellow.opacity(0.25)
+        var searchStart = attributed.startIndex
+        while searchStart < attributed.endIndex,
+              let range = attributed[searchStart..<attributed.endIndex]
+                .range(of: highlight, options: .caseInsensitive) {
+            attributed[range].backgroundColor = highlightColor
+            if isCurrentMatch {
+                attributed[range].foregroundColor = .black
+            }
+            searchStart = range.upperBound
+        }
+        return attributed
+    }
 
     private var displayRole: DisplayRole {
         if message.isToolResultOnly {
@@ -178,7 +229,10 @@ struct MessageRow: View {
         .background(roleBackground, in: RoundedRectangle(cornerRadius: 8))
         .overlay(
             RoundedRectangle(cornerRadius: 8)
-                .stroke(roleBorder, lineWidth: 1)
+                .stroke(
+                    isCurrentMatch ? Color.accentColor : roleBorder,
+                    lineWidth: isCurrentMatch ? 2 : 1
+                )
         )
     }
 
@@ -226,7 +280,7 @@ struct MessageRow: View {
     private func contentView(for item: SessionContentItem) -> some View {
         switch item {
         case .text(let text):
-            Text(text)
+            Text(highlighted(text))
                 .font(.body)
                 .textSelection(.enabled)
 
@@ -234,7 +288,7 @@ struct MessageRow: View {
             DisclosureGroup(
                 isExpanded: $isThinkingExpanded,
                 content: {
-                    Text(text)
+                    Text(highlighted(text))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .textSelection(.enabled)
@@ -255,7 +309,7 @@ struct MessageRow: View {
             )
             DisclosureGroup(isExpanded: isExpanded) {
                 if !input.isEmpty {
-                    Text(input)
+                    Text(highlighted(input))
                         .font(.system(.caption, design: .monospaced))
                         .foregroundStyle(.secondary)
                         .textSelection(.enabled)
@@ -277,7 +331,7 @@ struct MessageRow: View {
                 set: { if $0 { expandedTools.insert(id) } else { expandedTools.remove(id) } }
             )
             DisclosureGroup(isExpanded: isExpanded) {
-                Text(content.prefix(2000))
+                Text(highlighted(String(content.prefix(2000))))
                     .font(.system(.caption, design: .monospaced))
                     .foregroundStyle(isError ? .red : .secondary)
                     .textSelection(.enabled)
@@ -315,7 +369,10 @@ struct MessageRow: View {
 struct SessionSearchBar: View {
     @Binding var searchText: String
     var isSearchFieldFocused: FocusState<Bool>.Binding
-    var matchCount: Int?
+    var currentMatch: Int
+    var totalMatches: Int
+    var onPrevious: () -> Void
+    var onNext: () -> Void
     var onDismiss: () -> Void
 
     var body: some View {
@@ -328,15 +385,14 @@ struct SessionSearchBar: View {
                 .textFieldStyle(.plain)
                 .font(.system(size: 13))
                 .focused(isSearchFieldFocused)
+                .onSubmit { onNext() }
 
-            if let matchCount {
-                Text("\(matchCount) found")
+            if !searchText.isEmpty {
+                Text("\(totalMatches > 0 ? currentMatch + 1 : 0) / \(totalMatches)")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
                     .monospacedDigit()
-            }
 
-            if !searchText.isEmpty {
                 Button {
                     searchText = ""
                 } label: {
@@ -345,6 +401,19 @@ struct SessionSearchBar: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
+
+                ControlGroup {
+                    Button(action: onPrevious) {
+                        Label("Previous", systemImage: "chevron.left")
+                    }
+                    .disabled(totalMatches == 0)
+
+                    Button(action: onNext) {
+                        Label("Next", systemImage: "chevron.right")
+                    }
+                    .disabled(totalMatches == 0)
+                }
+                .controlGroupStyle(.navigation)
             }
 
             Button("Done", action: onDismiss)
