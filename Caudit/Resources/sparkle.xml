@@ -3,6 +3,44 @@
     <channel>
         <title>Caudit</title>
         <item>
+                    <title>Version 0.0.4</title>
+                    <link>https://github.com/Bengerthelorf/Caudit</link>
+                    <sparkle:version>2026031701</sparkle:version>
+                    <sparkle:shortVersionString>0.0.4</sparkle:shortVersionString>
+                    <pubDate>Mon, 16 Mar 2026 19:49:21 +0000</pubDate>
+                    <enclosure url="https://github.com/Bengerthelorf/Caudit/releases/download/v0.0.4/Caudit.dmg"
+                    sparkle:edSignature="UhmJosYYqpUIM5sqcLEkz6+rX1orJtNDVDmZntxukWBjRZqAUY5utZqiCFbjCpvzhmm2MPgtkSk69PsIAwz7Ag==" length="4151718"
+                    type="application/octet-stream"/>
+                    <description>
+                        <![CDATA[
+                    <h2>Version 0.0.4</h2>
+                    <ul>
+                        <li><strong>Refactor:</strong> code quality cleanup</li>
+                        <li><strong>Refactor:</strong> replace SwiftUI App with pure AppKit entry point</li>
+                        <li><strong>Fixed:</strong> prevent phantom window flash on launch</li>
+                        <li><strong>Refactor:</strong> Settings with NavigationSplitView, close phantom window</li>
+                        <li><strong>Refactor:</strong> replace SwiftUI Settings scene with manual NSWindow</li>
+                        <li><strong>Fixed:</strong> observe Settings window appearance before activating</li>
+                        <li><strong>Fixed:</strong> Settings window focus on first open after launch</li>
+                        <li><strong>Fixed:</strong> use 50ms delay for first-launch window activation</li>
+                        <li><strong>Fixed:</strong> launch-at-login status and window focus activation</li>
+                        <li><strong>Fixed:</strong> hide future days in calendar heatmap, add unit tests</li>
+                        <li><strong>Fixed:</strong> allTimeDailyMap year collision, heatmap hover, consistent heights</li>
+                        <li><strong>Fixed:</strong> MonthHeatmap missing days, remove toolbar separator line</li>
+                        <li><strong>Fixed:</strong> show time range filter on Activity page, hide toolbar separator</li>
+                        <li><strong>Fixed:</strong> hide open-in-window toolbar button when no session is selected</li>
+                        <li><strong>Refactor:</strong> use process.terminationHandler instead of blocking waitUntilExit</li>
+                        <li><strong>Refactor:</strong> add @MainActor to AppState and AppDelegate</li>
+                        <li><strong>Fixed:</strong> guard date formatters with NSLock instead of nonisolated(unsafe)</li>
+                        <li><strong>Fixed:</strong> session window observer leak and stale remote cache cleanup</li>
+                        <li><strong>Fixed:</strong> replace silent catch blocks with os_log, remove force unwraps</li>
+                        <li><strong>Refactor:</strong> extract shared SessionMessageList to deduplicate session views</li>
+                        <li><strong>Refactor:</strong> extract shared SSHService to eliminate SSH code duplication</li>
+                    </ul>
+                        ]]>
+                    </description>
+                </item>
+        <item>
                     <title>Version 0.0.3</title>
                     <link>https://github.com/Bengerthelorf/Caudit</link>
                     <sparkle:version>2026031700</sparkle:version>
