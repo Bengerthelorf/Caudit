@@ -33,6 +33,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         Self.shared = self
     }
 
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        NSApp.setActivationPolicy(.accessory)
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupStatusItem()
         setupPopover()
@@ -46,11 +50,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             name: .cauditDataUpdated, object: nil
         )
 
-        DispatchQueue.main.async {
-            for window in NSApp.windows where window != self.statusItem.button?.window {
-                window.close()
-            }
-            NSApp.setActivationPolicy(.accessory)
+        for window in NSApp.windows where window != statusItem.button?.window {
+            window.orderOut(nil)
         }
     }
 
