@@ -1,0 +1,13 @@
+# Xcode
+build/
+*.xcuserdata
+*.xcworkspace
+DerivedData/
+
+# Docs
+docs/node_modules/
+docs/.vitepress/dist/
+docs/.vitepress/cache/
+
+# macOS
+.DS_Store

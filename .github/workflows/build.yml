@@ -315,6 +315,12 @@ jobs:
           git diff --cached --quiet && echo "No changes" || git commit -m "Update caudit to ${TAG}"
           git push origin main
 
+      - name: Redeploy docs (updates appcast on GitHub Pages)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          event-type: redeploy-docs
+
       - name: Cleanup keychain
         if: always() && startsWith(github.ref, 'refs/tags/')
         run: |
