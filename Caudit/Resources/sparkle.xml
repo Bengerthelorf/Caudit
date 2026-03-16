@@ -3,6 +3,26 @@
     <channel>
         <title>Caudit</title>
         <item>
+                    <title>Version 0.0.3</title>
+                    <link>https://github.com/Bengerthelorf/Caudit</link>
+                    <sparkle:version>2026031700</sparkle:version>
+                    <sparkle:shortVersionString>0.0.3</sparkle:shortVersionString>
+                    <pubDate>Mon, 16 Mar 2026 17:49:06 +0000</pubDate>
+                    <enclosure url="https://github.com/Bengerthelorf/Caudit/releases/download/v0.0.3/Caudit.dmg"
+                    sparkle:edSignature="+/8kA7JuGS6zHHoJtf6pUWQmJWvMSzZ8gwo3+8Oa/ZnnvW6YdrAHYr6DF+T7XYwNMsvKqqxEzLo+bhYWEVoUBw==" length="4133939"
+                    type="application/octet-stream"/>
+                    <description>
+                        <![CDATA[
+                    <h2>Version 0.0.3</h2>
+                    <ul>
+                        <li><strong>New:</strong> show all messages with highlights during search, ScrollPosition API</li>
+                        <li><strong>New:</strong> Settings-style back/forward navigation, Cmd+F search in session views</li>
+                        <li><strong>New:</strong> open session detail in standalone window via toolbar button</li>
+                    </ul>
+                        ]]>
+                    </description>
+                </item>
+        <item>
                     <title>Version 0.0.2</title>
                     <link>https://github.com/Bengerthelorf/Caudit</link>
                     <sparkle:version>2026031300</sparkle:version>
