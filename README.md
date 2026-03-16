@@ -1,10 +1,10 @@
 <div align="center">
 
-<img src="Caudit/Assets.xcassets/AppIcon.appiconset/icon_256x256.png" width="128" height="128" alt="Caudit">
+<img src="./Github/icon.png" width="128" height="128" alt="Caudit">
 
 # Caudit
 
-**Track your Claude API usage from the macOS menu bar — cost, tokens, quota, and more.**
+**A lightweight macOS menu bar app that tracks your Claude API usage — cost, tokens, quota, and session analytics. Fully local.**
 
 [![Download](https://img.shields.io/github/v/release/Bengerthelorf/Caudit?label=Download&style=for-the-badge&color=blue)](https://github.com/Bengerthelorf/Caudit/releases/latest)
 &nbsp;
@@ -38,6 +38,25 @@ brew install Bengerthelorf/tap/caudit
 
 Download the latest DMG from [Releases](https://github.com/Bengerthelorf/Caudit/releases/latest), drag to Applications, and launch.
 
+## Usage
+
+Caudit runs in your menu bar, showing today's API cost at a glance. Click the icon to see:
+
+- **Usage** — Today's cost, token breakdown by type, estimated daily burn rate
+- **Quota** — 5-hour and 7-day utilization with countdown to reset
+
+Open the **Dashboard** for deeper analytics across six tabs: Overview, Activity, Sessions, Projects, Models, and Tools.
+
+### Remote Devices
+
+Aggregate usage from other machines via SSH:
+
+1. **Settings → Devices → Add Device**
+2. Enter SSH host, test connection, save
+3. Remote data appears alongside local data with fingerprint-based caching
+
+> See [Remote Devices Guide](https://bengerthelorf.github.io/Caudit/guide/remote-devices) for details.
+
 ## System Requirements
 
 - macOS 15.0 or later
@@ -51,7 +70,7 @@ cd Caudit
 open Caudit.xcodeproj
 ```
 
-Build and run with Xcode. Release with:
+Release with:
 
 ```bash
 ./scripts/release.sh 0.0.5
@@ -60,4 +79,11 @@ Build and run with Xcode. Release with:
 ## License
 
 MIT License. See [LICENSE](LICENSE) for details.
+
+---
+
+<div align="center">
+
+Made by [Bengerthelorf](https://github.com/Bengerthelorf)
+
 </div>
