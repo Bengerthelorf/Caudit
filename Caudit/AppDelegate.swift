@@ -183,14 +183,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - Activation Policy
 
-    /// Defer activate() to the next run loop iteration so setActivationPolicy
-    /// has time to take effect in the window server. Without this, the window
-    /// appears but stays visually inactive (gray title bar, inactive tab colors).
+    /// The first .accessory → .regular transition after launch needs extra time
+    /// for the window server to process the policy change. A short delay before
+    /// activate + makeKey ensures the window draws in the active (focused) style.
     private func activateApp(window: NSWindow? = nil) {
         NSApp.setActivationPolicy(.regular)
-        window?.makeKeyAndOrderFront(nil)
-        DispatchQueue.main.async {
+        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(50)) {
             NSApp.activate(ignoringOtherApps: true)
+            window?.makeKeyAndOrderFront(nil)
         }
     }
 
