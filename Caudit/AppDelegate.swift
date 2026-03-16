@@ -7,6 +7,7 @@ extension Notification.Name {
     static let cauditDataUpdated = Notification.Name("cauditDataUpdated")
 }
 
+@MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
     static private(set) var shared: AppDelegate!
 
@@ -78,14 +79,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             object: nil,
             queue: .main
         ) { [weak self] notification in
-            guard let window = notification.object as? NSWindow,
-                  window.title.contains("Settings") || window.title.contains("设置") else { return }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                self?.revertToAccessoryIfNeeded()
-            }
-            if let obs = self?.settingsWindowObserver {
-                NotificationCenter.default.removeObserver(obs)
-                self?.settingsWindowObserver = nil
+            MainActor.assumeIsolated {
+                guard let window = notification.object as? NSWindow,
+                      window.title.contains("Settings") || window.title.contains("设置") else { return }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                    self?.revertToAccessoryIfNeeded()
+                }
+                if let obs = self?.settingsWindowObserver {
+                    NotificationCenter.default.removeObserver(obs)
+                    self?.settingsWindowObserver = nil
+                }
             }
         }
     }
@@ -127,13 +130,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             object: window,
             queue: .main
         ) { [weak self] _ in
-            self?.dashboardWindow = nil
-            if let obs = self?.dashboardCloseObserver {
-                NotificationCenter.default.removeObserver(obs)
-                self?.dashboardCloseObserver = nil
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                self?.revertToAccessoryIfNeeded()
+            MainActor.assumeIsolated {
+                self?.dashboardWindow = nil
+                if let obs = self?.dashboardCloseObserver {
+                    NotificationCenter.default.removeObserver(obs)
+                    self?.dashboardCloseObserver = nil
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                    self?.revertToAccessoryIfNeeded()
+                }
             }
         }
 
@@ -164,13 +169,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             object: window,
             queue: .main
         ) { [weak self] notification in
-            guard let window = notification.object as? NSWindow else { return }
-            if let obs = self?.sessionCloseObservers.removeValue(forKey: window) {
-                NotificationCenter.default.removeObserver(obs)
-            }
-            self?.sessionWindows.remove(window)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                self?.revertToAccessoryIfNeeded()
+            MainActor.assumeIsolated {
+                guard let window = notification.object as? NSWindow else { return }
+                if let obs = self?.sessionCloseObservers.removeValue(forKey: window) {
+                    NotificationCenter.default.removeObserver(obs)
+                }
+                self?.sessionWindows.remove(window)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                    self?.revertToAccessoryIfNeeded()
+                }
             }
         }
         sessionCloseObservers[window] = observer

@@ -6,7 +6,7 @@ import os.log
 
 private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Caudit", category: "AppState")
 
-@Observable
+@Observable @MainActor
 final class AppState {
     // MARK: - Usage Data
     var todayUsage = AggregatedUsage()
@@ -175,23 +175,21 @@ final class AppState {
         let projectsPath = claudeDir + "/projects"
 
         directoryMonitor = DirectoryMonitor(path: projectsPath, latency: 5.0) { [weak self] in
-            DispatchQueue.main.async {
-                self?.refreshUsage()
-            }
+            Task { @MainActor in self?.refreshUsage() }
         }
     }
 
     private func restartUsageTimer() {
         usageTimer?.invalidate()
         usageTimer = Timer.scheduledTimer(withTimeInterval: usageRefreshInterval, repeats: true) { [weak self] _ in
-            self?.refreshUsage()
+            Task { @MainActor in self?.refreshUsage() }
         }
     }
 
     private func restartQuotaTimer() {
         quotaTimer?.invalidate()
         quotaTimer = Timer.scheduledTimer(withTimeInterval: quotaRefreshInterval, repeats: true) { [weak self] _ in
-            self?.refreshQuota()
+            Task { @MainActor in self?.refreshQuota() }
         }
     }
 
@@ -217,7 +215,8 @@ final class AppState {
     private func scheduleRefresh() {
         remoteFingerprints.removeAll()
         if isParsingUsage {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
+            Task { @MainActor [weak self] in
+                try? await Task.sleep(for: .seconds(1))
                 self?.refreshUsage(force: true)
             }
         } else {
@@ -378,12 +377,12 @@ final class AppState {
         applyResult(result)
     }
 
-    private static func applySourceFilter(_ records: [UsageRecord], filter: DashboardFilter) -> [UsageRecord] {
+    private nonisolated static func applySourceFilter(_ records: [UsageRecord], filter: DashboardFilter) -> [UsageRecord] {
         guard !filter.selectedSources.isEmpty else { return records }
         return records.filter { filter.selectedSources.contains($0.source) }
     }
 
-    private static func computeSources(_ records: [UsageRecord]) -> [String] {
+    private nonisolated static func computeSources(_ records: [UsageRecord]) -> [String] {
         var set = Set<String>()
         for r in records { set.insert(r.source) }
         var result = set.sorted()
