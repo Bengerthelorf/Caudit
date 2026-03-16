@@ -124,6 +124,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         toolbar.displayMode = .iconOnly
         window.toolbar = toolbar
         window.toolbarStyle = .unified
+        window.titlebarSeparatorStyle = .none
 
         dashboardCloseObserver = NotificationCenter.default.addObserver(
             forName: NSWindow.willCloseNotification,

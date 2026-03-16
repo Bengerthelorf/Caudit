@@ -107,7 +107,6 @@ struct DashboardView: View {
             }
         }
         .navigationSplitViewStyle(.prominentDetail)
-        .toolbarBackground(.hidden, for: .windowToolbar)
         .onChange(of: appState.selectedTab) { oldValue, newValue in
             guard !isRestoringHistory, oldValue != newValue else { return }
             backStack.append((tab: oldValue, session: appState.selectedSessionForDetail))
@@ -868,8 +867,25 @@ private struct ActivityPage: View {
     }
 
     private var monthDailyData: [DailyUsage] {
+        let calendar = Calendar.current
         let start = TimeRange.month.filterStart
-        return appState.allTimeDailyHistory.filter { $0.date >= start }
+        let endOfToday = calendar.startOfDay(for: Date())
+        let dayFmt = DateFormatter()
+        dayFmt.dateFormat = "MM/dd"
+
+        var lookup: [String: DailyUsage] = [:]
+        for day in appState.allTimeDailyHistory where day.date >= start {
+            lookup[day.dateString] = day
+        }
+
+        var result: [DailyUsage] = []
+        var current = start
+        while current <= endOfToday {
+            let key = dayFmt.string(from: current)
+            result.append(lookup[key] ?? DailyUsage(date: current, dateString: key))
+            current = calendar.date(byAdding: .day, value: 1, to: current)!
+        }
+        return result
     }
 
     private var trendData: [DailyUsage] {
