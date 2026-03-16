@@ -107,6 +107,7 @@ struct DashboardView: View {
             }
         }
         .navigationSplitViewStyle(.prominentDetail)
+        .toolbarBackground(.hidden, for: .windowToolbar)
         .onChange(of: appState.selectedTab) { oldValue, newValue in
             guard !isRestoringHistory, oldValue != newValue else { return }
             backStack.append((tab: oldValue, session: appState.selectedSessionForDetail))
@@ -781,7 +782,7 @@ private struct ActivityPage: View {
         } else {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    UnifiedFilterBar(showTimeRange: false)
+                    UnifiedFilterBar(showTimeRange: true)
 
                     SectionHeader(title: "Activity", icon: "chart.dots.scatter")
 
