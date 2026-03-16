@@ -108,10 +108,10 @@ final class AppState {
     }
 
     // MARK: - Services
-    private var usageParser: UsageParser?
-    private var quotaService: QuotaService?
-    private var notificationService: NotificationService?
-    private var remoteUsageService: RemoteUsageService?
+    private let usageParser = UsageParser()
+    private let quotaService = QuotaService()
+    private let notificationService = NotificationService()
+    private let remoteUsageService = RemoteUsageService()
 
     // MARK: - Private State
     private var allRecords: [UsageRecord] = []
@@ -144,11 +144,6 @@ final class AppState {
 
         let savedThreshold = defaults.double(forKey: "quotaNotificationThreshold")
         self.quotaNotificationThreshold = savedThreshold > 0 ? savedThreshold : 80
-
-        self.usageParser = UsageParser()
-        self.quotaService = QuotaService()
-        self.notificationService = NotificationService()
-        self.remoteUsageService = RemoteUsageService()
 
         if let data = UserDefaults.standard.data(forKey: "remoteDevices"),
            let devices = try? JSONDecoder().decode([RemoteDevice].self, from: data) {
@@ -239,18 +234,13 @@ final class AppState {
 
         let parser = self.usageParser
         let remoteService = self.remoteUsageService
-        let enabledDevices = self.remoteDevices.filter(\.isEnabled)
+        let enabledDevices = self.remoteDevices.filter { $0.isEnabled }
         let cachedFingerprints = self.remoteFingerprints
         let cachedRecords = self.remoteCachedRecords
 
         let currentFilter = self.dashboardFilter
 
         Task.detached {
-            guard let parser else {
-                await MainActor.run { [weak self] in self?.isParsingUsage = false }
-                return
-            }
-
             let localRecords = parser.scanLocalRecords()
             let allCachedRemote = cachedRecords.values.flatMap { $0 }
             let merged = localRecords + allCachedRemote
@@ -264,7 +254,7 @@ final class AppState {
                 self.hasLoadedUsage = true
             }
 
-            if let remoteService, !enabledDevices.isEmpty {
+            if !enabledDevices.isEmpty {
                 var updatedFingerprints = cachedFingerprints
                 var updatedCachedRecords = cachedRecords
                 var anyChanged = false
@@ -376,9 +366,9 @@ final class AppState {
     }
 
     private func recomputeFromFilter() {
-        guard let parser = usageParser, !allRecords.isEmpty else { return }
+        guard !allRecords.isEmpty else { return }
         let filtered = Self.applySourceFilter(allRecords, filter: dashboardFilter)
-        let result = parser.aggregate(records: filtered, tableTimeRange: dashboardFilter.timeRange)
+        let result = usageParser.aggregate(records: filtered, tableTimeRange: dashboardFilter.timeRange)
         applyResult(result)
     }
 
@@ -405,10 +395,6 @@ final class AppState {
 
         let service = self.quotaService
         Task.detached {
-            guard let service else {
-                await MainActor.run { [weak self] in self?.isLoadingQuota = false }
-                return
-            }
             do {
                 let info = try await service.fetchQuota()
                 await MainActor.run { [weak self] in
@@ -438,7 +424,7 @@ final class AppState {
         let current = quota.fiveHourUtilization
 
         if current >= threshold && lastNotifiedQuotaLevel < threshold {
-            notificationService?.sendQuotaAlert(percentage: current, threshold: threshold)
+            notificationService.sendQuotaAlert(percentage: current, threshold: threshold)
         }
         lastNotifiedQuotaLevel = current
     }

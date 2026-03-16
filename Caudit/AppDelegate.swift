@@ -40,7 +40,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         setupMainMenu()
 
         NotificationCenter.default.addObserver(
-            self, selector: #selector(handleShowDashboard),
+            self, selector: #selector(showDashboard),
             name: .showDashboard, object: nil
         )
         NotificationCenter.default.addObserver(
@@ -120,13 +120,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - Dashboard
 
-    @objc private func handleShowDashboard() {
-        showDashboard()
-    }
-
-
-
-    func showDashboard() {
+    @objc func showDashboard() {
         if let window = dashboardWindow {
             activateApp(window: window)
             return
