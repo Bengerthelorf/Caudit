@@ -30,30 +30,44 @@ struct DashboardView: View {
 
     @State private var backStack: [(tab: DashboardTab?, session: SessionInfo?)] = []
     @State private var forwardStack: [(tab: DashboardTab?, session: SessionInfo?)] = []
-    @State private var isRestoringHistory = false
+    @State private var isNavigating = false
+
+    private func pushHistory() {
+        backStack.append((tab: appState.selectedTab, session: appState.selectedSessionForDetail))
+        forwardStack.removeAll()
+    }
 
     private func goBack() {
         guard let previous = backStack.popLast() else { return }
-        isRestoringHistory = true
+        isNavigating = true
         forwardStack.append((tab: appState.selectedTab, session: appState.selectedSessionForDetail))
         appState.selectedTab = previous.tab
         appState.selectedSessionForDetail = previous.session
-        isRestoringHistory = false
     }
 
     private func goForward() {
         guard let next = forwardStack.popLast() else { return }
-        isRestoringHistory = true
+        isNavigating = true
         backStack.append((tab: appState.selectedTab, session: appState.selectedSessionForDetail))
         appState.selectedTab = next.tab
         appState.selectedSessionForDetail = next.session
-        isRestoringHistory = false
+    }
+
+    private var tabBinding: Binding<DashboardTab?> {
+        Binding(
+            get: { appState.selectedTab },
+            set: { newTab in
+                guard newTab != appState.selectedTab else { return }
+                pushHistory()
+                appState.selectedTab = newTab
+                appState.selectedSessionForDetail = nil
+            }
+        )
     }
 
     var body: some View {
-        @Bindable var state = appState
         NavigationSplitView(columnVisibility: .constant(.all)) {
-            List(DashboardTab.allCases, selection: $state.selectedTab) { tab in
+            List(DashboardTab.allCases, selection: tabBinding) { tab in
                 NavigationLink(value: tab) {
                     Label(tab.rawValue, systemImage: tab.icon)
                 }
@@ -107,19 +121,12 @@ struct DashboardView: View {
             }
         }
         .navigationSplitViewStyle(.prominentDetail)
-        .onChange(of: appState.selectedTab) { oldValue, newValue in
-            guard !isRestoringHistory, oldValue != newValue else { return }
-            backStack.append((tab: oldValue, session: appState.selectedSessionForDetail))
-            forwardStack.removeAll()
-            isRestoringHistory = true
-            appState.selectedSessionForDetail = nil
-        }
         .onChange(of: appState.selectedSessionForDetail) { oldValue, newValue in
-            if isRestoringHistory {
-                isRestoringHistory = false
+            if isNavigating {
+                isNavigating = false
                 return
             }
-            guard oldValue != newValue else { return }
+            guard oldValue != newValue, newValue != nil else { return }
             backStack.append((tab: appState.selectedTab, session: oldValue))
             forwardStack.removeAll()
         }
