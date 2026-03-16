@@ -71,8 +71,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Settings
 
     func showSettings() {
-        NSApp.setActivationPolicy(.regular)
-        NSApp.activate(ignoringOtherApps: true)
+        activateApp()
 
         settingsWindowObserver = NotificationCenter.default.addObserver(
             forName: NSWindow.willCloseNotification,
@@ -103,9 +102,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func showDashboard() {
         if let window = dashboardWindow {
-            NSApp.setActivationPolicy(.regular)
-            NSApp.activate(ignoringOtherApps: true)
-            window.makeKeyAndOrderFront(nil)
+            activateApp(window: window)
             return
         }
 
@@ -144,9 +141,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         self.dashboardWindow = window
-        NSApp.setActivationPolicy(.regular)
-        NSApp.activate(ignoringOtherApps: true)
-        window.makeKeyAndOrderFront(nil)
+        activateApp(window: window)
     }
 
     // MARK: - Session Detail Window
@@ -183,12 +178,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         sessionCloseObservers[window] = observer
 
-        NSApp.setActivationPolicy(.regular)
-        NSApp.activate(ignoringOtherApps: true)
-        window.makeKeyAndOrderFront(nil)
+        activateApp(window: window)
     }
 
     // MARK: - Activation Policy
+
+    /// Defer activate() to the next run loop iteration so setActivationPolicy
+    /// has time to take effect in the window server. Without this, the window
+    /// appears but stays visually inactive (gray title bar, inactive tab colors).
+    private func activateApp(window: NSWindow? = nil) {
+        NSApp.setActivationPolicy(.regular)
+        window?.makeKeyAndOrderFront(nil)
+        DispatchQueue.main.async {
+            NSApp.activate(ignoringOtherApps: true)
+        }
+    }
 
     private func revertToAccessoryIfNeeded() {
         let dashboardVisible = dashboardWindow?.isVisible == true

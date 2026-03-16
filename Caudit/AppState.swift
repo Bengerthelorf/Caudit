@@ -68,7 +68,10 @@ final class AppState {
     }
 
     var launchAtLogin: Bool {
-        get { SMAppService.mainApp.status == .enabled }
+        get {
+            let status = SMAppService.mainApp.status
+            return status == .enabled || status == .requiresApproval
+        }
         set {
             do {
                 if newValue {
