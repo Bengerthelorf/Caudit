@@ -138,6 +138,8 @@ final class UsageParser: @unchecked Sendable {
         var records: [UsageRecord] = []
         records.reserveCapacity(jsonlFiles.count * 50)
 
+        // C-level I/O + strstr pre-filter: avoids loading 200MB+ JSONL files into Swift
+        // strings; only lines containing "input_tokens" are parsed as JSON.
         for (filePath, project, projDir) in jsonlFiles {
             guard let file = fopen(filePath, "r") else { continue }
             defer { fclose(file) }

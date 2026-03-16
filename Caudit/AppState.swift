@@ -354,6 +354,8 @@ final class AppState {
 
     // MARK: - Filtering
 
+    /// Empty selectedSources means "all selected". Toggling a source when all are
+    /// selected deselects just that one; re-selecting all collapses back to empty set.
     func toggleSource(_ source: String) {
         if dashboardFilter.selectedSources.isEmpty {
             var all = Set(availableSources)
