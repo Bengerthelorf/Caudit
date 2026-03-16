@@ -113,10 +113,13 @@ struct DashboardView: View {
             forwardStack.removeAll()
             isRestoringHistory = true
             appState.selectedSessionForDetail = nil
-            isRestoringHistory = false
         }
         .onChange(of: appState.selectedSessionForDetail) { oldValue, newValue in
-            guard !isRestoringHistory, oldValue != newValue, newValue != nil else { return }
+            if isRestoringHistory {
+                isRestoringHistory = false
+                return
+            }
+            guard oldValue != newValue else { return }
             backStack.append((tab: appState.selectedTab, session: oldValue))
             forwardStack.removeAll()
         }
