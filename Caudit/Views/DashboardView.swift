@@ -91,16 +91,17 @@ struct DashboardView: View {
                         .controlGroupStyle(.navigation)
                     }
 
-                    ToolbarItem(placement: .primaryAction) {
-                        Button {
-                            if let session = appState.selectedSessionForDetail {
-                                AppDelegate.shared.openSessionWindow(session: session)
+                    if appState.selectedSessionForDetail != nil {
+                        ToolbarItem(placement: .primaryAction) {
+                            Button {
+                                if let session = appState.selectedSessionForDetail {
+                                    AppDelegate.shared.openSessionWindow(session: session)
+                                }
+                            } label: {
+                                Image(systemName: "arrow.up.right.square")
                             }
-                        } label: {
-                            Image(systemName: "arrow.up.right.square")
+                            .help("Open in separate window")
                         }
-                        .disabled(appState.selectedSessionForDetail == nil)
-                        .help("Open in separate window")
                     }
                 }
             }
