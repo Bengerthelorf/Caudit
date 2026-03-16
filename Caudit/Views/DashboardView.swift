@@ -542,13 +542,33 @@ private struct GitHubCalendarHeatmap: View {
                         VStack(alignment: .leading, spacing: 2) {
                             monthLabelsRow(grid: grid)
 
+                            let step = cellSize + cellSpacing
                             HStack(spacing: cellSpacing) {
                                 ForEach(grid.indices, id: \.self) { weekIdx in
                                     VStack(spacing: cellSpacing) {
                                         ForEach(0..<7, id: \.self) { dayIdx in
-                                            cellView(grid[weekIdx][dayIdx], maxCost: maxCost)
+                                            cellRect(grid[weekIdx][dayIdx], maxCost: maxCost)
                                         }
                                     }
+                                }
+                            }
+                            .onContinuousHover { phase in
+                                switch phase {
+                                case .active(let loc):
+                                    let week = Int(loc.x / step)
+                                    let day = Int(loc.y / step)
+                                    if week >= 0, week < grid.count, day >= 0, day < 7 {
+                                        let cell = grid[week][day]
+                                        if !cell.isFuture {
+                                            hoveredInfo = cell.hasData
+                                                ? "\(cell.label)  \(CauditFormatter.costDetail(cell.cost))"
+                                                : cell.label
+                                        } else {
+                                            hoveredInfo = nil
+                                        }
+                                    }
+                                case .ended:
+                                    hoveredInfo = nil
                                 }
                             }
                         }
@@ -600,26 +620,11 @@ private struct GitHubCalendarHeatmap: View {
         return labels
     }
 
-    @ViewBuilder
-    private func cellView(_ cell: CalendarCell, maxCost: Double) -> some View {
-        if cell.isFuture {
-            Color.clear
-                .frame(width: cellSize, height: cellSize)
-        } else {
-            let intensity = maxCost > 0 ? cell.cost / maxCost : 0
-            RoundedRectangle(cornerRadius: 2)
-                .fill(heatmapColor(intensity, hasData: cell.hasData))
-                .frame(width: cellSize, height: cellSize)
-                .onHover { hovering in
-                    if hovering {
-                        hoveredInfo = cell.hasData
-                            ? "\(cell.label)  \(CauditFormatter.costDetail(cell.cost))"
-                            : cell.label
-                    } else {
-                        hoveredInfo = nil
-                    }
-                }
-        }
+    private func cellRect(_ cell: CalendarCell, maxCost: Double) -> some View {
+        let intensity = cell.isFuture ? 0 : (maxCost > 0 ? cell.cost / maxCost : 0)
+        return RoundedRectangle(cornerRadius: 2)
+            .fill(cell.isFuture ? Color.clear : heatmapColor(intensity, hasData: cell.hasData))
+            .frame(width: cellSize, height: cellSize)
     }
 
     private func buildGrid(minWeeks: Int) -> [[CalendarCell]] {
