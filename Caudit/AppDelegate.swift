@@ -79,23 +79,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
-        let hostingController = NSHostingController(
+        let window = makeWindow(
+            title: "Caudit Settings",
+            size: NSSize(width: 680, height: 480),
+            minSize: NSSize(width: 560, height: 400),
             rootView: SettingsView(updater: updaterController.updater)
-                .environment(appState)
         )
-        let window = NSWindow(contentViewController: hostingController)
-        window.title = "Caudit Settings"
-        window.styleMask = [.titled, .closable, .resizable, .miniaturizable, .fullSizeContentView]
-        window.setContentSize(NSSize(width: 680, height: 480))
-        window.minSize = NSSize(width: 560, height: 400)
-        window.center()
-        window.isReleasedWhenClosed = false
-        window.titlebarSeparatorStyle = .none
-
-        let toolbar = NSToolbar(identifier: "SettingsToolbar")
-        toolbar.displayMode = .iconOnly
-        window.toolbar = toolbar
-        window.toolbarStyle = .unified
 
         settingsCloseObserver = NotificationCenter.default.addObserver(
             forName: NSWindow.willCloseNotification,
@@ -126,23 +115,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
-        let hostingController = NSHostingController(
-            rootView: DashboardView().environment(appState)
+        let window = makeWindow(
+            title: "Caudit",
+            size: NSSize(width: 820, height: 600),
+            minSize: NSSize(width: 720, height: 580),
+            maxSize: NSSize(width: 960, height: CGFloat.greatestFiniteMagnitude),
+            rootView: DashboardView()
         )
-        let window = NSWindow(contentViewController: hostingController)
-        window.title = "Caudit"
-        window.styleMask = [.titled, .closable, .resizable, .miniaturizable, .fullSizeContentView]
-        window.setContentSize(NSSize(width: 820, height: 580))
-        window.minSize = NSSize(width: 720, height: 560)
-        window.maxSize = NSSize(width: 960, height: CGFloat.greatestFiniteMagnitude)
-        window.center()
-        window.isReleasedWhenClosed = false
-
-        let toolbar = NSToolbar(identifier: "DashboardToolbar")
-        toolbar.displayMode = .iconOnly
-        window.toolbar = toolbar
-        window.toolbarStyle = .unified
-        window.titlebarSeparatorStyle = .none
 
         dashboardCloseObserver = NotificationCenter.default.addObserver(
             forName: NSWindow.willCloseNotification,
@@ -168,17 +147,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Session Detail Window
 
     func openSessionWindow(session: SessionInfo) {
-        let hostingController = NSHostingController(
+        let window = makeWindow(
+            title: session.displayName,
+            size: NSSize(width: 700, height: 550),
+            minSize: NSSize(width: 500, height: 400),
             rootView: SessionReaderView(session: session)
-                .environment(appState)
         )
-        let window = NSWindow(contentViewController: hostingController)
-        window.title = session.displayName
-        window.styleMask = [.titled, .closable, .resizable, .miniaturizable]
-        window.setContentSize(NSSize(width: 700, height: 550))
-        window.minSize = NSSize(width: 500, height: 400)
-        window.center()
-        window.isReleasedWhenClosed = false
 
         sessionWindows.insert(window)
         let observer = NotificationCenter.default.addObserver(
@@ -200,6 +174,38 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         sessionCloseObservers[window] = observer
 
         activateApp(window: window)
+    }
+
+    // MARK: - Window Factory
+
+    private func makeWindow(
+        title: String,
+        size: NSSize,
+        minSize: NSSize,
+        maxSize: NSSize? = nil,
+        rootView: some View,
+        toolbar: Bool = true
+    ) -> NSWindow {
+        let controller = NSHostingController(rootView: rootView.environment(appState))
+        let window = NSWindow(contentViewController: controller)
+        window.title = title
+        window.styleMask = [.titled, .closable, .resizable, .miniaturizable, .fullSizeContentView]
+        window.collectionBehavior = [.managed]
+        window.setContentSize(size)
+        window.minSize = minSize
+        if let maxSize { window.maxSize = maxSize }
+        window.center()
+        window.isReleasedWhenClosed = false
+        window.titlebarSeparatorStyle = .none
+
+        if toolbar {
+            let tb = NSToolbar(identifier: "\(title)Toolbar")
+            tb.displayMode = .iconOnly
+            window.toolbar = tb
+            window.toolbarStyle = .unified
+        }
+
+        return window
     }
 
     // MARK: - Activation Policy
