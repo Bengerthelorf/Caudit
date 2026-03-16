@@ -1,4 +1,7 @@
 import Foundation
+import os.log
+
+private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Caudit", category: "PricingTable")
 
 struct ModelPricing: Sendable {
     let inputPrice: Double
@@ -113,6 +116,7 @@ final class PricingTable: @unchecked Sendable {
                 updateModels(newPricing)
             }
         } catch {
+            logger.debug("Failed to fetch remote pricing: \(error.localizedDescription)")
         }
     }
 

@@ -1,5 +1,8 @@
 import SwiftUI
 import Sparkle
+import os.log
+
+private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Caudit", category: "Settings")
 
 struct SettingsView: View {
     @Environment(AppState.self) private var appState
@@ -344,11 +347,11 @@ struct AboutSettingsView: View {
     }
 
     private var appVersion: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as! String
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
     }
 
     private var buildNumber: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as! String
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"
     }
 
     var body: some View {
@@ -462,6 +465,10 @@ struct AboutSettingsView: View {
                 try? data.write(to: Self.avatarCacheURL, options: .atomic)
                 avatarImage = image
             }
-        } catch {}
+        } catch is CancellationError {
+            return
+        } catch {
+            logger.debug("Failed to fetch avatar: \(error.localizedDescription)")
+        }
     }
 }

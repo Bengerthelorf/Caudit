@@ -2,6 +2,9 @@ import Foundation
 import SwiftUI
 import ServiceManagement
 import CoreServices
+import os.log
+
+private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Caudit", category: "AppState")
 
 @Observable
 final class AppState {
@@ -72,7 +75,9 @@ final class AppState {
                 } else {
                     try SMAppService.mainApp.unregister()
                 }
-            } catch {}
+            } catch {
+                logger.warning("Failed to \(newValue ? "register" : "unregister") launch at login: \(error.localizedDescription)")
+            }
         }
     }
 
