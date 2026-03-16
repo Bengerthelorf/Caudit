@@ -6,7 +6,7 @@ struct CauditApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     var body: some Scene {
-        WindowGroup(id: "placeholder") {}
+        WindowGroup(id: "unused") { EmptyView() }
             .commands {
                 CommandGroup(after: .appInfo) {
                     CheckForUpdatesView(updater: appDelegate.updaterController.updater)

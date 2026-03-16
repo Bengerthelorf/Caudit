@@ -4,34 +4,58 @@ import os.log
 
 private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Caudit", category: "Settings")
 
+enum SettingsTab: String, CaseIterable, Identifiable {
+    case general = "General"
+    case notifications = "Notifications"
+    case devices = "Devices"
+    case about = "About"
+
+    var id: String { rawValue }
+
+    var icon: String {
+        switch self {
+        case .general: "gearshape"
+        case .notifications: "bell"
+        case .devices: "desktopcomputer"
+        case .about: "info.circle"
+        }
+    }
+}
+
 struct SettingsView: View {
     @Environment(AppState.self) private var appState
     let updater: SPUUpdater
+    @State private var selectedTab: SettingsTab? = .general
 
     var body: some View {
-        TabView {
-            GeneralSettingsView()
-                .tabItem {
-                    Label("General", systemImage: "gearshape")
+        NavigationSplitView {
+            List(SettingsTab.allCases, selection: $selectedTab) { tab in
+                NavigationLink(value: tab) {
+                    Label(tab.rawValue, systemImage: tab.icon)
                 }
-
-            NotificationSettingsView()
-                .tabItem {
-                    Label("Notifications", systemImage: "bell")
-                }
-
-            DeviceSettingsView()
-                .tabItem {
-                    Label("Devices", systemImage: "desktopcomputer")
-                }
-
-            AboutSettingsView(updater: updater)
-                .tabItem {
-                    Label("About", systemImage: "info.circle")
-                }
+            }
+            .listStyle(.sidebar)
+            .navigationTitle("Settings")
+        } detail: {
+            switch selectedTab {
+            case .general:
+                GeneralSettingsView()
+                    .navigationTitle("General")
+            case .notifications:
+                NotificationSettingsView()
+                    .navigationTitle("Notifications")
+            case .devices:
+                DeviceSettingsView()
+                    .navigationTitle("Devices")
+            case .about:
+                AboutSettingsView(updater: updater)
+                    .navigationTitle("About")
+            case .none:
+                GeneralSettingsView()
+                    .navigationTitle("General")
+            }
         }
-        .padding()
-        .frame(width: 520, height: 420)
+        .navigationSplitViewStyle(.prominentDetail)
     }
 }
 

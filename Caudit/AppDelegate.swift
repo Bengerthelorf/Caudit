@@ -45,6 +45,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             self, selector: #selector(handleDataUpdated),
             name: .cauditDataUpdated, object: nil
         )
+
+        DispatchQueue.main.async {
+            for window in NSApp.windows where window != self.statusItem.button?.window {
+                window.close()
+            }
+            NSApp.setActivationPolicy(.accessory)
+        }
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
@@ -82,11 +89,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 .environment(appState)
         )
         let window = NSWindow(contentViewController: hostingController)
-        window.title = "Settings"
-        window.styleMask = [.titled, .closable]
-        window.setContentSize(NSSize(width: 520, height: 420))
+        window.title = "Caudit Settings"
+        window.styleMask = [.titled, .closable, .resizable, .miniaturizable, .fullSizeContentView]
+        window.setContentSize(NSSize(width: 680, height: 480))
+        window.minSize = NSSize(width: 560, height: 400)
         window.center()
         window.isReleasedWhenClosed = false
+        window.titlebarSeparatorStyle = .none
+
+        let toolbar = NSToolbar(identifier: "SettingsToolbar")
+        toolbar.displayMode = .iconOnly
+        window.toolbar = toolbar
+        window.toolbarStyle = .unified
 
         settingsCloseObserver = NotificationCenter.default.addObserver(
             forName: NSWindow.willCloseNotification,
