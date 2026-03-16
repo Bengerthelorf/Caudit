@@ -522,19 +522,13 @@ private struct CalendarCell {
 
 private struct GitHubCalendarHeatmap: View {
     let dailyHistory: [DailyUsage]
+    var minWeeks: Int = 75
     var cellSize: CGFloat = 14
     private let cellSpacing: CGFloat = 2
     @State private var hoveredInfo: String?
-    @State private var availableWidth: CGFloat = 0
-
-    private var weeksToFill: Int {
-        guard availableWidth > 0 else { return 26 }
-        let weekWidth = cellSize + cellSpacing
-        return max(Int((availableWidth - 8) / weekWidth), 12)
-    }
 
     var body: some View {
-        let grid = buildGrid(minWeeks: weeksToFill)
+        let grid = buildGrid(minWeeks: minWeeks)
         let maxCost = dailyHistory.map(\.totalCost).max() ?? 0
 
         GroupBox {
@@ -544,35 +538,27 @@ private struct GitHubCalendarHeatmap: View {
                     .frame(maxWidth: .infinity, minHeight: 120)
             } else {
                 VStack(alignment: .leading, spacing: 4) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        monthLabelsRow(grid: grid)
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            monthLabelsRow(grid: grid)
 
-                        HStack(spacing: cellSpacing) {
-                            ForEach(grid.indices, id: \.self) { weekIdx in
-                                VStack(spacing: cellSpacing) {
-                                    ForEach(0..<7, id: \.self) { dayIdx in
-                                        cellView(grid[weekIdx][dayIdx], maxCost: maxCost)
+                            HStack(spacing: cellSpacing) {
+                                ForEach(grid.indices, id: \.self) { weekIdx in
+                                    VStack(spacing: cellSpacing) {
+                                        ForEach(0..<7, id: \.self) { dayIdx in
+                                            cellView(grid[weekIdx][dayIdx], maxCost: maxCost)
+                                        }
                                     }
                                 }
                             }
                         }
+                        .padding(4)
                     }
-                    .padding(4)
+                    .defaultScrollAnchor(.trailing)
 
                     HeatmapFooter(hoveredInfo: hoveredInfo)
                 }
             }
-        }
-        .background(GeometryReader { proxy in
-            Color.clear.preference(key: WidthKey.self, value: proxy.size.width)
-        })
-        .onPreferenceChange(WidthKey.self) { availableWidth = $0 }
-    }
-
-    private struct WidthKey: PreferenceKey {
-        static var defaultValue: CGFloat = 0
-        static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-            value = max(value, nextValue())
         }
     }
 
