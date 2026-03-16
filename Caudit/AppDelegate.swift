@@ -72,13 +72,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func showSettings() {
         NSApp.setActivationPolicy(.regular)
-        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(50)) {
-            NSApp.activate(ignoringOtherApps: true)
-            if let settingsWindow = NSApp.windows.first(where: {
-                $0.isVisible && ($0.title.contains("Settings") || $0.title.contains("设置"))
-            }) {
-                settingsWindow.makeKeyAndOrderFront(nil)
+
+        var appearObserver: Any?
+        appearObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.didBecomeKeyNotification,
+            object: nil,
+            queue: .main
+        ) { notification in
+            guard let window = notification.object as? NSWindow,
+                  window.title.contains("Settings") || window.title.contains("设置") else { return }
+            if let obs = appearObserver {
+                NotificationCenter.default.removeObserver(obs)
             }
+            NSApp.activate(ignoringOtherApps: true)
+            window.makeKeyAndOrderFront(nil)
         }
 
         settingsWindowObserver = NotificationCenter.default.addObserver(
