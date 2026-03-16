@@ -517,6 +517,7 @@ private struct CalendarCell {
     let label: String
     let cost: Double
     let hasData: Bool
+    var isFuture: Bool = false
 }
 
 private struct GitHubCalendarHeatmap: View {
@@ -598,26 +599,31 @@ private struct GitHubCalendarHeatmap: View {
         return labels
     }
 
+    @ViewBuilder
     private func cellView(_ cell: CalendarCell, maxCost: Double) -> some View {
-        let intensity = maxCost > 0 ? cell.cost / maxCost : 0
-        return RoundedRectangle(cornerRadius: 2)
-            .fill(heatmapColor(intensity, hasData: cell.hasData))
-            .frame(width: cellSize, height: cellSize)
-            .onHover { hovering in
-                if hovering {
-                    hoveredInfo = cell.hasData
-                        ? "\(cell.label)  \(CauditFormatter.costDetail(cell.cost))"
-                        : cell.label
-                } else {
-                    hoveredInfo = nil
+        if cell.isFuture {
+            Color.clear
+                .frame(width: cellSize, height: cellSize)
+        } else {
+            let intensity = maxCost > 0 ? cell.cost / maxCost : 0
+            RoundedRectangle(cornerRadius: 2)
+                .fill(heatmapColor(intensity, hasData: cell.hasData))
+                .frame(width: cellSize, height: cellSize)
+                .onHover { hovering in
+                    if hovering {
+                        hoveredInfo = cell.hasData
+                            ? "\(cell.label)  \(CauditFormatter.costDetail(cell.cost))"
+                            : cell.label
+                    } else {
+                        hoveredInfo = nil
+                    }
                 }
-            }
+        }
     }
 
     private func buildGrid() -> [[CalendarCell]] {
-        guard !dailyHistory.isEmpty else { return [] }
-
         let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
         let labelFormatter = DateFormatter()
         labelFormatter.dateFormat = "MMM d, yyyy"
 
@@ -628,18 +634,17 @@ private struct GitHubCalendarHeatmap: View {
             }
         }
 
-        let lastDate = dailyHistory.last!.date
+        // End at today's week (partial — don't extend past today)
+        let todayWeekday = calendar.component(.weekday, from: today)
+        let endDate = calendar.date(byAdding: .day, value: 7 - todayWeekday, to: today)!
 
-        let endWeekday = calendar.component(.weekday, from: lastDate)
-        let endDate = calendar.date(byAdding: .day, value: 7 - endWeekday, to: lastDate)!
-
-        let firstDate = dailyHistory.first!.date
+        let firstDate = dailyHistory.first?.date ?? today
         let dataStart: Date
         if minWeeks > 0 {
             let minStart = calendar.date(byAdding: .weekOfYear, value: -(minWeeks - 1), to: endDate)!
             dataStart = min(firstDate, minStart)
         } else {
-            dataStart = firstDate
+            dataStart = dailyHistory.isEmpty ? today : firstDate
         }
 
         let startWeekday = calendar.component(.weekday, from: dataStart)
@@ -651,13 +656,15 @@ private struct GitHubCalendarHeatmap: View {
         while current <= endDate {
             var week: [CalendarCell] = []
             for _ in 0..<7 {
+                let isFuture = current > today
                 let jd = calendar.ordinality(of: .day, in: .era, for: current) ?? 0
-                let cost = costByJulian[jd]
+                let cost = isFuture ? nil : costByJulian[jd]
                 week.append(CalendarCell(
                     date: current,
                     label: labelFormatter.string(from: current),
                     cost: cost ?? 0,
-                    hasData: cost != nil
+                    hasData: cost != nil,
+                    isFuture: isFuture
                 ))
                 current = calendar.date(byAdding: .day, value: 1, to: current)!
             }
