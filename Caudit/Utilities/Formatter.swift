@@ -56,13 +56,16 @@ enum CauditFormatter {
         return "\(m)m \(s)s"
     }
 
-    private static nonisolated(unsafe) let isoFractional: ISO8601DateFormatter = {
+    // ISO8601DateFormatter is not thread-safe; guard concurrent access with a lock
+    private static let dateParserLock = NSLock()
+
+    private static let isoFractional: ISO8601DateFormatter = {
         let f = ISO8601DateFormatter()
         f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         return f
     }()
 
-    private static nonisolated(unsafe) let isoBasic: ISO8601DateFormatter = {
+    private static let isoBasic: ISO8601DateFormatter = {
         let f = ISO8601DateFormatter()
         f.formatOptions = [.withInternetDateTime]
         return f
@@ -76,7 +79,9 @@ enum CauditFormatter {
     }()
 
     static func parseISO8601(_ string: String) -> Date? {
-        isoFractional.date(from: string)
+        dateParserLock.lock()
+        defer { dateParserLock.unlock() }
+        return isoFractional.date(from: string)
             ?? isoBasic.date(from: string)
             ?? microsecondFormatter.date(from: string)
     }
