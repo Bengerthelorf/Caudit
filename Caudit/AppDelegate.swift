@@ -187,10 +187,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         toolbar: Bool = true
     ) -> NSWindow {
         let controller = NSHostingController(rootView: rootView.environment(appState))
+        controller.sizingOptions = []
         let window = NSWindow(contentViewController: controller)
         window.title = title
         window.styleMask = [.titled, .closable, .resizable, .miniaturizable, .fullSizeContentView]
-        window.collectionBehavior = [.managed]
+        window.collectionBehavior = [.fullScreenNone, .managed]
         window.setContentSize(size)
         window.minSize = minSize
         if let maxSize { window.maxSize = maxSize }
