@@ -502,9 +502,9 @@ final class UsageParser: @unchecked Sendable {
             allTimeDailyMap[julianDay] = allDay
 
             let hourOfDay = calendar.component(.hour, from: record.timestamp)
-            let slot = hourOfDay / 4
+            let slot = hourOfDay / 6
             if dayHourMap[julianDay] == nil {
-                dayHourMap[julianDay] = (date: dayStart, slots: Array(repeating: 0, count: 6))
+                dayHourMap[julianDay] = (date: dayStart, slots: Array(repeating: 0, count: 4))
             }
             dayHourMap[julianDay]!.slots[slot] += record.cost
 

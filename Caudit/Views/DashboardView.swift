@@ -391,7 +391,7 @@ private struct TodayHeatmap: View {
 private struct WeekHeatmap: View {
     let data: [DayHourlyBreakdown]
 
-    private static let timeLabels = ["0:00", "4:00", "8:00", "12:00", "16:00", "20:00"]
+    private static let timeLabels = ["0:00", "6:00", "12:00", "18:00"]
     @State private var hoveredInfo: String?
 
     private var maxCost: Double {
@@ -420,7 +420,7 @@ private struct WeekHeatmap: View {
                         }
                     }
 
-                    ForEach(0..<6, id: \.self) { slot in
+                    ForEach(0..<4, id: \.self) { slot in
                         HStack(spacing: 2) {
                             Text(Self.timeLabels[slot])
                                 .font(.system(size: 9))
@@ -522,12 +522,19 @@ private struct CalendarCell {
 
 private struct GitHubCalendarHeatmap: View {
     let dailyHistory: [DailyUsage]
-    var minWeeks: Int = 26
     var cellSize: CGFloat = 14
+    private let cellSpacing: CGFloat = 2
     @State private var hoveredInfo: String?
+    @State private var availableWidth: CGFloat = 0
+
+    private var weeksToFill: Int {
+        guard availableWidth > 0 else { return 26 }
+        let weekWidth = cellSize + cellSpacing
+        return max(Int((availableWidth - 8) / weekWidth), 12)
+    }
 
     var body: some View {
-        let grid = buildGrid()
+        let grid = buildGrid(minWeeks: weeksToFill)
         let maxCost = dailyHistory.map(\.totalCost).max() ?? 0
 
         GroupBox {
@@ -537,27 +544,35 @@ private struct GitHubCalendarHeatmap: View {
                     .frame(maxWidth: .infinity, minHeight: 120)
             } else {
                 VStack(alignment: .leading, spacing: 4) {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            monthLabelsRow(grid: grid)
+                    VStack(alignment: .leading, spacing: 2) {
+                        monthLabelsRow(grid: grid)
 
-                            HStack(spacing: 2) {
-                                ForEach(grid.indices, id: \.self) { weekIdx in
-                                    VStack(spacing: 2) {
-                                        ForEach(0..<7, id: \.self) { dayIdx in
-                                            cellView(grid[weekIdx][dayIdx], maxCost: maxCost)
-                                        }
+                        HStack(spacing: cellSpacing) {
+                            ForEach(grid.indices, id: \.self) { weekIdx in
+                                VStack(spacing: cellSpacing) {
+                                    ForEach(0..<7, id: \.self) { dayIdx in
+                                        cellView(grid[weekIdx][dayIdx], maxCost: maxCost)
                                     }
                                 }
                             }
                         }
-                        .padding(4)
                     }
-                    .defaultScrollAnchor(.trailing)
+                    .padding(4)
 
                     HeatmapFooter(hoveredInfo: hoveredInfo)
                 }
             }
+        }
+        .background(GeometryReader { proxy in
+            Color.clear.preference(key: WidthKey.self, value: proxy.size.width)
+        })
+        .onPreferenceChange(WidthKey.self) { availableWidth = $0 }
+    }
+
+    private struct WidthKey: PreferenceKey {
+        static var defaultValue: CGFloat = 0
+        static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+            value = max(value, nextValue())
         }
     }
 
@@ -565,7 +580,7 @@ private struct GitHubCalendarHeatmap: View {
     private func monthLabelsRow(grid: [[CalendarCell]]) -> some View {
         let labels = computeMonthLabels(grid: grid)
 
-        HStack(spacing: 2) {
+        HStack(spacing: cellSpacing) {
             ForEach(grid.indices, id: \.self) { weekIdx in
                 if let label = labels[weekIdx] {
                     Text(label)
@@ -621,7 +636,7 @@ private struct GitHubCalendarHeatmap: View {
         }
     }
 
-    private func buildGrid() -> [[CalendarCell]] {
+    private func buildGrid(minWeeks: Int) -> [[CalendarCell]] {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
         let labelFormatter = DateFormatter()
@@ -889,7 +904,7 @@ private struct ActivityPage: View {
             if let existing = lookup[jd] {
                 result.append(existing)
             } else {
-                result.append(DayHourlyBreakdown(date: current, slotCosts: Array(repeating: 0, count: 6)))
+                result.append(DayHourlyBreakdown(date: current, slotCosts: Array(repeating: 0, count: 4)))
             }
             current = calendar.date(byAdding: .day, value: 1, to: current)!
         }
