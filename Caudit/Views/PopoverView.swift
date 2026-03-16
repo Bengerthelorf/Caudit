@@ -9,7 +9,6 @@ private struct ContentHeightKey: PreferenceKey {
 
 struct PopoverView: View {
     @Environment(AppState.self) private var appState
-    @Environment(\.openSettings) private var openSettings
     @State private var selectedTab = 0
     @State private var contentHeight: CGFloat = 0
 
@@ -91,7 +90,6 @@ struct PopoverView: View {
 
                 Button {
                     appDelegate.showSettings()
-                    openSettings()
                 } label: {
                     Image(systemName: "gear")
                         .font(.system(size: 11))

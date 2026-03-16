@@ -6,14 +6,17 @@ struct CauditApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     var body: some Scene {
-        Settings {
-            SettingsView(updater: appDelegate.updaterController.updater)
-                .environment(appDelegate.appState)
-        }
-        .commands {
-            CommandGroup(after: .appInfo) {
-                CheckForUpdatesView(updater: appDelegate.updaterController.updater)
+        WindowGroup(id: "placeholder") {}
+            .commands {
+                CommandGroup(after: .appInfo) {
+                    CheckForUpdatesView(updater: appDelegate.updaterController.updater)
+                }
+                CommandGroup(replacing: .appSettings) {
+                    Button("Settings…") {
+                        AppDelegate.shared.showSettings()
+                    }
+                    .keyboardShortcut(",", modifiers: .command)
+                }
             }
-        }
     }
 }

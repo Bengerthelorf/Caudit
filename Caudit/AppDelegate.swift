@@ -16,7 +16,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     let appState = AppState()
     let updaterController: SPUStandardUpdaterController
     private var eventMonitor: Any?
-    private var settingsWindowObserver: Any?
+    private var settingsWindow: NSWindow?
+    private var settingsCloseObserver: Any?
     private var dashboardWindow: NSWindow?
     private var dashboardCloseObserver: Any?
     private var sessionWindows: Set<NSWindow> = []
@@ -52,7 +53,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         stopEventMonitor()
-        if let obs = settingsWindowObserver {
+        if let obs = settingsCloseObserver {
             NotificationCenter.default.removeObserver(obs)
         }
         if let obs = dashboardCloseObserver {
@@ -71,40 +72,41 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Settings
 
     func showSettings() {
-        NSApp.setActivationPolicy(.regular)
-
-        var appearObserver: Any?
-        appearObserver = NotificationCenter.default.addObserver(
-            forName: NSWindow.didBecomeKeyNotification,
-            object: nil,
-            queue: .main
-        ) { notification in
-            guard let window = notification.object as? NSWindow,
-                  window.title.contains("Settings") || window.title.contains("设置") else { return }
-            if let obs = appearObserver {
-                NotificationCenter.default.removeObserver(obs)
-            }
-            NSApp.activate(ignoringOtherApps: true)
-            window.makeKeyAndOrderFront(nil)
+        if let window = settingsWindow {
+            activateApp(window: window)
+            return
         }
 
-        settingsWindowObserver = NotificationCenter.default.addObserver(
+        let hostingController = NSHostingController(
+            rootView: SettingsView(updater: updaterController.updater)
+                .environment(appState)
+        )
+        let window = NSWindow(contentViewController: hostingController)
+        window.title = "Settings"
+        window.styleMask = [.titled, .closable]
+        window.setContentSize(NSSize(width: 520, height: 420))
+        window.center()
+        window.isReleasedWhenClosed = false
+
+        settingsCloseObserver = NotificationCenter.default.addObserver(
             forName: NSWindow.willCloseNotification,
-            object: nil,
+            object: window,
             queue: .main
-        ) { [weak self] notification in
+        ) { [weak self] _ in
             MainActor.assumeIsolated {
-                guard let window = notification.object as? NSWindow,
-                      window.title.contains("Settings") || window.title.contains("设置") else { return }
+                self?.settingsWindow = nil
+                if let obs = self?.settingsCloseObserver {
+                    NotificationCenter.default.removeObserver(obs)
+                    self?.settingsCloseObserver = nil
+                }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                     self?.revertToAccessoryIfNeeded()
                 }
-                if let obs = self?.settingsWindowObserver {
-                    NotificationCenter.default.removeObserver(obs)
-                    self?.settingsWindowObserver = nil
-                }
             }
         }
+
+        self.settingsWindow = window
+        activateApp(window: window)
     }
 
     // MARK: - Dashboard
@@ -211,9 +213,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func revertToAccessoryIfNeeded() {
         let dashboardVisible = dashboardWindow?.isVisible == true
-        let settingsVisible = NSApp.windows.contains {
-            $0.isVisible && ($0.title.contains("Settings") || $0.title.contains("设置"))
-        }
+        let settingsVisible = settingsWindow?.isVisible == true
         let sessionVisible = sessionWindows.contains { $0.isVisible }
 
         if !dashboardVisible && !settingsVisible && !sessionVisible {
