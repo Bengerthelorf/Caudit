@@ -89,7 +89,6 @@ struct SessionReaderView: View {
 
             Divider()
 
-            // Search bar
             if isSearching {
                 SessionSearchBar(
                     searchText: $searchText,
@@ -106,42 +105,16 @@ struct SessionReaderView: View {
                 Divider()
             }
 
-            if isLoading {
-                VStack(spacing: 12) {
-                    ProgressView()
-                        .controlSize(.large)
-                    Text(session.source == "Local"
-                         ? "Loading conversation…"
-                         : "Loading from \(session.source)…")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if !allMessages.isEmpty {
-                let matchSet = Set(matchingIndices)
-                let currentMessageIndex = matchingIndices.isEmpty ? -1 : matchingIndices[min(currentMatchIndex, matchingIndices.count - 1)]
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 12) {
-                        ForEach(Array(allMessages.enumerated()), id: \.element.id) { index, message in
-                            MessageRow(
-                                message: message,
-                                highlight: matchSet.contains(index) ? searchText : "",
-                                isCurrentMatch: index == currentMessageIndex
-                            )
-                        }
-                    }
-                    .scrollTargetLayout()
-                    .padding(16)
-                }
-                .scrollPosition($scrollPosition)
-            } else {
-                ContentUnavailableView(
-                    "No Messages",
-                    systemImage: "bubble.left.and.bubble.right",
-                    description: Text(loadError ?? "Could not load conversation content.")
-                )
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
+            SessionMessageList(
+                messages: allMessages,
+                isLoading: isLoading,
+                loadError: loadError,
+                loadingSource: session.source,
+                searchText: searchText,
+                matchingIndices: matchingIndices,
+                currentMatchIndex: currentMatchIndex,
+                scrollPosition: $scrollPosition
+            )
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .onChange(of: searchText) { _, _ in currentMatchIndex = 0 }

@@ -14,8 +14,6 @@ struct SessionDetailView: View {
     @FocusState private var isSearchFieldFocused: Bool
     private let service = SessionDetailService()
 
-    // MARK: - Search
-
     private var allMessages: [SessionMessage] {
         detail?.messages ?? []
     }
@@ -57,7 +55,6 @@ struct SessionDetailView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Search bar
             if isSearching {
                 SessionSearchBar(
                     searchText: $searchText,
@@ -74,43 +71,16 @@ struct SessionDetailView: View {
                 Divider()
             }
 
-            // Messages
-            if isLoading {
-                VStack(spacing: 12) {
-                    ProgressView()
-                        .controlSize(.large)
-                    Text(session.source == "Local"
-                         ? "Loading conversation…"
-                         : "Loading from \(session.source)…")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if !allMessages.isEmpty {
-                let matchSet = Set(matchingIndices)
-                let currentMessageIndex = matchingIndices.isEmpty ? -1 : matchingIndices[min(currentMatchIndex, matchingIndices.count - 1)]
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 12) {
-                        ForEach(Array(allMessages.enumerated()), id: \.element.id) { index, message in
-                            MessageRow(
-                                message: message,
-                                highlight: matchSet.contains(index) ? searchText : "",
-                                isCurrentMatch: index == currentMessageIndex
-                            )
-                        }
-                    }
-                    .scrollTargetLayout()
-                    .padding(16)
-                }
-                .scrollPosition($scrollPosition)
-            } else {
-                ContentUnavailableView(
-                    "No Messages",
-                    systemImage: "bubble.left.and.bubble.right",
-                    description: Text(loadError ?? "Could not load conversation content.")
-                )
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
+            SessionMessageList(
+                messages: allMessages,
+                isLoading: isLoading,
+                loadError: loadError,
+                loadingSource: session.source,
+                searchText: searchText,
+                matchingIndices: matchingIndices,
+                currentMatchIndex: currentMatchIndex,
+                scrollPosition: $scrollPosition
+            )
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .onChange(of: searchText) { _, _ in currentMatchIndex = 0 }
@@ -140,10 +110,8 @@ struct SessionDetailView: View {
         isLoading = true
         loadError = nil
 
-        // Try local first
         detail = await service.loadSession(sessionId: session.sessionId, projectDir: session.projectDir)
 
-        // If local failed and this is a remote session, try SSH
         if detail == nil && session.source != "Local" {
             if let device = appState.remoteDevices.first(where: { $0.name == session.source }) {
                 do {
@@ -161,6 +129,58 @@ struct SessionDetailView: View {
         }
 
         isLoading = false
+    }
+}
+
+// MARK: - Shared Message List
+
+struct SessionMessageList: View {
+    let messages: [SessionMessage]
+    let isLoading: Bool
+    let loadError: String?
+    let loadingSource: String
+    let searchText: String
+    let matchingIndices: [Int]
+    let currentMatchIndex: Int
+    @Binding var scrollPosition: ScrollPosition
+
+    var body: some View {
+        if isLoading {
+            VStack(spacing: 12) {
+                ProgressView()
+                    .controlSize(.large)
+                Text(loadingSource == "Local"
+                     ? "Loading conversation…"
+                     : "Loading from \(loadingSource)…")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if !messages.isEmpty {
+            let matchSet = Set(matchingIndices)
+            let currentMessageIndex = matchingIndices.isEmpty ? -1 : matchingIndices[min(currentMatchIndex, matchingIndices.count - 1)]
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 12) {
+                    ForEach(Array(messages.enumerated()), id: \.element.id) { index, message in
+                        MessageRow(
+                            message: message,
+                            highlight: matchSet.contains(index) ? searchText : "",
+                            isCurrentMatch: index == currentMessageIndex
+                        )
+                    }
+                }
+                .scrollTargetLayout()
+                .padding(16)
+            }
+            .scrollPosition($scrollPosition)
+        } else {
+            ContentUnavailableView(
+                "No Messages",
+                systemImage: "bubble.left.and.bubble.right",
+                description: Text(loadError ?? "Could not load conversation content.")
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
     }
 }
 
@@ -205,7 +225,6 @@ struct MessageRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            // Role header
             HStack(spacing: 6) {
                 Image(systemName: roleIcon)
                     .foregroundStyle(roleColor)
@@ -220,7 +239,6 @@ struct MessageRow: View {
                     .foregroundStyle(.tertiary)
             }
 
-            // Content items
             ForEach(message.content) { item in
                 contentView(for: item)
             }
