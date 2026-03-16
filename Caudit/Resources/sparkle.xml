@@ -3,6 +3,39 @@
     <channel>
         <title>Caudit</title>
         <item>
+                    <title>Version 0.0.5</title>
+                    <link>https://github.com/Bengerthelorf/Caudit</link>
+                    <sparkle:version>2026031702</sparkle:version>
+                    <sparkle:shortVersionString>0.0.5</sparkle:shortVersionString>
+                    <pubDate>Mon, 16 Mar 2026 21:12:16 +0000</pubDate>
+                    <enclosure url="https://github.com/Bengerthelorf/Caudit/releases/download/v0.0.5/Caudit.dmg"
+                    sparkle:edSignature="0jplXcArJcPzUFyKkfSXmTirMXpZnAMqqGpFME5Nlnq53NBU2wn6K2VNzz7M6+3CjwBSQL9Y4uJZVEIts2d/Cw==" length="4161193"
+                    type="application/octet-stream"/>
+                    <description>
+                        <![CDATA[
+                    <h2>Version 0.0.5</h2>
+                    <ul>
+                        <li><strong>Fixed:</strong> back/forward navigation fully working for all operations</li>
+                        <li><strong>Fixed:</strong> forward navigation works for all operations</li>
+                        <li><strong>Fixed:</strong> replace fixed 50ms activation delay with KVO observation</li>
+                        <li><strong>Fixed:</strong> enforce window size via NSWindowDelegate.windowWillResize</li>
+                        <li><strong>Fixed:</strong> window size constraints and dashboard focus</li>
+                        <li><strong>Fixed:</strong> enforce window size constraints and disable fullscreen</li>
+                        <li><strong>Refactor:</strong> extract makeWindow helper, disable fullscreen on all windows</li>
+                        <li><strong>Fixed:</strong> tighten dashboard window size constraints</li>
+                        <li><strong>Perf:</strong> replace 525 per-cell onHover with single onContinuousHover</li>
+                        <li><strong>Fixed:</strong> restore ScrollView for all-time heatmap with fixed 75-week span</li>
+                        <li><strong>Fixed:</strong> week heatmap 6h slots, all-time fill width, dashboard max width</li>
+                        <li><strong>Fixed:</strong> upgrade icon to 512x512 for Retina clarity</li>
+                        <li><strong>Fixed:</strong> add hero image to docs homepage</li>
+                        <li><strong>New:</strong> apply brand colors from app icon to docs theme</li>
+                        <li><strong>Fixed:</strong> add app icon PNG for README, rewrite in pikpaktui style</li>
+                        <li><strong>New:</strong> docs site, release script, README, MIT license</li>
+                    </ul>
+                        ]]>
+                    </description>
+                </item>
+        <item>
                     <title>Version 0.0.4</title>
                     <link>https://github.com/Bengerthelorf/Caudit</link>
                     <sparkle:version>2026031701</sparkle:version>
