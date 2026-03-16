@@ -33,13 +33,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         Self.shared = self
     }
 
-    func applicationWillFinishLaunching(_ notification: Notification) {
-        NSApp.setActivationPolicy(.accessory)
-    }
-
     func applicationDidFinishLaunching(_ notification: Notification) {
+        NSApp.setActivationPolicy(.accessory)
         setupStatusItem()
         setupPopover()
+        setupMainMenu()
 
         NotificationCenter.default.addObserver(
             self, selector: #selector(handleShowDashboard),
@@ -49,10 +47,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             self, selector: #selector(handleDataUpdated),
             name: .cauditDataUpdated, object: nil
         )
-
-        for window in NSApp.windows where window != statusItem.button?.window {
-            window.orderOut(nil)
-        }
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
@@ -234,6 +228,34 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if !dashboardVisible && !settingsVisible && !sessionVisible {
             NSApp.setActivationPolicy(.accessory)
         }
+    }
+
+    // MARK: - Main Menu
+
+    private func setupMainMenu() {
+        let mainMenu = NSMenu()
+
+        let appMenu = NSMenu()
+        let appMenuItem = NSMenuItem()
+        appMenuItem.submenu = appMenu
+
+        appMenu.addItem(withTitle: "About Caudit", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        appMenu.addItem(withTitle: "Check for Updates…", action: #selector(checkForUpdates), keyEquivalent: "")
+        appMenu.addItem(.separator())
+        appMenu.addItem(withTitle: "Settings…", action: #selector(openSettingsFromMenu), keyEquivalent: ",")
+        appMenu.addItem(.separator())
+        appMenu.addItem(withTitle: "Quit Caudit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+
+        mainMenu.addItem(appMenuItem)
+        NSApp.mainMenu = mainMenu
+    }
+
+    @objc private func openSettingsFromMenu() {
+        showSettings()
+    }
+
+    @objc private func checkForUpdates() {
+        updaterController.updater.checkForUpdates()
     }
 
     // MARK: - Status Item & Popover

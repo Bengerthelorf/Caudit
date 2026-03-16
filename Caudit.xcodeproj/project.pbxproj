@@ -75,7 +75,6 @@
 			children = (
 				9D569E6DDBEE339067DBB0DC /* UsageParserTests.swift */,
 			);
-			name = CauditTests;
 			path = CauditTests;
 			sourceTree = "<group>";
 		};
