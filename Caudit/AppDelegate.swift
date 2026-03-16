@@ -90,8 +90,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             forName: NSWindow.willCloseNotification,
             object: window,
             queue: .main
-        ) { [weak self] _ in
+        ) { [weak self] notification in
             MainActor.assumeIsolated {
+                if let w = notification.object as? NSWindow { self?.windowDelegates.removeValue(forKey: w) }
                 self?.settingsWindow = nil
                 if let obs = self?.settingsCloseObserver {
                     NotificationCenter.default.removeObserver(obs)
@@ -127,8 +128,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             forName: NSWindow.willCloseNotification,
             object: window,
             queue: .main
-        ) { [weak self] _ in
+        ) { [weak self] notification in
             MainActor.assumeIsolated {
+                if let w = notification.object as? NSWindow { self?.windowDelegates.removeValue(forKey: w) }
                 self?.dashboardWindow = nil
                 if let obs = self?.dashboardCloseObserver {
                     NotificationCenter.default.removeObserver(obs)
@@ -162,6 +164,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         ) { [weak self] notification in
             MainActor.assumeIsolated {
                 guard let window = notification.object as? NSWindow else { return }
+                self?.windowDelegates.removeValue(forKey: window)
                 if let obs = self?.sessionCloseObservers.removeValue(forKey: window) {
                     NotificationCenter.default.removeObserver(obs)
                 }
@@ -177,6 +180,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     // MARK: - Window Factory
+
+    private var windowDelegates: [NSWindow: WindowSizeDelegate] = [:]
 
     private func makeWindow(
         title: String,
@@ -208,8 +213,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         window.setContentSize(size)
-        window.contentMinSize = minSize
-        if let maxSize { window.contentMaxSize = maxSize }
+
+        let effectiveMax = maxSize ?? NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+        let sizeDelegate = WindowSizeDelegate(minSize: minSize, maxSize: effectiveMax)
+        window.delegate = sizeDelegate
+        windowDelegates[window] = sizeDelegate
+
         window.center()
 
         return window
@@ -323,6 +332,32 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if let monitor = eventMonitor {
             NSEvent.removeMonitor(monitor)
             eventMonitor = nil
+        }
+    }
+}
+
+// MARK: - Window Size Delegate
+
+/// NSWindowDelegate that enforces min/max frame size via windowWillResize.
+/// NavigationSplitView's internal NSSplitView installs Auto Layout constraints
+/// that override NSWindow.contentMinSize/contentMaxSize, so this delegate is
+/// the only reliable way to clamp the window size.
+@MainActor
+private final class WindowSizeDelegate: NSObject, NSWindowDelegate {
+    let minSize: NSSize
+    let maxSize: NSSize
+
+    init(minSize: NSSize, maxSize: NSSize) {
+        self.minSize = minSize
+        self.maxSize = maxSize
+    }
+
+    nonisolated func windowWillResize(_ sender: NSWindow, to frameSize: NSSize) -> NSSize {
+        MainActor.assumeIsolated {
+            var clamped = frameSize
+            clamped.width = max(minSize.width, min(maxSize.width, clamped.width))
+            clamped.height = max(minSize.height, clamped.height)
+            return clamped
         }
     }
 }
