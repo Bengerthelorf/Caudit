@@ -4,6 +4,9 @@ hero:
   name: Caudit
   text: Claude API Usage Tracker
   tagline: A lightweight macOS menu bar app that tracks your Claude Code and OpenClaw API spending in real time.
+  image:
+    src: /icon.png
+    alt: Caudit
   actions:
     - theme: brand
       text: Get Started
