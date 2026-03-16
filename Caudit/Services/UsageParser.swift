@@ -453,13 +453,13 @@ final class UsageParser: @unchecked Sendable {
         var allTime = AggregatedUsage()
         var modelMap: [String: ModelUsageEntry] = [:]
         var dailyMap: [String: DailyUsage] = [:]
-        var allTimeDailyMap: [String: DailyUsage] = [:]
+        var allTimeDailyMap: [Int: DailyUsage] = [:]
         var hourlyMap: [Int: DailyUsage] = [:]
         var projectMap: [String: ProjectUsage] = [:]
         var projectSessionSets: [String: Set<String>] = [:]
         var sessionMap: [String: SessionInfo] = [:]
         var toolMap: [String: Int] = [:]
-        var dayHourMap: [String: (date: Date, slots: [Double])] = [:]
+        var dayHourMap: [Int: (date: Date, slots: [Double])] = [:]
 
         let dayFormatter = Self.dayFormatter
 
@@ -493,19 +493,20 @@ final class UsageParser: @unchecked Sendable {
 
             let dayStart = calendar.startOfDay(for: record.timestamp)
             let key = dayFormatter.string(from: dayStart)
+            let julianDay = calendar.ordinality(of: .day, in: .era, for: dayStart) ?? 0
 
-            var allDay = allTimeDailyMap[key] ?? DailyUsage(date: dayStart, dateString: key)
+            var allDay = allTimeDailyMap[julianDay] ?? DailyUsage(date: dayStart, dateString: key)
             allDay.totalCost += record.cost
             allDay.totalTokens += tokens
             allDay.costBySource[record.source, default: 0] += record.cost
-            allTimeDailyMap[key] = allDay
+            allTimeDailyMap[julianDay] = allDay
 
             let hourOfDay = calendar.component(.hour, from: record.timestamp)
             let slot = hourOfDay / 4
-            if dayHourMap[key] == nil {
-                dayHourMap[key] = (date: dayStart, slots: Array(repeating: 0, count: 6))
+            if dayHourMap[julianDay] == nil {
+                dayHourMap[julianDay] = (date: dayStart, slots: Array(repeating: 0, count: 6))
             }
-            dayHourMap[key]!.slots[slot] += record.cost
+            dayHourMap[julianDay]!.slots[slot] += record.cost
 
             if record.timestamp >= sevenDaysAgo {
                 var day = dailyMap[key] ?? DailyUsage(date: dayStart, dateString: key)

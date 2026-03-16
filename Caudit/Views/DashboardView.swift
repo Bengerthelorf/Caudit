@@ -311,9 +311,17 @@ private func heatmapColor(_ intensity: Double, hasData: Bool) -> Color {
     return heatmapGreens[4]
 }
 
-private struct HeatmapLegend: View {
+private struct HeatmapFooter: View {
+    var hoveredInfo: String?
+
     var body: some View {
         HStack(spacing: 4) {
+            if let info = hoveredInfo {
+                Text(info)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .transition(.opacity)
+            }
             Spacer()
             Text("Less").font(.caption2).foregroundStyle(.tertiary)
             ForEach(0..<5, id: \.self) { level in
@@ -323,6 +331,7 @@ private struct HeatmapLegend: View {
             }
             Text("More").font(.caption2).foregroundStyle(.tertiary)
         }
+        .animation(.easeInOut(duration: 0.15), value: hoveredInfo)
     }
 }
 
@@ -330,6 +339,7 @@ private struct HeatmapLegend: View {
 
 private struct TodayHeatmap: View {
     let hourlyData: [DailyUsage]
+    @State private var hoveredInfo: String?
 
     var body: some View {
         let maxCost = hourlyData.map(\.totalCost).max() ?? 0
@@ -348,7 +358,9 @@ private struct TodayHeatmap: View {
                             RoundedRectangle(cornerRadius: 3)
                                 .fill(heatmapColor(intensity, hasData: cost > 0))
                                 .frame(maxWidth: .infinity, minHeight: 36, maxHeight: 36)
-                                .help("\(hour):00 – \(hour + 1):00: \(CauditFormatter.costDetail(cost))")
+                                .onHover { hovering in
+                                    hoveredInfo = hovering ? "\(hour):00–\(hour + 1):00  \(CauditFormatter.costDetail(cost))" : nil
+                                }
                         }
                     }
 
@@ -367,7 +379,7 @@ private struct TodayHeatmap: View {
                         }
                     }
 
-                    HeatmapLegend()
+                    HeatmapFooter(hoveredInfo: hoveredInfo)
                 }
             }
         }
@@ -380,6 +392,7 @@ private struct WeekHeatmap: View {
     let data: [DayHourlyBreakdown]
 
     private static let timeLabels = ["0:00", "4:00", "8:00", "12:00", "16:00", "20:00"]
+    @State private var hoveredInfo: String?
 
     private var maxCost: Double {
         data.flatMap(\.slotCosts).max() ?? 0
@@ -417,15 +430,18 @@ private struct WeekHeatmap: View {
                             ForEach(data) { day in
                                 let cost = day.slotCosts[slot]
                                 let intensity = maxCost > 0 ? cost / maxCost : 0
+                                let label = dayFmt.string(from: day.date).replacingOccurrences(of: "\n", with: " ")
                                 RoundedRectangle(cornerRadius: 3)
                                     .fill(heatmapColor(intensity, hasData: cost > 0))
-                                    .frame(maxWidth: .infinity, minHeight: 28, maxHeight: 28)
-                                    .help("\(dayFmt.string(from: day.date).replacingOccurrences(of: "\n", with: " ")) \(Self.timeLabels[slot]): \(CauditFormatter.costDetail(cost))")
+                                    .frame(maxWidth: .infinity, minHeight: 22, maxHeight: 22)
+                                    .onHover { hovering in
+                                        hoveredInfo = hovering ? "\(label) \(Self.timeLabels[slot])  \(CauditFormatter.costDetail(cost))" : nil
+                                    }
                             }
                         }
                     }
 
-                    HeatmapLegend()
+                    HeatmapFooter(hoveredInfo: hoveredInfo)
                 }
             }
         }
@@ -436,7 +452,8 @@ private struct WeekHeatmap: View {
 
 private struct MonthHeatmap: View {
     let dailyData: [DailyUsage]
-    private let rows = 4
+    private let rows = 5
+    @State private var hoveredInfo: String?
 
     private var columns: Int {
         (dailyData.count + rows - 1) / rows
@@ -476,17 +493,19 @@ private struct MonthHeatmap: View {
                                         let intensity = maxCost > 0 ? cost / maxCost : 0
                                         RoundedRectangle(cornerRadius: 2)
                                             .fill(heatmapColor(intensity, hasData: cost > 0))
-                                            .frame(maxWidth: .infinity, minHeight: 16, maxHeight: 16)
-                                            .help("\(dailyData[i].dateString): \(CauditFormatter.costDetail(cost))")
+                                            .frame(maxWidth: .infinity, minHeight: 22, maxHeight: 22)
+                                            .onHover { hovering in
+                                                hoveredInfo = hovering ? "\(dailyData[i].dateString)  \(CauditFormatter.costDetail(cost))" : nil
+                                            }
                                     } else {
-                                        Color.clear.frame(maxWidth: .infinity, minHeight: 16, maxHeight: 16)
+                                        Color.clear.frame(maxWidth: .infinity, minHeight: 22, maxHeight: 22)
                                     }
                                 }
                             }
                         }
                     }
 
-                    HeatmapLegend()
+                    HeatmapFooter(hoveredInfo: hoveredInfo)
                 }
             }
         }
@@ -502,8 +521,9 @@ private struct CalendarCell {
 
 private struct GitHubCalendarHeatmap: View {
     let dailyHistory: [DailyUsage]
-    var minWeeks: Int = 52
-    var cellSize: CGFloat = 12
+    var minWeeks: Int = 26
+    var cellSize: CGFloat = 14
+    @State private var hoveredInfo: String?
 
     var body: some View {
         let grid = buildGrid()
@@ -534,7 +554,7 @@ private struct GitHubCalendarHeatmap: View {
                     }
                     .defaultScrollAnchor(.trailing)
 
-                    HeatmapLegend()
+                    HeatmapFooter(hoveredInfo: hoveredInfo)
                 }
             }
         }
@@ -583,9 +603,15 @@ private struct GitHubCalendarHeatmap: View {
         return RoundedRectangle(cornerRadius: 2)
             .fill(heatmapColor(intensity, hasData: cell.hasData))
             .frame(width: cellSize, height: cellSize)
-            .help(cell.hasData
-                ? "\(cell.label): \(CauditFormatter.costDetail(cell.cost))"
-                : cell.label)
+            .onHover { hovering in
+                if hovering {
+                    hoveredInfo = cell.hasData
+                        ? "\(cell.label)  \(CauditFormatter.costDetail(cell.cost))"
+                        : cell.label
+                } else {
+                    hoveredInfo = nil
+                }
+            }
     }
 
     private func buildGrid() -> [[CalendarCell]] {
@@ -794,8 +820,7 @@ private struct ActivityPage: View {
                         MonthHeatmap(dailyData: monthDailyData)
                     case .allTime:
                         GitHubCalendarHeatmap(
-                            dailyHistory: appState.allTimeDailyHistory,
-                            minWeeks: 52
+                            dailyHistory: appState.allTimeDailyHistory
                         )
                     }
 
