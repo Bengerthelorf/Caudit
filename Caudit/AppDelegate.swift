@@ -71,7 +71,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Settings
 
     func showSettings() {
-        activateApp()
+        NSApp.setActivationPolicy(.regular)
+        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(50)) {
+            NSApp.activate(ignoringOtherApps: true)
+            if let settingsWindow = NSApp.windows.first(where: {
+                $0.isVisible && ($0.title.contains("Settings") || $0.title.contains("设置"))
+            }) {
+                settingsWindow.makeKeyAndOrderFront(nil)
+            }
+        }
 
         settingsWindowObserver = NotificationCenter.default.addObserver(
             forName: NSWindow.willCloseNotification,
