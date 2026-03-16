@@ -11,3 +11,4 @@ docs/.vitepress/cache/
 
 # macOS
 .DS_Store
+docs/package-lock.json
