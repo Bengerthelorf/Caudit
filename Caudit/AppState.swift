@@ -54,6 +54,7 @@ final class AppState {
         didSet {
             guard let data = try? JSONEncoder().encode(remoteDevices) else { return }
             UserDefaults.standard.set(data, forKey: "remoteDevices")
+            cleanStaleCaches()
             if hasFinishedInit {
                 scheduleRefresh()
             }
@@ -202,6 +203,15 @@ final class AppState {
         }
         refreshUsage(force: true)
         refreshQuota()
+    }
+
+    private func cleanStaleCaches() {
+        let activeIds = Set(remoteDevices.filter(\.isEnabled).map(\.id))
+        for id in remoteCachedRecords.keys where !activeIds.contains(id) {
+            remoteCachedRecords.removeValue(forKey: id)
+            remoteFingerprints.removeValue(forKey: id)
+            remoteDeviceStatus.removeValue(forKey: id)
+        }
     }
 
     private func scheduleRefresh() {

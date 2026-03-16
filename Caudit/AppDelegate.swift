@@ -19,6 +19,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var dashboardWindow: NSWindow?
     private var dashboardCloseObserver: Any?
     private var sessionWindows: Set<NSWindow> = []
+    private var sessionCloseObservers: [NSWindow: Any] = [:]
 
     override init() {
         updaterController = SPUStandardUpdaterController(
@@ -56,6 +57,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if let obs = dashboardCloseObserver {
             NotificationCenter.default.removeObserver(obs)
         }
+        for obs in sessionCloseObservers.values {
+            NotificationCenter.default.removeObserver(obs)
+        }
+        sessionCloseObservers.removeAll()
     }
 
     @objc private func handleDataUpdated() {
@@ -154,17 +159,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         window.isReleasedWhenClosed = false
 
         sessionWindows.insert(window)
-        NotificationCenter.default.addObserver(
+        let observer = NotificationCenter.default.addObserver(
             forName: NSWindow.willCloseNotification,
             object: window,
             queue: .main
         ) { [weak self] notification in
             guard let window = notification.object as? NSWindow else { return }
+            if let obs = self?.sessionCloseObservers.removeValue(forKey: window) {
+                NotificationCenter.default.removeObserver(obs)
+            }
             self?.sessionWindows.remove(window)
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                 self?.revertToAccessoryIfNeeded()
             }
         }
+        sessionCloseObservers[window] = observer
 
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
