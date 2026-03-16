@@ -46,7 +46,6 @@ final class SSHService: @unchecked Sendable {
         process.standardOutput = stdout
         process.standardError = stderr
 
-        // Collect pipe data in thread-safe boxes to avoid concurrent var capture
         let outBox = SendableBox()
         let errBox = SendableBox()
         let readGroup = DispatchGroup()

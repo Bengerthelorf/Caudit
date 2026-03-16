@@ -634,7 +634,6 @@ private struct GitHubCalendarHeatmap: View {
             }
         }
 
-        // End at today's week (partial — don't extend past today)
         let todayWeekday = calendar.component(.weekday, from: today)
         let endDate = calendar.date(byAdding: .day, value: 7 - todayWeekday, to: today)!
 
