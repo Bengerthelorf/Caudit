@@ -14,75 +14,76 @@ final class SSHService: @unchecked Sendable {
     static let shared = SSHService()
 
     func run(device: RemoteDevice, command: String, connectTimeout: Int = 15) async throws -> String {
-        try await withCheckedThrowingContinuation { continuation in
-            DispatchQueue.global(qos: .utility).async {
-                let process = Process()
-                process.executableURL = URL(fileURLWithPath: "/usr/bin/ssh")
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/ssh")
 
-                var args = [
-                    "-o", "BatchMode=yes",
-                    "-o", "ConnectTimeout=\(connectTimeout)",
-                    "-o", "StrictHostKeyChecking=accept-new",
-                    "-o", "ServerAliveInterval=10",
-                    "-o", "ServerAliveCountMax=3",
-                ]
+        var args = [
+            "-o", "BatchMode=yes",
+            "-o", "ConnectTimeout=\(connectTimeout)",
+            "-o", "StrictHostKeyChecking=accept-new",
+            "-o", "ServerAliveInterval=10",
+            "-o", "ServerAliveCountMax=3",
+        ]
 
-                if !device.identityFile.isEmpty {
-                    let expanded = NSString(string: device.identityFile).expandingTildeInPath
-                    args += ["-i", expanded]
-                }
+        if !device.identityFile.isEmpty {
+            let expanded = NSString(string: device.identityFile).expandingTildeInPath
+            args += ["-i", expanded]
+        }
 
-                args += [device.sshHost, command]
-                process.arguments = args
+        args += [device.sshHost, command]
+        process.arguments = args
 
-                var env = ProcessInfo.processInfo.environment
-                if env["SSH_AUTH_SOCK"] == nil {
-                    if let sock = Self.launchdSSHAuthSocket() {
-                        env["SSH_AUTH_SOCK"] = sock
-                    }
-                }
-                process.environment = env
+        var env = ProcessInfo.processInfo.environment
+        if env["SSH_AUTH_SOCK"] == nil {
+            if let sock = Self.launchdSSHAuthSocket() {
+                env["SSH_AUTH_SOCK"] = sock
+            }
+        }
+        process.environment = env
 
-                let stdout = Pipe()
-                let stderr = Pipe()
-                process.standardOutput = stdout
-                process.standardError = stderr
+        let stdout = Pipe()
+        let stderr = Pipe()
+        process.standardOutput = stdout
+        process.standardError = stderr
 
-                do {
-                    try process.run()
-                } catch {
-                    continuation.resume(throwing: error)
-                    return
-                }
+        // Collect pipe data in thread-safe boxes to avoid concurrent var capture
+        let outBox = SendableBox()
+        let errBox = SendableBox()
+        let readGroup = DispatchGroup()
 
-                var outData = Data()
-                var errData = Data()
-                let readGroup = DispatchGroup()
+        readGroup.enter()
+        DispatchQueue.global().async {
+            outBox.data = stdout.fileHandleForReading.readDataToEndOfFile()
+            readGroup.leave()
+        }
 
-                readGroup.enter()
-                DispatchQueue.global().async {
-                    outData = stdout.fileHandleForReading.readDataToEndOfFile()
-                    readGroup.leave()
-                }
+        readGroup.enter()
+        DispatchQueue.global().async {
+            errBox.data = stderr.fileHandleForReading.readDataToEndOfFile()
+            readGroup.leave()
+        }
 
-                readGroup.enter()
-                DispatchQueue.global().async {
-                    errData = stderr.fileHandleForReading.readDataToEndOfFile()
-                    readGroup.leave()
-                }
-
+        return try await withCheckedThrowingContinuation { continuation in
+            process.terminationHandler = { _ in
                 readGroup.wait()
-                process.waitUntilExit()
-
-                let output = String(data: outData, encoding: .utf8) ?? ""
-
+                let output = String(data: outBox.data, encoding: .utf8) ?? ""
                 if !output.isEmpty || process.terminationStatus == 0 {
                     continuation.resume(returning: output)
                 } else {
-                    let msg = String(data: errData, encoding: .utf8)?
+                    let msg = String(data: errBox.data, encoding: .utf8)?
                         .trimmingCharacters(in: .whitespacesAndNewlines) ?? "SSH failed"
                     continuation.resume(throwing: SSHError.failed(msg))
                 }
+            }
+
+            do {
+                try process.run()
+            } catch {
+                process.terminationHandler = nil
+                try? stdout.fileHandleForWriting.close()
+                try? stderr.fileHandleForWriting.close()
+                readGroup.wait()
+                continuation.resume(throwing: error)
             }
         }
     }
@@ -104,4 +105,8 @@ final class SSHService: @unchecked Sendable {
             return nil
         }
     }
+}
+
+private final class SendableBox: @unchecked Sendable {
+    var data = Data()
 }

@@ -182,14 +182,16 @@ final class AppState {
     private func restartUsageTimer() {
         usageTimer?.invalidate()
         usageTimer = Timer.scheduledTimer(withTimeInterval: usageRefreshInterval, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.refreshUsage() }
+            guard let self else { return }
+            Task { @MainActor in self.refreshUsage() }
         }
     }
 
     private func restartQuotaTimer() {
         quotaTimer?.invalidate()
         quotaTimer = Timer.scheduledTimer(withTimeInterval: quotaRefreshInterval, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.refreshQuota() }
+            guard let self else { return }
+            Task { @MainActor in self.refreshQuota() }
         }
     }
 
