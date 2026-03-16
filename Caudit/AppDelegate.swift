@@ -226,15 +226,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - Activation Policy
 
-    /// The first .accessory → .regular transition after launch needs extra time
-    /// for the window server to process the policy change. A short delay before
-    /// activate + makeKey ensures the window draws in the active (focused) style.
+    private var activationObserver: NSKeyValueObservation?
+
     private func activateApp(window: NSWindow? = nil) {
         NSApp.setActivationPolicy(.regular)
-        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(50)) {
+        window?.makeKeyAndOrderFront(nil)
+
+        if NSApp.isActive {
             NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+
+        activationObserver?.invalidate()
+        activationObserver = NSApp.observe(\.isActive, options: .new) { [weak self] app, change in
+            guard change.newValue == true else { return }
+            self?.activationObserver?.invalidate()
+            self?.activationObserver = nil
             window?.makeKeyAndOrderFront(nil)
         }
+        NSApp.activate(ignoringOtherApps: true)
     }
 
     private func revertToAccessoryIfNeeded() {
