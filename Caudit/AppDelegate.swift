@@ -186,16 +186,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         rootView: some View,
         toolbar: Bool = true
     ) -> NSWindow {
-        let controller = NSHostingController(rootView: rootView.environment(appState))
+        let controller = NSHostingController(
+            rootView: rootView
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .environment(appState)
+        )
         controller.sizingOptions = []
+
         let window = NSWindow(contentViewController: controller)
         window.title = title
         window.styleMask = [.titled, .closable, .resizable, .miniaturizable, .fullSizeContentView]
         window.collectionBehavior = [.fullScreenNone, .managed]
-        window.setContentSize(size)
-        window.minSize = minSize
-        if let maxSize { window.maxSize = maxSize }
-        window.center()
         window.isReleasedWhenClosed = false
         window.titlebarSeparatorStyle = .none
 
@@ -205,6 +206,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             window.toolbar = tb
             window.toolbarStyle = .unified
         }
+
+        window.setContentSize(size)
+        window.contentMinSize = minSize
+        if let maxSize { window.contentMaxSize = maxSize }
+        window.center()
 
         return window
     }

@@ -72,7 +72,7 @@ struct PopoverView: View {
                 }
                 Spacer()
                 Button {
-                    NotificationCenter.default.post(name: .showDashboard, object: nil)
+                    appDelegate.showDashboard()
                 } label: {
                     Image(systemName: "square.grid.2x2")
                         .font(.system(size: 11))
