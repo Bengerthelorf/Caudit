@@ -8,7 +8,7 @@
 
 [![Download](https://img.shields.io/github/v/release/Bengerthelorf/Caudit?label=Download&style=for-the-badge&color=blue)](https://github.com/Bengerthelorf/Caudit/releases/latest)
 &nbsp;
-[![Documentation](https://img.shields.io/badge/Documentation-Visit_→-2ea44f?style=for-the-badge)](https://bengerthelorf.github.io/Caudit/)
+[![Documentation](https://img.shields.io/badge/Documentation-Visit_→-2ea44f?style=for-the-badge)](https://app.snaix.homes/caudit/)
 &nbsp;
 [![Homebrew](https://img.shields.io/badge/Homebrew-Available-orange?style=for-the-badge)](https://github.com/Bengerthelorf/Caudit#install)
 
@@ -55,12 +55,11 @@ Aggregate usage from other machines via SSH:
 2. Enter SSH host, test connection, save
 3. Remote data appears alongside local data with fingerprint-based caching
 
-> See [Remote Devices Guide](https://bengerthelorf.github.io/Caudit/guide/remote-devices) for details.
+> See [Remote Devices Guide](https://app.snaix.homes/caudit/guide/remote-devices) for details.
 
 ## System Requirements
 
 - macOS 15.0 or later
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) installed
 
 ## Development
 
