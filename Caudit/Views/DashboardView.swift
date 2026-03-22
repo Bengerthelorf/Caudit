@@ -402,6 +402,9 @@ private struct WeekHeatmap: View {
     let data: [DayHourlyBreakdown]
 
     private static let timeLabels = ["0:00", "6:00", "12:00", "18:00"]
+    private static let dayFmt: DateFormatter = {
+        let f = DateFormatter(); f.dateFormat = "E\nM/d"; return f
+    }()
     @State private var hoveredInfo: String?
 
     private var maxCost: Double {
@@ -409,9 +412,6 @@ private struct WeekHeatmap: View {
     }
 
     var body: some View {
-        let dayFmt = DateFormatter()
-        let _ = { dayFmt.dateFormat = "E\nM/d" }()
-
         GroupBox {
             if data.isEmpty {
                 Text("No data yet")
@@ -422,7 +422,7 @@ private struct WeekHeatmap: View {
                     HStack(spacing: 2) {
                         Color.clear.frame(width: 40, height: 1)
                         ForEach(data) { day in
-                            Text(dayFmt.string(from: day.date))
+                            Text(Self.dayFmt.string(from: day.date))
                                 .font(.system(size: 9))
                                 .foregroundStyle(.secondary)
                                 .multilineTextAlignment(.center)
@@ -440,7 +440,7 @@ private struct WeekHeatmap: View {
                             ForEach(data) { day in
                                 let cost = day.slotCosts[slot]
                                 let intensity = maxCost > 0 ? cost / maxCost : 0
-                                let label = dayFmt.string(from: day.date).replacingOccurrences(of: "\n", with: " ")
+                                let label = Self.dayFmt.string(from: day.date).replacingOccurrences(of: "\n", with: " ")
                                 RoundedRectangle(cornerRadius: 3)
                                     .fill(heatmapColor(intensity, hasData: cost > 0))
                                     .frame(maxWidth: .infinity, minHeight: 22, maxHeight: 22)
@@ -463,6 +463,9 @@ private struct WeekHeatmap: View {
 private struct MonthHeatmap: View {
     let dailyData: [DailyUsage]
     private let rows = 5
+    private static let dateFmt: DateFormatter = {
+        let f = DateFormatter(); f.dateFormat = "M/d"; return f
+    }()
     @State private var hoveredInfo: String?
 
     private var columns: Int {
@@ -471,8 +474,6 @@ private struct MonthHeatmap: View {
 
     var body: some View {
         let maxCost = dailyData.map(\.totalCost).max() ?? 0
-        let dateFmt = DateFormatter()
-        let _ = { dateFmt.dateFormat = "M/d" }()
 
         GroupBox {
             if dailyData.isEmpty {
@@ -485,7 +486,7 @@ private struct MonthHeatmap: View {
                         ForEach(0..<columns, id: \.self) { col in
                             let i = col * rows
                             if i < dailyData.count {
-                                Text(dateFmt.string(from: dailyData[i].date))
+                                Text(Self.dateFmt.string(from: dailyData[i].date))
                                     .font(.system(size: 9))
                                     .foregroundStyle(.secondary)
                                     .frame(maxWidth: .infinity)
@@ -808,6 +809,10 @@ private struct TrendChart: View {
 private struct ActivityPage: View {
     @Environment(AppState.self) private var appState
 
+    private static let dayFmt: DateFormatter = {
+        let f = DateFormatter(); f.dateFormat = "MM/dd"; return f
+    }()
+
     private var filterStart: Date {
         appState.dashboardFilter.timeRange.filterStart
     }
@@ -917,8 +922,6 @@ private struct ActivityPage: View {
         let calendar = Calendar.current
         let start = TimeRange.month.filterStart
         let endOfToday = calendar.startOfDay(for: Date())
-        let dayFmt = DateFormatter()
-        dayFmt.dateFormat = "MM/dd"
 
         var lookup: [String: DailyUsage] = [:]
         for day in appState.allTimeDailyHistory where day.date >= start {
@@ -928,7 +931,7 @@ private struct ActivityPage: View {
         var result: [DailyUsage] = []
         var current = start
         while current <= endOfToday {
-            let key = dayFmt.string(from: current)
+            let key = Self.dayFmt.string(from: current)
             result.append(lookup[key] ?? DailyUsage(date: current, dateString: key))
             current = calendar.date(byAdding: .day, value: 1, to: current)!
         }
