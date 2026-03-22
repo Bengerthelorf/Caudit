@@ -1045,7 +1045,6 @@ private struct SessionsPage: View {
                     }
                     .width(ideal: 120)
                 }
-                .onChange(of: selectedSessionId) { _, _ in }
                 .onKeyPress(.return) {
                     if let id = selectedSessionId,
                        let session = filteredSessions.first(where: { $0.id == id }) {

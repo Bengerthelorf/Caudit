@@ -46,10 +46,6 @@ final class UsageParser: @unchecked Sendable {
         return results
     }
 
-    func parseAll() -> ParseResult {
-        aggregate(records: scanLocalRecords())
-    }
-
     // MARK: - Local Scanning
 
     func scanLocalRecords() -> [UsageRecord] {
