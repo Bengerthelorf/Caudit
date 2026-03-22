@@ -3,6 +3,40 @@
     <channel>
         <title>Caudit</title>
         <item>
+                    <title>Version 0.0.6</title>
+                    <link>https://github.com/Bengerthelorf/Caudit</link>
+                    <sparkle:version>2026032300</sparkle:version>
+                    <sparkle:shortVersionString>0.0.6</sparkle:shortVersionString>
+                    <pubDate>Sun, 22 Mar 2026 20:16:28 +0000</pubDate>
+                    <enclosure url="https://github.com/Bengerthelorf/Caudit/releases/download/v0.0.6/Caudit.dmg"
+                    sparkle:edSignature="1ZoSDDzNOZzBnt8Za6tEJZQLpKs52uqPd3JoPNykKwDWLjNZcI9xHx5J/iK5StQXc19yiPHsJ6+tUcvbjQINBg==" length="4172156"
+                    type="application/octet-stream"/>
+                    <description>
+                        <![CDATA[
+                    <h2>Version 0.0.6</h2>
+                    <ul>
+                        <li><strong>Fixed:</strong> add accessibility labels to key UI elements</li>
+                        <li><strong>Fixed:</strong> add tooltips to popover buttons and proper picker label</li>
+                        <li><strong>Fixed:</strong> replace deprecated .foregroundColor with .foregroundStyle</li>
+                        <li><strong>Fixed:</strong> make Palette and heatmap colors adaptive for dark mode</li>
+                        <li><strong>New:</strong> add standard Edit menu with Undo/Cut/Copy/Paste/Select All</li>
+                        <li><strong>Fixed:</strong> replace deprecated activate(ignoringOtherApps:) with activate()</li>
+                        <li><strong>New:</strong> add command timeout for SSH remote operations</li>
+                        <li><strong>Fixed:</strong> eliminate SessionContentItem ID collisions</li>
+                        <li><strong>Refactor:</strong> extract shared toolIcon() to CauditFormatter</li>
+                        <li><strong>Perf:</strong> move DateFormatter creation to static properties</li>
+                        <li><strong>Refactor:</strong> deduplicate SessionReaderView by composing SessionDetailView</li>
+                        <li><strong>Fixed:</strong> handle millisecond timestamps in expiresAt credential field</li>
+                        <li><strong>Fixed:</strong> use app version for User-Agent and respect CLAUDE_CONFIG_DIR</li>
+                        <li><strong>Fixed:</strong> read lastFetched under lock in PricingTable.refreshIfNeeded</li>
+                        <li><strong>Fixed:</strong> use passRetained for DirectoryMonitor FSEvents context</li>
+                        <li><strong>Fixed:</strong> sanitize shell-interpolated paths to prevent command injection</li>
+                        <li>Update documentation links in README.md</li>
+                    </ul>
+                        ]]>
+                    </description>
+                </item>
+        <item>
                     <title>Version 0.0.5</title>
                     <link>https://github.com/Bengerthelorf/Caudit</link>
                     <sparkle:version>2026031702</sparkle:version>
