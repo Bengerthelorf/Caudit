@@ -85,4 +85,19 @@ enum CauditFormatter {
             ?? isoBasic.date(from: string)
             ?? microsecondFormatter.date(from: string)
     }
+
+    static func toolIcon(_ name: String) -> String {
+        switch name {
+        case "Read": return "doc.text"
+        case "Write": return "square.and.pencil"
+        case "Edit": return "pencil.line"
+        case "Bash": return "terminal"
+        case "Glob": return "doc.text.magnifyingglass"
+        case "Grep": return "magnifyingglass"
+        case "Agent": return "person.2"
+        case "WebSearch": return "globe"
+        case "WebFetch": return "arrow.down.doc"
+        default: return "wrench"
+        }
+    }
 }

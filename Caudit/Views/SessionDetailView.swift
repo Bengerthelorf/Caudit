@@ -337,7 +337,7 @@ struct MessageRow: View {
                         .background(Color.primary.opacity(0.03), in: RoundedRectangle(cornerRadius: 4))
                 }
             } label: {
-                Label(name, systemImage: toolIcon(name))
+                Label(name, systemImage: CauditFormatter.toolIcon(name))
                     .font(.caption)
                     .fontWeight(.medium)
                     .foregroundStyle(.orange)
@@ -368,18 +368,6 @@ struct MessageRow: View {
         }
     }
 
-    private func toolIcon(_ name: String) -> String {
-        switch name {
-        case "Read": return "doc.text"
-        case "Write": return "square.and.pencil"
-        case "Edit": return "pencil.line"
-        case "Bash": return "terminal"
-        case "Glob": return "doc.text.magnifyingglass"
-        case "Grep": return "magnifyingglass"
-        case "Agent": return "person.2"
-        default: return "wrench"
-        }
-    }
 }
 
 // MARK: - Search Bar
