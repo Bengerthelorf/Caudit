@@ -69,8 +69,8 @@ final class QuotaService: Sendable {
         }
 
         if let expiresAt = oauth["expiresAt"] as? TimeInterval {
-            let expiryDate = Date(timeIntervalSince1970: expiresAt)
-            if Date() > expiryDate {
+            let ts = expiresAt > 1e12 ? expiresAt / 1000 : expiresAt
+            if Date() > Date(timeIntervalSince1970: ts) {
                 throw QuotaError.tokenExpired
             }
         }
@@ -108,7 +108,8 @@ final class QuotaService: Sendable {
             }
 
             if let expiresAt = oauth["expiresAt"] as? TimeInterval {
-                if Date() > Date(timeIntervalSince1970: expiresAt) {
+                let ts = expiresAt > 1e12 ? expiresAt / 1000 : expiresAt
+                if Date() > Date(timeIntervalSince1970: ts) {
                     return nil
                 }
             }
