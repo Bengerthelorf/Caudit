@@ -24,6 +24,8 @@ struct UsageView: View {
                         .font(.system(size: 28, weight: .semibold, design: .rounded))
                         .monospacedDigit()
                 }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("Today's cost: \(CauditFormatter.costDetail(appState.todayUsage.totalCost))")
 
                 VStack(spacing: 6) {
                     TokenRow(label: "Input", tokens: appState.todayUsage.inputTokens, color: Palette.blue)

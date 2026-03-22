@@ -23,6 +23,7 @@ struct QuotaView: View {
                             .font(.system(size: 28, weight: .semibold, design: .rounded))
                             .monospacedDigit()
                             .foregroundStyle(quotaColor(quota.fiveHourUtilization))
+                            .accessibilityLabel("5-hour quota: \(Int(quota.fiveHourUtilization)) percent")
                         QuotaBar(percentage: quota.fiveHourUtilization)
                     }
 
@@ -140,5 +141,8 @@ struct QuotaBar: View {
             }
         }
         .frame(height: height)
+        .accessibilityElement()
+        .accessibilityLabel("Quota usage")
+        .accessibilityValue("\(Int(percentage)) percent")
     }
 }
