@@ -30,7 +30,8 @@ final class QuotaService: Sendable {
         request.timeoutInterval = 30
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue("oauth-2025-04-20", forHTTPHeaderField: "anthropic-beta")
-        request.setValue("claude-code/2.1.5", forHTTPHeaderField: "User-Agent")
+        let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0"
+        request.setValue("Caudit/\(appVersion)", forHTTPHeaderField: "User-Agent")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
 
@@ -58,7 +59,8 @@ final class QuotaService: Sendable {
             return token
         }
 
-        let credPath = NSHomeDirectory() + "/.claude/.credentials.json"
+        let configDir = ProcessInfo.processInfo.environment["CLAUDE_CONFIG_DIR"] ?? (NSHomeDirectory() + "/.claude")
+        let credPath = configDir + "/.credentials.json"
         guard let data = FileManager.default.contents(atPath: credPath),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let oauth = json["claudeAiOauth"] as? [String: Any],
