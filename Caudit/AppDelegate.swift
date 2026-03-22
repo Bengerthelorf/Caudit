@@ -233,7 +233,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         window?.makeKeyAndOrderFront(nil)
 
         if NSApp.isActive {
-            NSApp.activate(ignoringOtherApps: true)
+            NSApp.activate()
             return
         }
 
@@ -244,7 +244,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             self?.activationObserver = nil
             window?.makeKeyAndOrderFront(nil)
         }
-        NSApp.activate(ignoringOtherApps: true)
+        NSApp.activate()
     }
 
     private func revertToAccessoryIfNeeded() {
