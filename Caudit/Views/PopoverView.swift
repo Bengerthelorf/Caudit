@@ -29,11 +29,12 @@ struct PopoverView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Picker("", selection: $selectedTab) {
+                Picker("View", selection: $selectedTab) {
                     Text("Usage").tag(0)
                     Text("Quota").tag(1)
                 }
                 .pickerStyle(.segmented)
+                .labelsHidden()
                 .frame(width: 180)
             }
             .padding(.top, 14)
@@ -79,6 +80,7 @@ struct PopoverView: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
+                .help("Dashboard")
                 Button {
                     appState.refresh()
                 } label: {
@@ -87,6 +89,7 @@ struct PopoverView: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
+                .help("Refresh")
 
                 Button {
                     appDelegate.showSettings()
@@ -96,6 +99,7 @@ struct PopoverView: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
+                .help("Settings")
 
                 Button {
                     NSApplication.shared.terminate(nil)
@@ -105,6 +109,7 @@ struct PopoverView: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
+                .help("Quit Caudit")
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
