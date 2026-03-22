@@ -67,8 +67,10 @@ final class PricingTable: @unchecked Sendable {
     }
 
     func refreshIfNeeded() {
-        let now = Date()
-        if let last = lastFetched, now.timeIntervalSince(last) < 3600 { return }
+        lock.lock()
+        let last = lastFetched
+        lock.unlock()
+        if let last, Date().timeIntervalSince(last) < 3600 { return }
         Task.detached { [weak self] in
             await self?.fetchRemotePricing()
         }
