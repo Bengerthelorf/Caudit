@@ -13,7 +13,7 @@ enum SSHError: LocalizedError {
 final class SSHService: @unchecked Sendable {
     static let shared = SSHService()
 
-    func run(device: RemoteDevice, command: String, connectTimeout: Int = 15) async throws -> String {
+    func run(device: RemoteDevice, command: String, connectTimeout: Int = 15, commandTimeout: TimeInterval = 60) async throws -> String {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/ssh")
 
@@ -62,28 +62,42 @@ final class SSHService: @unchecked Sendable {
             readGroup.leave()
         }
 
-        return try await withCheckedThrowingContinuation { continuation in
-            process.terminationHandler = { _ in
-                readGroup.wait()
-                let output = String(data: outBox.data, encoding: .utf8) ?? ""
-                if !output.isEmpty || process.terminationStatus == 0 {
-                    continuation.resume(returning: output)
-                } else {
-                    let msg = String(data: errBox.data, encoding: .utf8)?
-                        .trimmingCharacters(in: .whitespacesAndNewlines) ?? "SSH failed"
-                    continuation.resume(throwing: SSHError.failed(msg))
+        return try await withThrowingTaskGroup(of: String.self) { group in
+            group.addTask {
+                try await withCheckedThrowingContinuation { continuation in
+                    process.terminationHandler = { _ in
+                        readGroup.wait()
+                        let output = String(data: outBox.data, encoding: .utf8) ?? ""
+                        if !output.isEmpty || process.terminationStatus == 0 {
+                            continuation.resume(returning: output)
+                        } else {
+                            let msg = String(data: errBox.data, encoding: .utf8)?
+                                .trimmingCharacters(in: .whitespacesAndNewlines) ?? "SSH failed"
+                            continuation.resume(throwing: SSHError.failed(msg))
+                        }
+                    }
+
+                    do {
+                        try process.run()
+                    } catch {
+                        process.terminationHandler = nil
+                        try? stdout.fileHandleForWriting.close()
+                        try? stderr.fileHandleForWriting.close()
+                        readGroup.wait()
+                        continuation.resume(throwing: error)
+                    }
                 }
             }
 
-            do {
-                try process.run()
-            } catch {
-                process.terminationHandler = nil
-                try? stdout.fileHandleForWriting.close()
-                try? stderr.fileHandleForWriting.close()
-                readGroup.wait()
-                continuation.resume(throwing: error)
+            group.addTask {
+                try await Task.sleep(for: .seconds(commandTimeout))
+                process.terminate()
+                throw SSHError.failed("Command timed out after \(Int(commandTimeout))s")
             }
+
+            let result = try await group.next()!
+            group.cancelAll()
+            return result
         }
     }
 
