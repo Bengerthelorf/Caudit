@@ -405,7 +405,7 @@ struct AboutSettingsView: View {
                 .font(.title.bold())
 
             Text("Version \(appVersion) (\(buildNumber))")
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
 
             VStack(spacing: 6) {
                 Link("GitHub Repository", destination: URL(string: "https://github.com/Bengerthelorf/Caudit")!)
@@ -419,7 +419,7 @@ struct AboutSettingsView: View {
 
             Text("Made by Bengerthelorf")
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
                 .padding(.bottom, 8)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
