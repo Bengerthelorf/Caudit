@@ -461,7 +461,7 @@ private final class DirectoryMonitor {
 
     private func startStream(path: String, latency: TimeInterval) {
         var context = FSEventStreamContext(
-            version: 0, info: Unmanaged.passUnretained(self).toOpaque(),
+            version: 0, info: Unmanaged.passRetained(self).toOpaque(),
             retain: nil, release: nil, copyDescription: nil
         )
 
@@ -488,5 +488,7 @@ private final class DirectoryMonitor {
         FSEventStreamStop(stream)
         FSEventStreamInvalidate(stream)
         FSEventStreamRelease(stream)
+        // Balance the passRetained in startStream
+        Unmanaged.passUnretained(self).release()
     }
 }
