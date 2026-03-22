@@ -160,14 +160,14 @@ struct DashboardView: View {
 // MARK: - Source Colors
 
 enum SourceColor {
-    static let localColor: Color = .init(red: 0.56, green: 0.65, blue: 0.75)
+    static let localColor: Color = Palette.blue
     private static let remotePalette: [Color] = [
-        .init(red: 0.78, green: 0.62, blue: 0.56),
-        .init(red: 0.60, green: 0.72, blue: 0.68),
-        .init(red: 0.76, green: 0.58, blue: 0.63),
-        .init(red: 0.68, green: 0.72, blue: 0.80),
-        .init(red: 0.72, green: 0.66, blue: 0.76),
-        .init(red: 0.78, green: 0.74, blue: 0.60),
+        Palette.terracotta,
+        Palette.sage,
+        Palette.rose,
+        Palette.adaptive(light: (0.68, 0.72, 0.80), dark: (0.74, 0.78, 0.86)),
+        Palette.lavender,
+        Palette.sand,
     ]
 
     static func color(for source: String, allSources: [String]) -> Color {
@@ -183,18 +183,26 @@ enum SourceColor {
 // MARK: - Palette
 
 enum Palette {
-    static let blue       = Color(red: 0.56, green: 0.65, blue: 0.75)
-    static let rose       = Color(red: 0.76, green: 0.58, blue: 0.63)
-    static let sage       = Color(red: 0.60, green: 0.72, blue: 0.68)
-    static let terracotta = Color(red: 0.78, green: 0.62, blue: 0.56)
-    static let lavender   = Color(red: 0.72, green: 0.66, blue: 0.76)
-    static let sand       = Color(red: 0.78, green: 0.74, blue: 0.60)
-    static let olive      = Color(red: 0.62, green: 0.66, blue: 0.56)
-    static let coral      = Color(red: 0.82, green: 0.62, blue: 0.58)
+    static let blue       = adaptive(light: (0.56, 0.65, 0.75), dark: (0.62, 0.72, 0.82))
+    static let rose       = adaptive(light: (0.76, 0.58, 0.63), dark: (0.82, 0.64, 0.69))
+    static let sage       = adaptive(light: (0.60, 0.72, 0.68), dark: (0.66, 0.78, 0.74))
+    static let terracotta = adaptive(light: (0.78, 0.62, 0.56), dark: (0.84, 0.68, 0.62))
+    static let lavender   = adaptive(light: (0.72, 0.66, 0.76), dark: (0.78, 0.72, 0.82))
+    static let sand       = adaptive(light: (0.78, 0.74, 0.60), dark: (0.84, 0.80, 0.66))
+    static let olive      = adaptive(light: (0.62, 0.66, 0.56), dark: (0.68, 0.72, 0.62))
+    static let coral      = adaptive(light: (0.82, 0.62, 0.58), dark: (0.88, 0.68, 0.64))
 
-    static let quotaGood   = Color(red: 0.60, green: 0.72, blue: 0.64)
-    static let quotaWarn   = Color(red: 0.80, green: 0.72, blue: 0.52)
-    static let quotaDanger = Color(red: 0.78, green: 0.54, blue: 0.54)
+    static let quotaGood   = adaptive(light: (0.60, 0.72, 0.64), dark: (0.50, 0.78, 0.56))
+    static let quotaWarn   = adaptive(light: (0.80, 0.72, 0.52), dark: (0.88, 0.80, 0.50))
+    static let quotaDanger = adaptive(light: (0.78, 0.54, 0.54), dark: (0.90, 0.50, 0.50))
+
+    static func adaptive(light: (CGFloat, CGFloat, CGFloat), dark: (CGFloat, CGFloat, CGFloat)) -> Color {
+        Color(nsColor: NSColor(name: nil, dynamicProvider: { appearance in
+            let isDark = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+            let c = isDark ? dark : light
+            return NSColor(red: c.0, green: c.1, blue: c.2, alpha: 1.0)
+        }))
+    }
 }
 
 // MARK: - Loading Placeholder
@@ -305,11 +313,11 @@ private struct OverviewPage: View {
 // MARK: - Heatmap
 
 private let heatmapGreens: [Color] = [
-    Color(red: 0.92, green: 0.93, blue: 0.90),
-    Color(red: 0.61, green: 0.91, blue: 0.66),
-    Color(red: 0.25, green: 0.77, blue: 0.33),
-    Color(red: 0.19, green: 0.56, blue: 0.25),
-    Color(red: 0.13, green: 0.37, blue: 0.17),
+    Palette.adaptive(light: (0.92, 0.93, 0.90), dark: (0.22, 0.24, 0.22)),
+    Palette.adaptive(light: (0.61, 0.91, 0.66), dark: (0.30, 0.60, 0.35)),
+    Palette.adaptive(light: (0.25, 0.77, 0.33), dark: (0.25, 0.72, 0.33)),
+    Palette.adaptive(light: (0.19, 0.56, 0.25), dark: (0.22, 0.62, 0.28)),
+    Palette.adaptive(light: (0.13, 0.37, 0.17), dark: (0.18, 0.52, 0.24)),
 ]
 
 private func heatmapColor(_ intensity: Double, hasData: Bool) -> Color {
