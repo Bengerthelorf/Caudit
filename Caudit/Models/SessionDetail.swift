@@ -27,18 +27,9 @@ struct SessionMessage: Identifiable, Sendable {
     }
 }
 
-enum SessionContentItem: Identifiable, Sendable {
+enum SessionContentItem: Sendable {
     case text(String)
     case thinking(String)
     case toolUse(id: String, name: String, input: String)
     case toolResult(id: String, content: String, isError: Bool)
-
-    var id: String {
-        switch self {
-        case .text(let s): return "text-\(s.prefix(40))"
-        case .thinking(let s): return "think-\(s.prefix(40))"
-        case .toolUse(let id, _, _): return "tool-\(id)"
-        case .toolResult(let id, _, _): return "result-\(id)"
-        }
-    }
 }

@@ -239,7 +239,7 @@ struct MessageRow: View {
                     .foregroundStyle(.tertiary)
             }
 
-            ForEach(message.content) { item in
+            ForEach(Array(message.content.enumerated()), id: \.offset) { _, item in
                 contentView(for: item)
             }
         }
