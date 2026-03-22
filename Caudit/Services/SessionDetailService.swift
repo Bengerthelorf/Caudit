@@ -52,9 +52,10 @@ final class SessionDetailService: Sendable {
     }
 
     func loadRemoteSession(sessionId: String, projectDir: String, device: RemoteDevice) async throws -> SessionDetail? {
+        let esc = ShellEscape.path
         if projectDir.hasPrefix("OpenClaw") {
             for ocPath in device.openClawPaths {
-                let remotePath = "\(ocPath)/agents/main/sessions/\(sessionId).jsonl"
+                let remotePath = "\(esc(ocPath))/agents/main/sessions/\(esc(sessionId)).jsonl"
                 let output = try await ssh.run(device: device, command: "cat \(remotePath) 2>/dev/null")
                 if !output.isEmpty {
                     return await Task.detached {
@@ -65,7 +66,7 @@ final class SessionDetailService: Sendable {
             return nil
         }
 
-        let remotePath = "\(device.claudePath)/projects/\(projectDir)/\(sessionId).jsonl"
+        let remotePath = "\(esc(device.claudePath))/projects/\(esc(projectDir))/\(esc(sessionId)).jsonl"
         let output = try await ssh.run(device: device, command: "cat \(remotePath) 2>/dev/null")
         guard !output.isEmpty else { return nil }
 

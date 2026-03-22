@@ -109,3 +109,19 @@ final class SSHService: @unchecked Sendable {
 private final class SendableBox: @unchecked Sendable {
     var data = Data()
 }
+
+/// Shell-escape a string so it can be safely interpolated into shell commands.
+/// Only allows safe path characters; throws if the value contains dangerous chars.
+enum ShellEscape {
+    private static let safePattern = try! NSRegularExpression(pattern: "^[a-zA-Z0-9._~/@: -]+$")
+
+    static func path(_ value: String) -> String {
+        let range = NSRange(value.startIndex..., in: value)
+        if safePattern.firstMatch(in: value, range: range) != nil {
+            return "'\(value)'"
+        }
+        // Escape single quotes: replace ' with '\''
+        let escaped = value.replacingOccurrences(of: "'", with: "'\\''")
+        return "'\(escaped)'"
+    }
+}
