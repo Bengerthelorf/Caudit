@@ -33,6 +33,8 @@ final class UsageHistoryService: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
 
+        var didRecord = false
+
         if now.timeIntervalSince(lastSessionRecordTime) >= sessionInterval {
             let snapshot = UsageSnapshot(timestamp: now, type: .session, percentage: sessionPercentage)
             sessionSnapshots.append(snapshot)
@@ -40,6 +42,7 @@ final class UsageHistoryService: @unchecked Sendable {
                 sessionSnapshots.removeFirst(sessionSnapshots.count - Self.maxSessionSnapshots)
             }
             lastSessionRecordTime = now
+            didRecord = true
         }
 
         if now.timeIntervalSince(lastWeeklyRecordTime) >= weeklyInterval {
@@ -49,16 +52,17 @@ final class UsageHistoryService: @unchecked Sendable {
                 weeklySnapshots.removeFirst(weeklySnapshots.count - Self.maxWeeklySnapshots)
             }
             lastWeeklyRecordTime = now
+            didRecord = true
         }
 
-        saveToDisk()
+        if didRecord { saveToDisk() }
     }
 
     /// Get all snapshots of a given type within a time range.
     func snapshots(type: SnapshotType, from start: Date, to end: Date = Date()) -> [UsageSnapshot] {
         lock.lock()
+        defer { lock.unlock() }
         let source = type == .session ? sessionSnapshots : weeklySnapshots
-        lock.unlock()
         return source.filter { $0.timestamp >= start && $0.timestamp <= end }
     }
 

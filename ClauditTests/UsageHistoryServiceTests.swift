@@ -19,10 +19,10 @@ final class UsageHistoryServiceTests: XCTestCase {
         XCTAssertEqual(decoded.type, .session)
     }
 
-    func testSnapshotIdentity() {
-        let date = Date()
-        let a = UsageSnapshot(timestamp: date, type: .session, percentage: 50)
-        XCTAssertEqual(a.id, date)
+    func testSnapshotHasUniqueId() {
+        let a = UsageSnapshot(type: .session, percentage: 50)
+        let b = UsageSnapshot(type: .session, percentage: 50)
+        XCTAssertNotEqual(a.id, b.id)
     }
 
     func testSnapshotWeeklyType() throws {

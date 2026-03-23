@@ -107,7 +107,7 @@ struct UsageHistoryChartView: View {
                     }
                 }
                 .chartXScale(domain: windowStart...windowEnd)
-                .chartYScale(domain: 0...100)
+                .chartYScale(domain: 0...max(100, (sessionData + weeklyData).map(\.percentage).max() ?? 100))
                 .chartYAxis {
                     AxisMarks(values: [0, 25, 50, 75, 100]) { value in
                         AxisGridLine()
@@ -126,5 +126,6 @@ struct UsageHistoryChartView: View {
                 .frame(height: 160)
             }
         }
+        .onAppear { windowEnd = Date() }
     }
 }

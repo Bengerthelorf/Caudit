@@ -46,8 +46,8 @@ final class PaceServiceTests: XCTestCase {
     func testPaceAtMinimumElapsed() {
         let result = PaceService.calculatePace(usedPercentage: 3, elapsedFraction: 0.03)
         XCTAssertNotNil(result)
-        // 3% / 0.03 = 100% projected → pressing
-        XCTAssertEqual(result, .critical) // Actually 100 → critical
+        // 3% / 0.03 = 100% projected → critical (100-120% range)
+        XCTAssertEqual(result, .critical)
     }
 
     func testPaceComfortable() {

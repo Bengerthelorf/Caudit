@@ -42,7 +42,8 @@ struct QuotaView: View {
                     QuotaRow(
                         title: "7-Day",
                         percentage: quota.sevenDayUtilization,
-                        remaining: quota.sevenDayTimeRemaining
+                        remaining: quota.sevenDayTimeRemaining,
+                        pace: appState.weeklyPace
                     )
 
                     if let opus = quota.sevenDayOpusUtilization {
@@ -108,6 +109,7 @@ struct QuotaRow: View {
     let title: String
     let percentage: Double
     var remaining: TimeInterval? = nil
+    var pace: PaceStatus? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -121,6 +123,11 @@ struct QuotaRow: View {
                         .foregroundStyle(.tertiary)
                 }
                 Spacer()
+                if let pace {
+                    Text(pace.label)
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundStyle(pace.color)
+                }
                 Text("\(Int(percentage))%")
                     .font(.system(size: 13, weight: .medium, design: .rounded))
                     .monospacedDigit()
