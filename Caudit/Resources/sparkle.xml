@@ -3,6 +3,26 @@
     <channel>
         <title>Caudit</title>
         <item>
+                    <title>Version 0.0.7</title>
+                    <link>https://github.com/Bengerthelorf/Caudit</link>
+                    <sparkle:version>2026032301</sparkle:version>
+                    <sparkle:shortVersionString>0.0.7</sparkle:shortVersionString>
+                    <pubDate>Mon, 23 Mar 2026 09:24:43 +0000</pubDate>
+                    <enclosure url="https://github.com/Bengerthelorf/Caudit/releases/download/v0.0.7/Caudit.dmg"
+                    sparkle:edSignature="SclRkb1edAdJakVBIKCxahNGA5/d6NxoS4BPRwD7xwfZG7m8CCH77SAAVUBp/lTlybseuAZG0PkB/hSzqCjpAw==" length="4167133"
+                    type="application/octet-stream"/>
+                    <description>
+                        <![CDATA[
+                    <h2>Version 0.0.7</h2>
+                    <ul>
+                        <li><strong>Fixed:</strong> force checkout in CI appcast step to avoid dirty worktree conflict</li>
+                        <li>test: add ShellEscape unit tests</li>
+                        <li><strong>Fixed:</strong> preserve tilde expansion in ShellEscape.path</li>
+                    </ul>
+                        ]]>
+                    </description>
+                </item>
+        <item>
                     <title>Version 0.0.6</title>
                     <link>https://github.com/Bengerthelorf/Caudit</link>
                     <sparkle:version>2026032300</sparkle:version>
