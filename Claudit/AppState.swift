@@ -120,6 +120,7 @@ final class AppState {
     private var usageTimer: Timer?
     private var quotaTimer: Timer?
     private var directoryMonitor: DirectoryMonitor?
+    private var systemEventService: SystemEventService?
     private var lastUsageRefreshTime: Date?
     private var lastNotifiedQuotaLevel: Double = 0
     private var hasFinishedInit = false
@@ -158,9 +159,16 @@ final class AppState {
         refreshUsage(force: true)
         restartUsageTimer()
         setupDirectoryMonitor()
+        setupSystemEventService()
 
         refreshQuota()
         restartQuotaTimer()
+    }
+
+    private func setupSystemEventService() {
+        systemEventService = SystemEventService { [weak self] in
+            Task { @MainActor in self?.refresh() }
+        }
     }
 
     private func setupDirectoryMonitor() {
