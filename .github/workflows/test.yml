@@ -1,0 +1,36 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Unit Tests
+    runs-on: macos-26
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve packages
+        run: xcodebuild -resolvePackageDependencies -project Claudit.xcodeproj -scheme Claudit
+
+      - name: Run tests
+        run: |
+          xcodebuild test \
+            -project Claudit.xcodeproj \
+            -scheme Claudit \
+            -destination 'platform=macOS' \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            -resultBundlePath TestResults.xcresult
+
+      - name: Test summary
+        if: always()
+        run: |
+          xcresulttool get test-results summary \
+            --path TestResults.xcresult 2>/dev/null || \
+          echo "Test results available in TestResults.xcresult"
