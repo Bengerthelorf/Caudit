@@ -51,9 +51,11 @@ final class StatuslineServiceTests: XCTestCase {
             weeklyPercent: 30,
             config: config
         )
-        XCTAssertTrue(result.contains("usage=75%"))
-        XCTAssertTrue(result.contains("bar="))
-        XCTAssertTrue(result.contains("weekly=30%"))
+        XCTAssertTrue(result.contains("75%"))
+        XCTAssertTrue(result.contains("▓"))
+        XCTAssertTrue(result.contains("7d:30%"))
+        XCTAssertTrue(result.contains("On Track"))
+        XCTAssertTrue(result.contains("⏱"))
     }
 
     func testFormatCacheContentNoProgressBar() {
@@ -68,8 +70,8 @@ final class StatuslineServiceTests: XCTestCase {
             weeklyPercent: 20,
             config: config
         )
-        XCTAssertTrue(result.contains("usage=50%"))
-        XCTAssertFalse(result.contains("bar="))
+        XCTAssertTrue(result.contains("50%"))
+        XCTAssertFalse(result.contains("▓"))
     }
 
     func testFormatCacheContentNoUsagePercent() {
@@ -84,8 +86,34 @@ final class StatuslineServiceTests: XCTestCase {
             weeklyPercent: 10,
             config: config
         )
-        XCTAssertFalse(result.contains("usage="))
-        XCTAssertTrue(result.contains("bar=▓▓░░░"))
+        XCTAssertTrue(result.contains("▓▓░░░"))
+        XCTAssertTrue(result.contains("7d:10%"))
+    }
+
+    func testFormatCacheContentNoPace() {
+        let config = StatuslineService.Config(
+            enabled: true,
+            showPaceLabel: false
+        )
+        let result = StatuslineService.formatCacheContent(
+            sessionPercent: 50,
+            weeklyPercent: 20,
+            config: config
+        )
+        XCTAssertFalse(result.contains("On Track"))
+    }
+
+    func testFormatCacheContent12HourTime() {
+        let config = StatuslineService.Config(
+            enabled: true,
+            use24HourTime: false
+        )
+        let result = StatuslineService.formatCacheContent(
+            sessionPercent: 50,
+            weeklyPercent: 20,
+            config: config
+        )
+        XCTAssertTrue(result.contains("2:30PM"))
     }
 
     // MARK: - Config

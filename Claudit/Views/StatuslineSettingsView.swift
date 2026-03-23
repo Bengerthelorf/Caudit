@@ -7,11 +7,11 @@ struct StatuslineSettingsView: View {
     var body: some View {
         Form {
             Section {
-                Toggle("Enable Terminal Statusline", isOn: $config.enabled)
+                Toggle("Write Usage Cache", isOn: $config.enabled)
             } header: {
                 Text("Claude Code Integration")
             } footer: {
-                Text("Installs a shell script at ~/.claude/statusline-command.sh that displays usage data in your terminal.")
+                Text("Writes quota data to a cache file that your statusline script can read. Does not modify your existing statusline configuration.")
             }
 
             if config.enabled {
@@ -30,25 +30,28 @@ struct StatuslineSettingsView: View {
                 Section("Preview") {
                     Text(previewText)
                         .font(.system(.body, design: .monospaced))
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(.green)
                         .padding(8)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .background(RoundedRectangle(cornerRadius: 6).fill(.black.opacity(0.8)))
-                        .foregroundStyle(.green)
                 }
 
                 Section {
                     HStack {
-                        Text("Script Path")
+                        Text("Cache File")
                         Spacer()
-                        Text("~/.claude/statusline-command.sh")
+                        Text("~/.claude/.statusline-usage-cache")
                             .font(.system(.caption, design: .monospaced))
                             .foregroundStyle(.secondary)
                     }
-                    if appState.statuslineService.isInstalled {
-                        Label("Script installed", systemImage: "checkmark.circle.fill")
+                    if appState.statuslineService.cacheExists {
+                        Label("Cache active", systemImage: "checkmark.circle.fill")
                             .foregroundStyle(.green)
                     }
+                } header: {
+                    Text("Integration")
+                } footer: {
+                    Text("Read this file from your statusline script. Each line is key=value (usage, bar, reset, pace, weekly, updated).")
                 }
             }
         }

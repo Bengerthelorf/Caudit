@@ -3,9 +3,8 @@ import os.log
 
 private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Claudit", category: "Statusline")
 
-/// Manages the Claude Code terminal statusline integration.
-/// Writes a cache file with current usage data and installs a shell script
-/// that reads the cache to display a statusline in the terminal.
+/// Writes a cache file with current quota data that external statusline scripts can read.
+/// Does NOT install or modify any user scripts — it only provides data.
 final class StatuslineService: @unchecked Sendable {
 
     struct Config: Codable, Equatable {
@@ -24,9 +23,10 @@ final class StatuslineService: @unchecked Sendable {
     private var claudeDir: String {
         ProcessInfo.processInfo.environment["CLAUDE_CONFIG_DIR"] ?? (NSHomeDirectory() + "/.claude")
     }
-    private var cachePath: String { claudeDir + "/.statusline-usage-cache" }
-    private var scriptPath: String { claudeDir + "/statusline-command.sh" }
-    private var configPath: String { claudeDir + "/statusline-config.json" }
+    var cachePath: String { claudeDir + "/.statusline-usage-cache" }
+
+    /// Callback to trigger an immediate cache write after enabling. Set by AppState.
+    var onEnabled: (() -> Void)?
 
     init() {
         self.config = Self.loadConfig()
@@ -49,15 +49,16 @@ final class StatuslineService: @unchecked Sendable {
         saveConfig(newConfig)
 
         if newConfig.enabled && !oldEnabled {
-            installScript()
+            onEnabled?()
         } else if !newConfig.enabled && oldEnabled {
-            uninstallScript()
+            // Clean up cache file when disabled
+            try? FileManager.default.removeItem(atPath: cachePath)
         }
     }
 
     // MARK: - Cache Writing
 
-    /// Write current usage data to the cache file for the shell script to read.
+    /// Write current usage data to the cache file for external scripts to read.
     func updateCache(
         sessionPercent: Double,
         weeklyPercent: Double,
@@ -76,9 +77,7 @@ final class StatuslineService: @unchecked Sendable {
         }
 
         if cfg.showProgressBar {
-            let filled = Int(Double(cfg.barSegments) * min(sessionPercent / 100.0, 1.0))
-            let empty = cfg.barSegments - filled
-            let bar = String(repeating: "▓", count: filled) + String(repeating: "░", count: empty)
+            let bar = Self.progressBar(percentage: sessionPercent, segments: cfg.barSegments)
             parts.append("bar=\(bar)")
         }
 
@@ -104,68 +103,8 @@ final class StatuslineService: @unchecked Sendable {
         }
     }
 
-    // MARK: - Script Installation
-
-    func installScript() {
-        let script = """
-        #!/bin/bash
-        # Claudit statusline for Claude Code
-        # Reads cached usage data and formats it for display.
-
-        CACHE_FILE="\(cachePath)"
-
-        if [ ! -f "$CACHE_FILE" ]; then
-            echo "Claudit: no data"
-            exit 0
-        fi
-
-        # Check if cache is stale (> 10 minutes old)
-        if [ "$(uname)" = "Darwin" ]; then
-            CACHE_AGE=$(( $(date +%s) - $(stat -f%m "$CACHE_FILE") ))
-        else
-            CACHE_AGE=$(( $(date +%s) - $(stat -c%Y "$CACHE_FILE") ))
-        fi
-
-        if [ "$CACHE_AGE" -gt 600 ]; then
-            echo "Claudit: stale"
-            exit 0
-        fi
-
-        # Read cache values
-        USAGE=$(grep '^usage=' "$CACHE_FILE" | cut -d= -f2)
-        BAR=$(grep '^bar=' "$CACHE_FILE" | cut -d= -f2)
-        RESET=$(grep '^reset=' "$CACHE_FILE" | cut -d= -f2)
-        PACE=$(grep '^pace=' "$CACHE_FILE" | cut -d= -f2)
-        WEEKLY=$(grep '^weekly=' "$CACHE_FILE" | cut -d= -f2)
-
-        # Build output
-        OUTPUT=""
-        [ -n "$USAGE" ] && OUTPUT="${OUTPUT}${USAGE}"
-        [ -n "$BAR" ] && OUTPUT="${OUTPUT} ${BAR}"
-        [ -n "$PACE" ] && OUTPUT="${OUTPUT} ${PACE}"
-        [ -n "$RESET" ] && OUTPUT="${OUTPUT} ⏱${RESET}"
-        [ -n "$WEEKLY" ] && OUTPUT="${OUTPUT} 7d:${WEEKLY}"
-
-        echo "$OUTPUT"
-        """
-
-        do {
-            try script.write(toFile: scriptPath, atomically: true, encoding: .utf8)
-            try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: scriptPath)
-            logger.info("Installed statusline script at \(self.scriptPath)")
-        } catch {
-            logger.error("Failed to install statusline script: \(error.localizedDescription)")
-        }
-    }
-
-    func uninstallScript() {
-        try? FileManager.default.removeItem(atPath: scriptPath)
-        try? FileManager.default.removeItem(atPath: cachePath)
-        logger.info("Removed statusline script and cache")
-    }
-
-    var isInstalled: Bool {
-        FileManager.default.fileExists(atPath: scriptPath)
+    var cacheExists: Bool {
+        FileManager.default.fileExists(atPath: cachePath)
     }
 
     // MARK: - Config Persistence
@@ -192,18 +131,23 @@ final class StatuslineService: @unchecked Sendable {
         return String(repeating: "▓", count: filled) + String(repeating: "░", count: empty)
     }
 
-    /// Generate the cache content string (for testing).
+    /// Generate a preview string showing all enabled components.
     static func formatCacheContent(
         sessionPercent: Double,
         weeklyPercent: Double,
         config: Config
     ) -> String {
         var parts: [String] = []
-        if config.showUsagePercent { parts.append("usage=\(Int(sessionPercent))%") }
+        if config.showUsagePercent { parts.append("\(Int(sessionPercent))%") }
         if config.showProgressBar {
-            parts.append("bar=\(progressBar(percentage: sessionPercent, segments: config.barSegments))")
+            parts.append(progressBar(percentage: sessionPercent, segments: config.barSegments))
         }
-        parts.append("weekly=\(Int(weeklyPercent))%")
-        return parts.joined(separator: "\n")
+        if config.showPaceLabel { parts.append("On Track") }
+        if config.showResetTime {
+            let timeStr = config.use24HourTime ? "14:30" : "2:30PM"
+            parts.append("⏱\(timeStr)")
+        }
+        parts.append("7d:\(Int(weeklyPercent))%")
+        return parts.joined(separator: " ")
     }
 }

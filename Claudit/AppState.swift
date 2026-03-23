@@ -188,8 +188,22 @@ final class AppState {
             self.remoteDevices = devices
         }
 
+        statuslineService.onEnabled = { [weak self] in
+            Task { @MainActor in self?.writeStatuslineCacheNow() }
+        }
+
         startRefreshing()
         hasFinishedInit = true
+    }
+
+    private func writeStatuslineCacheNow() {
+        guard let quota = quotaInfo else { return }
+        statuslineService.updateCache(
+            sessionPercent: quota.fiveHourUtilization,
+            weeklyPercent: quota.sevenDayUtilization,
+            sessionResetTime: quota.fiveHourResetAt,
+            pace: sessionPace?.label
+        )
     }
 
     func startRefreshing() {
