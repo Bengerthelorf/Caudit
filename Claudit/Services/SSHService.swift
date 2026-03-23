@@ -29,7 +29,7 @@ final class SSHService: @unchecked Sendable {
 
         if let password, !password.isEmpty {
             // Create a temporary askpass script that echoes the password
-            let scriptPath = NSTemporaryDirectory() + "caudit-askpass-\(UUID().uuidString)"
+            let scriptPath = NSTemporaryDirectory() + "claudit-askpass-\(UUID().uuidString)"
             let escaped = password.replacingOccurrences(of: "'", with: "'\\''")
             let script = "#!/bin/sh\necho '\(escaped)'"
             try script.write(toFile: scriptPath, atomically: true, encoding: .utf8)

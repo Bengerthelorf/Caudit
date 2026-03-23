@@ -343,7 +343,7 @@ final class AppState {
         todayHourlyHistory = result.todayHourlyHistory
         dayHourlyBreakdown = result.dayHourlyBreakdown
         lastUsageUpdate = Date()
-        NotificationCenter.default.post(name: .cauditDataUpdated, object: nil)
+        NotificationCenter.default.post(name: .clauditDataUpdated, object: nil)
     }
 
     // MARK: - Filtering
@@ -403,7 +403,7 @@ final class AppState {
                     self.isLoadingQuota = false
                     self.hasLoadedQuota = true
                     self.checkQuotaNotification(info)
-                    NotificationCenter.default.post(name: .cauditDataUpdated, object: nil)
+                    NotificationCenter.default.post(name: .clauditDataUpdated, object: nil)
                 }
             } catch {
                 await MainActor.run { [weak self] in

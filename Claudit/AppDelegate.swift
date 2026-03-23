@@ -4,7 +4,7 @@ import Sparkle
 
 extension Notification.Name {
     static let showDashboard = Notification.Name("showDashboard")
-    static let cauditDataUpdated = Notification.Name("cauditDataUpdated")
+    static let clauditDataUpdated = Notification.Name("clauditDataUpdated")
 }
 
 @MainActor
@@ -45,7 +45,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         )
         NotificationCenter.default.addObserver(
             self, selector: #selector(handleDataUpdated),
-            name: .cauditDataUpdated, object: nil
+            name: .clauditDataUpdated, object: nil
         )
     }
 
