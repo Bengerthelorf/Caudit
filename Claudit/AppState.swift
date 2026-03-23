@@ -45,6 +45,9 @@ final class AppState {
     var isLoadingQuota = false
     var quotaError: String?
 
+    // MARK: - Claude System Status
+    var claudeStatus: ClaudeStatus?
+
     // MARK: - Loading State
     var hasLoadedUsage = false
     var hasLoadedQuota = false
@@ -112,6 +115,7 @@ final class AppState {
     private let quotaService = QuotaService()
     private let notificationService = NotificationService()
     private let remoteUsageService = RemoteUsageService()
+    private let claudeStatusService = ClaudeStatusService()
 
     // MARK: - Private State
     private var allRecords: [UsageRecord] = []
@@ -119,6 +123,7 @@ final class AppState {
     private var remoteCachedRecords: [UUID: [UsageRecord]] = [:]
     private var usageTimer: Timer?
     private var quotaTimer: Timer?
+    private var statusTimer: Timer?
     private var directoryMonitor: DirectoryMonitor?
     private var systemEventService: SystemEventService?
     private var lastUsageRefreshTime: Date?
@@ -163,6 +168,31 @@ final class AppState {
 
         refreshQuota()
         restartQuotaTimer()
+
+        refreshClaudeStatus()
+        restartStatusTimer()
+    }
+
+    private func restartStatusTimer() {
+        statusTimer?.invalidate()
+        statusTimer = Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in
+            guard let self else { return }
+            Task { @MainActor in self.refreshClaudeStatus() }
+        }
+    }
+
+    func refreshClaudeStatus() {
+        let service = self.claudeStatusService
+        Task.detached {
+            do {
+                let status = try await service.fetchStatus()
+                await MainActor.run { [weak self] in
+                    self?.claudeStatus = status
+                }
+            } catch {
+                logger.warning("Failed to fetch Claude status: \(error.localizedDescription)")
+            }
+        }
     }
 
     private func setupSystemEventService() {
