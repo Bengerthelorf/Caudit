@@ -81,6 +81,29 @@ final class UsageParserTests: XCTestCase {
         XCTAssertEqual(result.todayHourlyHistory.count, 24)
     }
 
+    // MARK: - ShellEscape
+
+    func testShellEscapeTildeExpansion() {
+        XCTAssertEqual(ShellEscape.path("~/.claude"), "~/'.claude'")
+        XCTAssertEqual(ShellEscape.path("~/path/to/dir"), "~/'path/to/dir'")
+        XCTAssertEqual(ShellEscape.path("~"), "~")
+    }
+
+    func testShellEscapeAbsolutePath() {
+        XCTAssertEqual(ShellEscape.path("/usr/local/bin"), "'/usr/local/bin'")
+    }
+
+    func testShellEscapeSingleQuoteInPath() {
+        XCTAssertEqual(ShellEscape.path("/tmp/it's here"), "'/tmp/it'\\''s here'")
+    }
+
+    func testShellEscapeNoInjection() {
+        let malicious = "~/.claude; rm -rf /"
+        let escaped = ShellEscape.path(malicious)
+        XCTAssertEqual(escaped, "~/'.claude; rm -rf /'")
+        // The semicolon is safely inside single quotes
+    }
+
     // MARK: - Helpers
 
     private func makeRecord(
