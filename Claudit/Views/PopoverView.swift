@@ -83,6 +83,17 @@ struct PopoverView: View {
                         .foregroundStyle(.tertiary)
                 }
                 Spacer()
+                if !appDelegate.isPopoverDetached {
+                    Button {
+                        appDelegate.detachPopover()
+                    } label: {
+                        Image(systemName: "pin")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Detach as floating window")
+                }
                 Button {
                     appDelegate.showDashboard()
                 } label: {

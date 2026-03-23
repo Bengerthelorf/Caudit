@@ -16,6 +16,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     let appState = AppState()
     let updaterController: SPUStandardUpdaterController
     private var eventMonitor: Any?
+    private var detachedPanel: NSPanel?
+    private var detachedPanelCloseObserver: Any?
     private var settingsWindow: NSWindow?
     private var settingsCloseObserver: Any?
     private var dashboardWindow: NSWindow?
@@ -352,6 +354,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc func togglePopover(_ sender: AnyObject?) {
+        // If detached, toggle the panel
+        if let panel = detachedPanel {
+            if panel.isVisible {
+                panel.orderOut(nil)
+            } else {
+                panel.makeKeyAndOrderFront(nil)
+            }
+            return
+        }
+
         guard let button = statusItem.button else { return }
         if popover.isShown {
             popover.performClose(sender)
@@ -361,6 +373,64 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             popover.contentViewController?.view.window?.makeKey()
             startEventMonitor()
         }
+    }
+
+    func detachPopover() {
+        // Close the popover first
+        if popover.isShown {
+            popover.performClose(nil)
+            stopEventMonitor()
+        }
+
+        let panel = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 300, height: 380),
+            styleMask: [.titled, .closable, .utilityWindow, .nonactivatingPanel],
+            backing: .buffered,
+            defer: false
+        )
+        panel.title = "Claudit"
+        panel.isFloatingPanel = true
+        panel.level = .floating
+        panel.hidesOnDeactivate = false
+        panel.isReleasedWhenClosed = false
+        panel.contentViewController = NSHostingController(
+            rootView: PopoverView()
+                .environment(appState)
+        )
+
+        // Position near the status item
+        if let buttonFrame = statusItem.button?.window?.frame {
+            let x = buttonFrame.origin.x
+            let y = buttonFrame.origin.y - 380
+            panel.setFrameOrigin(NSPoint(x: x, y: y))
+        } else {
+            panel.center()
+        }
+
+        detachedPanelCloseObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.willCloseNotification,
+            object: panel,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.reattachPopover()
+            }
+        }
+
+        self.detachedPanel = panel
+        panel.makeKeyAndOrderFront(nil)
+    }
+
+    func reattachPopover() {
+        if let obs = detachedPanelCloseObserver {
+            NotificationCenter.default.removeObserver(obs)
+            detachedPanelCloseObserver = nil
+        }
+        detachedPanel = nil
+    }
+
+    var isPopoverDetached: Bool {
+        detachedPanel != nil
     }
 
     private func startEventMonitor() {
