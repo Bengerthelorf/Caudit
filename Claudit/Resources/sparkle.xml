@@ -3,6 +3,24 @@
     <channel>
         <title>Claudit</title>
         <item>
+                    <title>Version 0.0.9</title>
+                    <link>https://github.com/Bengerthelorf/Claudit</link>
+                    <sparkle:version>2026032303</sparkle:version>
+                    <sparkle:shortVersionString>0.0.9</sparkle:shortVersionString>
+                    <pubDate>Mon, 23 Mar 2026 11:06:22 +0000</pubDate>
+                    <enclosure url="https://github.com/Bengerthelorf/Claudit/releases/download/v0.0.9/Claudit.dmg"
+                    sparkle:edSignature="7mrFhBvCqsRfEzMxx9oYBaNYB0dn1wfio+uKBpzibn8oFzWW1Pn/zkD8wErk4hkfj0/Biv8CCom9wPrgYMFJAw==" length="4181230"
+                    type="application/octet-stream"/>
+                    <description>
+                        <![CDATA[
+                    <h2>Version 0.0.9</h2>
+                    <ul>
+                        <li><strong>Refactor:</strong> rename Caudit → Claudit</li>
+                    </ul>
+                        ]]>
+                    </description>
+                </item>
+        <item>
                     <title>Version 0.0.8</title>
                     <link>https://github.com/Bengerthelorf/Caudit</link>
                     <sparkle:version>2026032302</sparkle:version>
