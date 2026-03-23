@@ -3,6 +3,27 @@
     <channel>
         <title>Claudit</title>
         <item>
+                    <title>Version 0.0.14</title>
+                    <link>https://github.com/Bengerthelorf/Claudit</link>
+                    <sparkle:version>2026032308</sparkle:version>
+                    <sparkle:shortVersionString>0.0.14</sparkle:shortVersionString>
+                    <pubDate>Mon, 23 Mar 2026 15:55:03 +0000</pubDate>
+                    <enclosure url="https://github.com/Bengerthelorf/Claudit/releases/download/v0.0.14/Claudit.dmg"
+                    sparkle:edSignature="f0sX5bPfT0PDqnPzP20KQr3KkrJRa0YnkyanhJLLH+Gg/2rYZXy4JYeriRNRqGoeson/xv9pOhtL13he42nuCg==" length="4537373"
+                    type="application/octet-stream"/>
+                    <description>
+                        <![CDATA[
+                    <h2>Version 0.0.14</h2>
+                    <ul>
+                        <li><strong>Fixed:</strong> security and reliability improvements from audit</li>
+                        <li><strong>New:</strong> setup wizard and debug network log</li>
+                        <li><strong>New:</strong> browser sign-in for Claude.ai session and quota source picker</li>
+                        <li><strong>New:</strong> multi-source quota with rate limit headers provider</li>
+                    </ul>
+                        ]]>
+                    </description>
+                </item>
+        <item>
                     <title>Version 0.0.13</title>
                     <link>https://github.com/Bengerthelorf/Claudit</link>
                     <sparkle:version>2026032307</sparkle:version>
