@@ -104,6 +104,59 @@ final class UsageParserTests: XCTestCase {
         // The semicolon is safely inside single quotes
     }
 
+    func testShellEscapeEmptyString() {
+        XCTAssertEqual(ShellEscape.path(""), "''")
+    }
+
+    func testShellEscapeDollarSign() {
+        // $ inside single quotes is literal, not expanded
+        XCTAssertEqual(ShellEscape.path("/tmp/$HOME"), "'/tmp/$HOME'")
+    }
+
+    func testShellEscapeBackticks() {
+        XCTAssertEqual(ShellEscape.path("/tmp/`whoami`"), "'/tmp/`whoami`'")
+    }
+
+    // MARK: - SSHPasswordStore (Keychain)
+
+    func testPasswordStoreRoundTrip() {
+        let deviceId = UUID()
+        defer { SSHPasswordStore.delete(for: deviceId) }
+
+        SSHPasswordStore.save(password: "test-pass-123", for: deviceId)
+        XCTAssertEqual(SSHPasswordStore.load(for: deviceId), "test-pass-123")
+    }
+
+    func testPasswordStoreOverwrite() {
+        let deviceId = UUID()
+        defer { SSHPasswordStore.delete(for: deviceId) }
+
+        SSHPasswordStore.save(password: "old", for: deviceId)
+        SSHPasswordStore.save(password: "new", for: deviceId)
+        XCTAssertEqual(SSHPasswordStore.load(for: deviceId), "new")
+    }
+
+    func testPasswordStoreDelete() {
+        let deviceId = UUID()
+
+        SSHPasswordStore.save(password: "secret", for: deviceId)
+        SSHPasswordStore.delete(for: deviceId)
+        XCTAssertNil(SSHPasswordStore.load(for: deviceId))
+    }
+
+    func testPasswordStoreLoadNonExistent() {
+        XCTAssertNil(SSHPasswordStore.load(for: UUID()))
+    }
+
+    func testPasswordStoreSpecialCharacters() {
+        let deviceId = UUID()
+        defer { SSHPasswordStore.delete(for: deviceId) }
+
+        let specialPass = "p@$$w0rd'with\"special&chars<>"
+        SSHPasswordStore.save(password: specialPass, for: deviceId)
+        XCTAssertEqual(SSHPasswordStore.load(for: deviceId), specialPass)
+    }
+
     // MARK: - Helpers
 
     private func makeRecord(
