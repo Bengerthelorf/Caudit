@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths:
       - 'docs/**'
-      - 'Caudit/Resources/sparkle.xml'
+      - 'Claudit/Resources/sparkle.xml'
   repository_dispatch:
     types: [redeploy-docs]
   workflow_dispatch:
@@ -37,8 +37,8 @@ jobs:
 
       - name: Copy sparkle.xml to public
         run: |
-          mkdir -p docs/public/Caudit/Resources
-          cp Caudit/Resources/sparkle.xml docs/public/Caudit/Resources/sparkle.xml
+          mkdir -p docs/public/Claudit/Resources
+          cp Claudit/Resources/sparkle.xml docs/public/Claudit/Resources/sparkle.xml
 
       - name: Build docs
         working-directory: docs

@@ -1,12 +1,12 @@
 import { defineConfig } from 'vitepress'
 
 export default defineConfig({
-  title: 'Caudit',
+  title: 'Claudit',
   description: 'Claude API usage tracker for your macOS menu bar',
-  base: '/Caudit/',
+  base: '/Claudit/',
 
   head: [
-    ['link', { rel: 'icon', type: 'image/png', href: '/Caudit/icon.png' }],
+    ['link', { rel: 'icon', type: 'image/png', href: '/Claudit/icon.png' }],
   ],
 
   themeConfig: {
@@ -14,7 +14,7 @@ export default defineConfig({
 
     nav: [
       { text: 'Guide', link: '/guide/getting-started' },
-      { text: 'Download', link: 'https://github.com/Bengerthelorf/Caudit/releases/latest' },
+      { text: 'Download', link: 'https://github.com/Bengerthelorf/Claudit/releases/latest' },
     ],
 
     sidebar: [
@@ -29,7 +29,7 @@ export default defineConfig({
     ],
 
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/Bengerthelorf/Caudit' },
+      { icon: 'github', link: 'https://github.com/Bengerthelorf/Claudit' },
     ],
 
     footer: {
@@ -38,7 +38,7 @@ export default defineConfig({
     },
 
     editLink: {
-      pattern: 'https://github.com/Bengerthelorf/Caudit/edit/main/docs/:path',
+      pattern: 'https://github.com/Bengerthelorf/Claudit/edit/main/docs/:path',
     },
 
     search: {

@@ -23,14 +23,14 @@ jobs:
           fetch-depth: 0
 
       - name: Resolve packages
-        run: xcodebuild -resolvePackageDependencies -project Caudit.xcodeproj -scheme Caudit
+        run: xcodebuild -resolvePackageDependencies -project Claudit.xcodeproj -scheme Claudit
 
       - name: Build (CI check)
         if: "!startsWith(github.ref, 'refs/tags/')"
         run: |
           xcodebuild build \
-            -project Caudit.xcodeproj \
-            -scheme Caudit \
+            -project Claudit.xcodeproj \
+            -scheme Claudit \
             -configuration Release \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
@@ -63,28 +63,28 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         run: |
           xcodebuild archive \
-            -project Caudit.xcodeproj \
-            -scheme Caudit \
+            -project Claudit.xcodeproj \
+            -scheme Claudit \
             -configuration Release \
-            -archivePath build/Caudit.xcarchive \
+            -archivePath build/Claudit.xcarchive \
             -quiet
 
       - name: Export app
         if: startsWith(github.ref, 'refs/tags/')
         run: |
-          cp -R build/Caudit.xcarchive/Products/Applications/Caudit.app build/
+          cp -R build/Claudit.xcarchive/Products/Applications/Claudit.app build/
 
       - name: Create DMG
         if: startsWith(github.ref, 'refs/tags/')
         run: |
           mkdir -p build/dmg
-          cp -R build/Caudit.app build/dmg/
+          cp -R build/Claudit.app build/dmg/
           ln -s /Applications build/dmg/Applications
           hdiutil create \
-            -volname "Caudit" \
+            -volname "Claudit" \
             -srcfolder build/dmg \
             -ov -format UDZO \
-            build/Caudit.dmg
+            build/Claudit.dmg
 
       - name: Sign DMG with Sparkle EdDSA
         if: startsWith(github.ref, 'refs/tags/')
@@ -97,10 +97,10 @@ jobs:
           SIGN_UPDATE="/tmp/sparkle/bin/sign_update"
 
           echo "$SPARKLE_KEY" > /tmp/sparkle_key
-          SIGNATURE=$("$SIGN_UPDATE" build/Caudit.dmg --ed-key-file /tmp/sparkle_key)
+          SIGNATURE=$("$SIGN_UPDATE" build/Claudit.dmg --ed-key-file /tmp/sparkle_key)
           rm -f /tmp/sparkle_key
 
-          DMG_SIZE=$(stat -f%z build/Caudit.dmg)
+          DMG_SIZE=$(stat -f%z build/Claudit.dmg)
           echo "DMG_SIZE=$DMG_SIZE" >> $GITHUB_ENV
 
           ED_SIG=$(echo "$SIGNATURE" | grep -o 'sparkle:edSignature="[^"]*"' | sed 's/sparkle:edSignature="//;s/"//')
@@ -116,7 +116,7 @@ jobs:
           echo "" >> CHANGELOG.md
 
           if [ -n "$PREVIOUS_TAG" ]; then
-            git log --pretty=format:"- %s" ${PREVIOUS_TAG}..HEAD -- ':!Caudit/Resources/sparkle.xml' >> CHANGELOG.md
+            git log --pretty=format:"- %s" ${PREVIOUS_TAG}..HEAD -- ':!Claudit/Resources/sparkle.xml' >> CHANGELOG.md
             echo "" >> CHANGELOG.md
             echo "" >> CHANGELOG.md
             echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/${PREVIOUS_TAG}...${TAG}" >> CHANGELOG.md
@@ -128,10 +128,10 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
-          BUILD_NUMBER=$(grep -m1 'CURRENT_PROJECT_VERSION' Caudit.xcodeproj/project.pbxproj | tr -dc '0-9')
+          BUILD_NUMBER=$(grep -m1 'CURRENT_PROJECT_VERSION' Claudit.xcodeproj/project.pbxproj | tr -dc '0-9')
           TAG=${GITHUB_REF#refs/tags/}
           PUBDATE=$(date -u "+%a, %d %b %Y %H:%M:%S +0000")
-          DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/${TAG}/Caudit.dmg"
+          DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/${TAG}/Claudit.dmg"
 
           export SPARKLE_VERSION="$VERSION"
           export SPARKLE_BUILD="$BUILD_NUMBER"
@@ -206,7 +206,7 @@ jobs:
               "                </item>"
           )
 
-          xml = open("Caudit/Resources/sparkle.xml").read()
+          xml = open("Claudit/Resources/sparkle.xml").read()
 
           existing = re.search(
               r'<item>\s*<title>Version ' + re.escape(version) + r'</title>.*?</item>',
@@ -237,7 +237,7 @@ jobs:
               xml = xml[:existing.start()] + updated_item + xml[existing.end():]
               print(f"Found existing entry for {version}, updated enclosure only.")
           else:
-              marker = '<title>Caudit</title>'
+              marker = '<title>Claudit</title>'
               idx = xml.find(marker)
               if idx == -1:
                   sys.exit('marker not found')
@@ -245,7 +245,7 @@ jobs:
               xml = xml[:insert_pos] + item + '\n' + xml[insert_pos:]
               print(f"No existing entry for {version}, generated new item.")
 
-          open("Caudit/Resources/sparkle.xml", "w").write(xml)
+          open("Claudit/Resources/sparkle.xml", "w").write(xml)
           PYEOF
 
       - name: Commit and push appcast
@@ -253,11 +253,11 @@ jobs:
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
-          cp Caudit/Resources/sparkle.xml /tmp/sparkle.xml.updated
+          cp Claudit/Resources/sparkle.xml /tmp/sparkle.xml.updated
           git fetch origin main
           git checkout -f -B main origin/main
-          cp /tmp/sparkle.xml.updated Caudit/Resources/sparkle.xml
-          git add Caudit/Resources/sparkle.xml
+          cp /tmp/sparkle.xml.updated Claudit/Resources/sparkle.xml
+          git add Claudit/Resources/sparkle.xml
           git diff --cached --quiet && echo "No changes" || git commit -m "release: update appcast for ${GITHUB_REF#refs/tags/}"
           git push origin main
 
@@ -265,7 +265,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v1
         with:
-          files: build/Caudit.dmg
+          files: build/Claudit.dmg
           body_path: CHANGELOG.md
           draft: false
           prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') || contains(github.ref, 'rc') }}
@@ -279,40 +279,40 @@ jobs:
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
           TAG=${GITHUB_REF#refs/tags/}
-          DMG_URL="https://github.com/${{ github.repository }}/releases/download/${TAG}/Caudit.dmg"
+          DMG_URL="https://github.com/${{ github.repository }}/releases/download/${TAG}/Claudit.dmg"
 
-          SHA256=$(shasum -a 256 build/Caudit.dmg | cut -d ' ' -f 1)
+          SHA256=$(shasum -a 256 build/Claudit.dmg | cut -d ' ' -f 1)
 
           git clone https://x-access-token:${TAP_GITHUB_TOKEN}@github.com/Bengerthelorf/homebrew-tap.git /tmp/homebrew-tap
           cd /tmp/homebrew-tap
           mkdir -p Casks
 
-          cat > Casks/caudit.rb <<CASK
-          cask "caudit" do
+          cat > Casks/claudit.rb <<CASK
+          cask "claudit" do
             version "${VERSION}"
             sha256 "${SHA256}"
 
             url "${DMG_URL}"
-            name "Caudit"
+            name "Claudit"
             desc "Claude API usage tracker for macOS menu bar"
-            homepage "https://github.com/Bengerthelorf/Caudit"
+            homepage "https://github.com/Bengerthelorf/Claudit"
 
             depends_on macos: ">= :ventura"
 
-            app "Caudit.app"
+            app "Claudit.app"
 
             zap trash: [
-              "~/Library/Preferences/homes.snaix.Caudit.plist",
+              "~/Library/Preferences/homes.snaix.Claudit.plist",
             ]
           end
           CASK
 
-          sed -i '' 's/^          //' Casks/caudit.rb
+          sed -i '' 's/^          //' Casks/claudit.rb
 
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
-          git add Casks/caudit.rb
-          git diff --cached --quiet && echo "No changes" || git commit -m "Update caudit to ${TAG}"
+          git add Casks/claudit.rb
+          git diff --cached --quiet && echo "No changes" || git commit -m "Update claudit to ${TAG}"
           git push origin main
 
       - name: Redeploy docs (updates appcast on GitHub Pages)

@@ -41,4 +41,4 @@ Set a quota threshold (e.g., 80%) to receive a system notification when your 5-h
 
 ## Auto-Update
 
-Caudit uses Sparkle for seamless background updates. Check for updates manually from the app menu.
+Claudit uses Sparkle for seamless background updates. Check for updates manually from the app menu.

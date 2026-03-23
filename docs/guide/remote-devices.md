@@ -1,6 +1,6 @@
 # Remote Devices
 
-Caudit can aggregate Claude Code and OpenClaw usage from remote machines via SSH.
+Claudit can aggregate Claude Code and OpenClaw usage from remote machines via SSH.
 
 ## Setup
 
@@ -17,7 +17,7 @@ Caudit can aggregate Claude Code and OpenClaw usage from remote machines via SSH
 
 ## How It Works
 
-- Caudit runs `find | grep` over SSH to extract usage records from remote JSONL files
+- Claudit runs `find | grep` over SSH to extract usage records from remote JSONL files
 - A fingerprint (file count + total size) is checked first — if unchanged, cached data is reused
 - SSH authentication inherits your local SSH agent (`SSH_AUTH_SOCK`)
 - No hard timeout — relies on SSH `ServerAliveInterval` for connection health

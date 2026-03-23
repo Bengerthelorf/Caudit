@@ -1,16 +1,16 @@
 <div align="center">
 
-<img src="./Github/icon.png" width="128" height="128" alt="Caudit">
+<img src="./Github/icon.png" width="128" height="128" alt="Claudit">
 
-# Caudit
+# Claudit
 
 **A lightweight macOS menu bar app that tracks your Claude API usage — cost, tokens, quota, and session analytics. Fully local.**
 
-[![Download](https://img.shields.io/github/v/release/Bengerthelorf/Caudit?label=Download&style=for-the-badge&color=blue)](https://github.com/Bengerthelorf/Caudit/releases/latest)
+[![Download](https://img.shields.io/github/v/release/Bengerthelorf/Claudit?label=Download&style=for-the-badge&color=blue)](https://github.com/Bengerthelorf/Claudit/releases/latest)
 &nbsp;
-[![Documentation](https://img.shields.io/badge/Documentation-Visit_→-2ea44f?style=for-the-badge)](https://app.snaix.homes/caudit/)
+[![Documentation](https://img.shields.io/badge/Documentation-Visit_→-2ea44f?style=for-the-badge)](https://app.snaix.homes/claudit/)
 &nbsp;
-[![Homebrew](https://img.shields.io/badge/Homebrew-Available-orange?style=for-the-badge)](https://github.com/Bengerthelorf/Caudit#install)
+[![Homebrew](https://img.shields.io/badge/Homebrew-Available-orange?style=for-the-badge)](https://github.com/Bengerthelorf/Claudit#install)
 
 </div>
 
@@ -31,16 +31,16 @@
 ### Homebrew
 
 ```bash
-brew install Bengerthelorf/tap/caudit
+brew install Bengerthelorf/tap/claudit
 ```
 
 ### Manual
 
-Download the latest DMG from [Releases](https://github.com/Bengerthelorf/Caudit/releases/latest), drag to Applications, and launch.
+Download the latest DMG from [Releases](https://github.com/Bengerthelorf/Claudit/releases/latest), drag to Applications, and launch.
 
 ## Usage
 
-Caudit runs in your menu bar, showing today's API cost at a glance. Click the icon to see:
+Claudit runs in your menu bar, showing today's API cost at a glance. Click the icon to see:
 
 - **Usage** — Today's cost, token breakdown by type, estimated daily burn rate
 - **Quota** — 5-hour and 7-day utilization with countdown to reset
@@ -55,7 +55,7 @@ Aggregate usage from other machines via SSH:
 2. Enter SSH host, test connection, save
 3. Remote data appears alongside local data with fingerprint-based caching
 
-> See [Remote Devices Guide](https://app.snaix.homes/caudit/guide/remote-devices) for details.
+> See [Remote Devices Guide](https://app.snaix.homes/claudit/guide/remote-devices) for details.
 
 ## System Requirements
 
@@ -64,9 +64,9 @@ Aggregate usage from other machines via SSH:
 ## Development
 
 ```bash
-git clone https://github.com/Bengerthelorf/Caudit.git
-cd Caudit
-open Caudit.xcodeproj
+git clone https://github.com/Bengerthelorf/Claudit.git
+cd Claudit
+open Claudit.xcodeproj
 ```
 
 Release with:

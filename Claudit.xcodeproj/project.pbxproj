@@ -18,34 +18,34 @@
 			containerPortal = C673A4012F5DDAE7006DEF9B /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = C673A4082F5DDAE7006DEF9B;
-			remoteInfo = Caudit;
+			remoteInfo = Claudit;
 		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		1541B855BA3C9B4000DE52F2 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.0.sdk/System/Library/Frameworks/Cocoa.framework; sourceTree = DEVELOPER_DIR; };
 		9D569E6DDBEE339067DBB0DC /* UsageParserTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = UsageParserTests.swift; sourceTree = "<group>"; };
-		C673A4092F5DDAE7006DEF9B /* Caudit.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Caudit.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		ED7C6BEC01DB7C0DC37601BF /* CauditTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CauditTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		C673A4092F5DDAE7006DEF9B /* Claudit.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Claudit.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		ED7C6BEC01DB7C0DC37601BF /* ClauditTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ClauditTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		A1B2C3032F5DE002006DEF9B /* Exceptions for "Caudit" folder in "Caudit" target */ = {
+		A1B2C3032F5DE002006DEF9B /* Exceptions for "Claudit" folder in "Claudit" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
-			target = C673A4082F5DDAE7006DEF9B /* Caudit */;
+			target = C673A4082F5DDAE7006DEF9B /* Claudit */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		C673A40B2F5DDAE7006DEF9B /* Caudit */ = {
+		C673A40B2F5DDAE7006DEF9B /* Claudit */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				A1B2C3032F5DE002006DEF9B /* Exceptions for "Caudit" folder in "Caudit" target */,
+				A1B2C3032F5DE002006DEF9B /* Exceptions for "Claudit" folder in "Claudit" target */,
 			);
-			path = Caudit;
+			path = Claudit;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -70,12 +70,12 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		7EC19BBB76F78FBD2C6DFF7A /* CauditTests */ = {
+		7EC19BBB76F78FBD2C6DFF7A /* ClauditTests */ = {
 			isa = PBXGroup;
 			children = (
 				9D569E6DDBEE339067DBB0DC /* UsageParserTests.swift */,
 			);
-			path = CauditTests;
+			path = ClauditTests;
 			sourceTree = "<group>";
 		};
 		90A67D478854F18F23E25047 /* OS X */ = {
@@ -97,18 +97,18 @@
 		C673A4002F5DDAE7006DEF9B = {
 			isa = PBXGroup;
 			children = (
-				C673A40B2F5DDAE7006DEF9B /* Caudit */,
+				C673A40B2F5DDAE7006DEF9B /* Claudit */,
 				C673A40A2F5DDAE7006DEF9B /* Products */,
 				9119986C2C959177C4B7F737 /* Frameworks */,
-				7EC19BBB76F78FBD2C6DFF7A /* CauditTests */,
+				7EC19BBB76F78FBD2C6DFF7A /* ClauditTests */,
 			);
 			sourceTree = "<group>";
 		};
 		C673A40A2F5DDAE7006DEF9B /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				C673A4092F5DDAE7006DEF9B /* Caudit.app */,
-				ED7C6BEC01DB7C0DC37601BF /* CauditTests.xctest */,
+				C673A4092F5DDAE7006DEF9B /* Claudit.app */,
+				ED7C6BEC01DB7C0DC37601BF /* ClauditTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -116,9 +116,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		4B73387B085F9115132E69EF /* CauditTests */ = {
+		4B73387B085F9115132E69EF /* ClauditTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 37C66CD87566E946DEA94D6F /* Build configuration list for PBXNativeTarget "CauditTests" */;
+			buildConfigurationList = 37C66CD87566E946DEA94D6F /* Build configuration list for PBXNativeTarget "ClauditTests" */;
 			buildPhases = (
 				6F4144B7ADE8544C3A702150 /* Sources */,
 				0CC42E175ECC98835BEA6151 /* Frameworks */,
@@ -129,14 +129,14 @@
 			dependencies = (
 				47D0AB003918F6D0F9C1DF0F /* PBXTargetDependency */,
 			);
-			name = CauditTests;
-			productName = CauditTests;
-			productReference = ED7C6BEC01DB7C0DC37601BF /* CauditTests.xctest */;
+			name = ClauditTests;
+			productName = ClauditTests;
+			productReference = ED7C6BEC01DB7C0DC37601BF /* ClauditTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		C673A4082F5DDAE7006DEF9B /* Caudit */ = {
+		C673A4082F5DDAE7006DEF9B /* Claudit */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = C673A4142F5DDAE9006DEF9B /* Build configuration list for PBXNativeTarget "Caudit" */;
+			buildConfigurationList = C673A4142F5DDAE9006DEF9B /* Build configuration list for PBXNativeTarget "Claudit" */;
 			buildPhases = (
 				C673A4052F5DDAE7006DEF9B /* Sources */,
 				C673A4062F5DDAE7006DEF9B /* Frameworks */,
@@ -147,14 +147,14 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				C673A40B2F5DDAE7006DEF9B /* Caudit */,
+				C673A40B2F5DDAE7006DEF9B /* Claudit */,
 			);
-			name = Caudit;
+			name = Claudit;
 			packageProductDependencies = (
 				A1B2C3022F5DE001006DEF9B /* Sparkle */,
 			);
-			productName = Caudit;
-			productReference = C673A4092F5DDAE7006DEF9B /* Caudit.app */;
+			productName = Claudit;
+			productReference = C673A4092F5DDAE7006DEF9B /* Claudit.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -172,7 +172,7 @@
 					};
 				};
 			};
-			buildConfigurationList = C673A4042F5DDAE7006DEF9B /* Build configuration list for PBXProject "Caudit" */;
+			buildConfigurationList = C673A4042F5DDAE7006DEF9B /* Build configuration list for PBXProject "Claudit" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -189,8 +189,8 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				C673A4082F5DDAE7006DEF9B /* Caudit */,
-				4B73387B085F9115132E69EF /* CauditTests */,
+				C673A4082F5DDAE7006DEF9B /* Claudit */,
+				4B73387B085F9115132E69EF /* ClauditTests */,
 			);
 		};
 /* End PBXProject section */
@@ -233,8 +233,8 @@
 /* Begin PBXTargetDependency section */
 		47D0AB003918F6D0F9C1DF0F /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			name = Caudit;
-			target = C673A4082F5DDAE7006DEF9B /* Caudit */;
+			name = Claudit;
+			target = C673A4082F5DDAE7006DEF9B /* Claudit */;
 			targetProxy = C019EEF875C6F5E5A3C071FD /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -248,12 +248,12 @@
 				CODE_SIGN_IDENTITY = "-";
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				PRODUCT_BUNDLE_IDENTIFIER = homes.snaix.CauditTests;
-				PRODUCT_MODULE_NAME = CauditTests;
-				PRODUCT_NAME = CauditTests;
+				PRODUCT_BUNDLE_IDENTIFIER = homes.snaix.ClauditTests;
+				PRODUCT_MODULE_NAME = ClauditTests;
+				PRODUCT_NAME = ClauditTests;
 				SDKROOT = macosx;
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Caudit.app/Contents/MacOS/Caudit";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Claudit.app/Contents/MacOS/Claudit";
 			};
 			name = Debug;
 		};
@@ -265,12 +265,12 @@
 				CODE_SIGN_IDENTITY = "-";
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				PRODUCT_BUNDLE_IDENTIFIER = homes.snaix.CauditTests;
-				PRODUCT_MODULE_NAME = CauditTests;
-				PRODUCT_NAME = CauditTests;
+				PRODUCT_BUNDLE_IDENTIFIER = homes.snaix.ClauditTests;
+				PRODUCT_MODULE_NAME = ClauditTests;
+				PRODUCT_NAME = ClauditTests;
 				SDKROOT = macosx;
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Caudit.app/Contents/MacOS/Caudit";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Claudit.app/Contents/MacOS/Claudit";
 			};
 			name = Release;
 		};
@@ -403,12 +403,12 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Caudit/Info.plist;
+				INFOPLIST_FILE = Claudit/Info.plist;
 				INFOPLIST_KEY_LSUIElement = YES;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 0.0.8;
-				PRODUCT_BUNDLE_IDENTIFIER = homes.snaix.Caudit;
+				PRODUCT_BUNDLE_IDENTIFIER = homes.snaix.Claudit;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -433,12 +433,12 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Caudit/Info.plist;
+				INFOPLIST_FILE = Claudit/Info.plist;
 				INFOPLIST_KEY_LSUIElement = YES;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 0.0.8;
-				PRODUCT_BUNDLE_IDENTIFIER = homes.snaix.Caudit;
+				PRODUCT_BUNDLE_IDENTIFIER = homes.snaix.Claudit;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -453,7 +453,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		37C66CD87566E946DEA94D6F /* Build configuration list for PBXNativeTarget "CauditTests" */ = {
+		37C66CD87566E946DEA94D6F /* Build configuration list for PBXNativeTarget "ClauditTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				9458657ED2817EBD1A3EA652 /* Release */,
@@ -462,7 +462,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		C673A4042F5DDAE7006DEF9B /* Build configuration list for PBXProject "Caudit" */ = {
+		C673A4042F5DDAE7006DEF9B /* Build configuration list for PBXProject "Claudit" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				C673A4122F5DDAE9006DEF9B /* Debug */,
@@ -471,7 +471,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		C673A4142F5DDAE9006DEF9B /* Build configuration list for PBXNativeTarget "Caudit" */ = {
+		C673A4142F5DDAE9006DEF9B /* Build configuration list for PBXNativeTarget "Claudit" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				C673A4152F5DDAE9006DEF9B /* Debug */,

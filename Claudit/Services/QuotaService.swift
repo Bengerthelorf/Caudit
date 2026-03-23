@@ -31,7 +31,7 @@ final class QuotaService: Sendable {
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue("oauth-2025-04-20", forHTTPHeaderField: "anthropic-beta")
         let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0"
-        request.setValue("Caudit/\(appVersion)", forHTTPHeaderField: "User-Agent")
+        request.setValue("Claudit/\(appVersion)", forHTTPHeaderField: "User-Agent")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
 
@@ -134,12 +134,12 @@ final class QuotaService: Sendable {
         if let fiveHour = json["five_hour"] as? [String: Any] {
             fiveHourUtilization = Self.parseUtilization(fiveHour)
             if let resetStr = fiveHour["resets_at"] as? String ?? fiveHour["reset_at"] as? String {
-                fiveHourResetAt = CauditFormatter.parseISO8601(resetStr)
+                fiveHourResetAt = ClauditFormatter.parseISO8601(resetStr)
             }
         } else if let session = json["session"] as? [String: Any] {
             fiveHourUtilization = Self.parseUtilization(session)
             if let resetStr = session["resets_at"] as? String {
-                fiveHourResetAt = CauditFormatter.parseISO8601(resetStr)
+                fiveHourResetAt = ClauditFormatter.parseISO8601(resetStr)
             }
         }
 
@@ -147,7 +147,7 @@ final class QuotaService: Sendable {
         if let sevenDay = json["seven_day"] as? [String: Any] {
             sevenDayUtilization = Self.parseUtilization(sevenDay)
             if let resetStr = sevenDay["resets_at"] as? String {
-                sevenDayResetAt = CauditFormatter.parseISO8601(resetStr)
+                sevenDayResetAt = ClauditFormatter.parseISO8601(resetStr)
             }
         } else if let weekly = json["weekly"] as? [String: Any] {
             sevenDayUtilization = Self.parseUtilization(weekly)

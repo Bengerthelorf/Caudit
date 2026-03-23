@@ -337,7 +337,7 @@ struct MessageRow: View {
                         .background(Color.primary.opacity(0.03), in: RoundedRectangle(cornerRadius: 4))
                 }
             } label: {
-                Label(name, systemImage: CauditFormatter.toolIcon(name))
+                Label(name, systemImage: ClauditFormatter.toolIcon(name))
                     .font(.caption)
                     .fontWeight(.medium)
                     .foregroundStyle(.orange)

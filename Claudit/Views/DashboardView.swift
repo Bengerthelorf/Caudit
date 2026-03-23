@@ -73,7 +73,7 @@ struct DashboardView: View {
                 }
             }
             .listStyle(.sidebar)
-            .navigationTitle("Caudit")
+            .navigationTitle("Claudit")
             .frame(minWidth: 200, idealWidth: 300)
         } detail: {
             NavigationStack {
@@ -83,7 +83,7 @@ struct DashboardView: View {
                             .id(session.sessionId)
                             .navigationTitle(session.displayName)
                             .navigationSubtitle(
-                                "\(session.project) · \(CauditFormatter.duration(session.duration)) · \(CauditFormatter.costDetail(session.totalCost)) · \(CauditFormatter.tokensWithUnit(session.totalTokens))"
+                                "\(session.project) · \(ClauditFormatter.duration(session.duration)) · \(ClauditFormatter.costDetail(session.totalCost)) · \(ClauditFormatter.tokensWithUnit(session.totalTokens))"
                             )
                     } else {
                         tabContent
@@ -244,27 +244,27 @@ private struct OverviewPage: View {
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 4), spacing: 12) {
                         StatCard(
                             label: "Today",
-                            value: CauditFormatter.costDetail(appState.todayUsage.totalCost),
-                            detail: CauditFormatter.tokensWithUnit(appState.todayUsage.totalTokens),
+                            value: ClauditFormatter.costDetail(appState.todayUsage.totalCost),
+                            detail: ClauditFormatter.tokensWithUnit(appState.todayUsage.totalTokens),
                             color: Palette.blue
                         )
                         StatCard(
                             label: "This Month",
-                            value: CauditFormatter.costDetail(appState.monthUsage.totalCost),
-                            detail: CauditFormatter.tokensWithUnit(appState.monthUsage.totalTokens),
+                            value: ClauditFormatter.costDetail(appState.monthUsage.totalCost),
+                            detail: ClauditFormatter.tokensWithUnit(appState.monthUsage.totalTokens),
                             color: Palette.lavender
                         )
                         StatCard(
                             label: "All Time",
-                            value: CauditFormatter.costDetail(appState.allTimeUsage.totalCost),
-                            detail: CauditFormatter.tokensWithUnit(appState.allTimeUsage.totalTokens),
+                            value: ClauditFormatter.costDetail(appState.allTimeUsage.totalCost),
+                            detail: ClauditFormatter.tokensWithUnit(appState.allTimeUsage.totalTokens),
                             color: Palette.sage
                         )
                         if let rate = appState.burnRate {
                             StatCard(
                                 label: "Burn Rate",
-                                value: CauditFormatter.costDetail(rate),
-                                detail: "per day · ~\(CauditFormatter.cost(rate * 30))/mo",
+                                value: ClauditFormatter.costDetail(rate),
+                                detail: "per day · ~\(ClauditFormatter.cost(rate * 30))/mo",
                                 color: Palette.terracotta
                             )
                         }
@@ -377,7 +377,7 @@ private struct TodayHeatmap: View {
                                 .fill(heatmapColor(intensity, hasData: cost > 0))
                                 .frame(maxWidth: .infinity, minHeight: 36, maxHeight: 36)
                                 .onHover { hovering in
-                                    hoveredInfo = hovering ? "\(hour):00–\(hour + 1):00  \(CauditFormatter.costDetail(cost))" : nil
+                                    hoveredInfo = hovering ? "\(hour):00–\(hour + 1):00  \(ClauditFormatter.costDetail(cost))" : nil
                                 }
                         }
                     }
@@ -453,7 +453,7 @@ private struct WeekHeatmap: View {
                                     .fill(heatmapColor(intensity, hasData: cost > 0))
                                     .frame(maxWidth: .infinity, minHeight: 22, maxHeight: 22)
                                     .onHover { hovering in
-                                        hoveredInfo = hovering ? "\(label) \(Self.timeLabels[slot])  \(CauditFormatter.costDetail(cost))" : nil
+                                        hoveredInfo = hovering ? "\(label) \(Self.timeLabels[slot])  \(ClauditFormatter.costDetail(cost))" : nil
                                     }
                             }
                         }
@@ -514,7 +514,7 @@ private struct MonthHeatmap: View {
                                             .fill(heatmapColor(intensity, hasData: cost > 0))
                                             .frame(maxWidth: .infinity, minHeight: 22, maxHeight: 22)
                                             .onHover { hovering in
-                                                hoveredInfo = hovering ? "\(dailyData[i].dateString)  \(CauditFormatter.costDetail(cost))" : nil
+                                                hoveredInfo = hovering ? "\(dailyData[i].dateString)  \(ClauditFormatter.costDetail(cost))" : nil
                                             }
                                     } else {
                                         Color.clear.frame(maxWidth: .infinity, minHeight: 22, maxHeight: 22)
@@ -580,7 +580,7 @@ private struct GitHubCalendarHeatmap: View {
                                         let cell = grid[week][day]
                                         if !cell.isFuture {
                                             hoveredInfo = cell.hasData
-                                                ? "\(cell.label)  \(CauditFormatter.costDetail(cell.cost))"
+                                                ? "\(cell.label)  \(ClauditFormatter.costDetail(cell.cost))"
                                                 : cell.label
                                         } else {
                                             hoveredInfo = nil
@@ -780,7 +780,7 @@ private struct TrendChart: View {
         AxisMarks(position: .leading) { value in
             AxisValueLabel {
                 if let cost = value.as(Double.self) {
-                    Text(CauditFormatter.cost(cost))
+                    Text(ClauditFormatter.cost(cost))
                         .font(.caption)
                 }
             }
@@ -870,17 +870,17 @@ private struct ActivityPage: View {
                             )
                             StatCard(
                                 label: "Avg Duration",
-                                value: CauditFormatter.duration(avgDuration),
+                                value: ClauditFormatter.duration(avgDuration),
                                 color: Palette.lavender
                             )
                             StatCard(
                                 label: "Longest",
-                                value: CauditFormatter.duration(sessionDurations.max() ?? 0),
+                                value: ClauditFormatter.duration(sessionDurations.max() ?? 0),
                                 color: Palette.terracotta
                             )
                             StatCard(
                                 label: "Shortest",
-                                value: CauditFormatter.duration(sessionDurations.min() ?? 0),
+                                value: ClauditFormatter.duration(sessionDurations.min() ?? 0),
                                 color: Palette.sage
                             )
                         }
@@ -1020,7 +1020,7 @@ private struct SessionsPage: View {
                     .width(ideal: 120)
 
                     TableColumn("Duration", value: \.duration) { session in
-                        Text(CauditFormatter.duration(session.duration))
+                        Text(ClauditFormatter.duration(session.duration))
                             .monospacedDigit()
                             .foregroundStyle(.secondary)
                     }
@@ -1034,14 +1034,14 @@ private struct SessionsPage: View {
                     .width(ideal: 60)
 
                     TableColumn("Tokens", value: \.totalTokens) { session in
-                        Text(CauditFormatter.tokensWithUnit(session.totalTokens))
+                        Text(ClauditFormatter.tokensWithUnit(session.totalTokens))
                             .monospacedDigit()
                             .foregroundStyle(.secondary)
                     }
                     .width(ideal: 90)
 
                     TableColumn("Cost", value: \.totalCost) { session in
-                        Text(CauditFormatter.costDetail(session.totalCost))
+                        Text(ClauditFormatter.costDetail(session.totalCost))
                             .monospacedDigit()
                             .fontWeight(.medium)
                     }
@@ -1121,14 +1121,14 @@ private struct ProjectsPage: View {
                     .width(ideal: 80)
 
                     TableColumn("Tokens", value: \.totalTokens) { project in
-                        Text(CauditFormatter.tokensWithUnit(project.totalTokens))
+                        Text(ClauditFormatter.tokensWithUnit(project.totalTokens))
                             .monospacedDigit()
                             .foregroundStyle(.secondary)
                     }
                     .width(ideal: 90)
 
                     TableColumn("Cost", value: \.totalCost) { project in
-                        Text(CauditFormatter.costDetail(project.totalCost))
+                        Text(ClauditFormatter.costDetail(project.totalCost))
                             .monospacedDigit()
                             .fontWeight(.medium)
                     }
@@ -1282,28 +1282,28 @@ private struct ModelsPage: View {
                     .width(min: 120, ideal: 180)
 
                     TableColumn("Input", value: \.inputTokens) { entry in
-                        Text(CauditFormatter.tokens(entry.inputTokens))
+                        Text(ClauditFormatter.tokens(entry.inputTokens))
                             .monospacedDigit()
                             .foregroundStyle(.secondary)
                     }
                     .width(ideal: 80)
 
                     TableColumn("Output", value: \.outputTokens) { entry in
-                        Text(CauditFormatter.tokens(entry.outputTokens))
+                        Text(ClauditFormatter.tokens(entry.outputTokens))
                             .monospacedDigit()
                             .foregroundStyle(.secondary)
                     }
                     .width(ideal: 80)
 
                     TableColumn("Cache", value: \.cacheTokens) { entry in
-                        Text(CauditFormatter.tokens(entry.cacheTokens))
+                        Text(ClauditFormatter.tokens(entry.cacheTokens))
                             .monospacedDigit()
                             .foregroundStyle(.secondary)
                     }
                     .width(ideal: 80)
 
                     TableColumn("Cost", value: \.totalCost) { entry in
-                        Text(CauditFormatter.costDetail(entry.totalCost))
+                        Text(ClauditFormatter.costDetail(entry.totalCost))
                             .monospacedDigit()
                             .fontWeight(.medium)
                     }
@@ -1342,7 +1342,7 @@ private struct ToolsPage: View {
                 Table(sortedTools, sortOrder: $sortOrder) {
                     TableColumn("Tool", value: \.name) { entry in
                         HStack(spacing: 6) {
-                            Image(systemName: CauditFormatter.toolIcon(entry.name))
+                            Image(systemName: ClauditFormatter.toolIcon(entry.name))
                                 .foregroundStyle(.secondary)
                                 .frame(width: 16)
                             Text(entry.name)

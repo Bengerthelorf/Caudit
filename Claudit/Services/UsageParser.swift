@@ -177,7 +177,7 @@ final class UsageParser: @unchecked Sendable {
 
                     let timestamp: Date
                     if let ts = json["timestamp"] as? String {
-                        timestamp = CauditFormatter.parseISO8601(ts) ?? Date()
+                        timestamp = ClauditFormatter.parseISO8601(ts) ?? Date()
                     } else {
                         timestamp = Date()
                     }
@@ -269,7 +269,7 @@ final class UsageParser: @unchecked Sendable {
 
                     let timestamp: Date
                     if let ts = json["timestamp"] as? String {
-                        timestamp = CauditFormatter.parseISO8601(ts) ?? Date()
+                        timestamp = ClauditFormatter.parseISO8601(ts) ?? Date()
                     } else {
                         timestamp = Date()
                     }
@@ -375,7 +375,7 @@ final class UsageParser: @unchecked Sendable {
 
                 let timestamp: Date
                 if let ts = json["timestamp"] as? String {
-                    timestamp = CauditFormatter.parseISO8601(ts) ?? Date()
+                    timestamp = ClauditFormatter.parseISO8601(ts) ?? Date()
                 } else {
                     timestamp = Date()
                 }

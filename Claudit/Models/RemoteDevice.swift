@@ -13,7 +13,7 @@ struct RemoteDevice: Identifiable, Codable, Hashable {
 
 /// Store and retrieve SSH passwords in the macOS Keychain, keyed by device ID.
 enum SSHPasswordStore {
-    private static let service = "homes.snaix.Caudit.ssh"
+    private static let service = "homes.snaix.Claudit.ssh"
 
     static func save(password: String, for deviceId: UUID) {
         let account = deviceId.uuidString

@@ -1,6 +1,6 @@
 import Foundation
 
-enum CauditFormatter {
+enum ClauditFormatter {
     private static let currencyFormatter: NumberFormatter = {
         let f = NumberFormatter()
         f.numberStyle = .currency

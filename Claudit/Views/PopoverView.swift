@@ -63,7 +63,7 @@ struct PopoverView: View {
 
             HStack(spacing: 12) {
                 if let rate = appState.burnRate {
-                    Text("~\(CauditFormatter.costDetail(rate))/day")
+                    Text("~\(ClauditFormatter.costDetail(rate))/day")
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
                 } else if let lastUpdate = appState.lastUsageUpdate {
@@ -109,7 +109,7 @@ struct PopoverView: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
-                .help("Quit Caudit")
+                .help("Quit Claudit")
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 8)

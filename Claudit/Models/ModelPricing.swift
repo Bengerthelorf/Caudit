@@ -1,7 +1,7 @@
 import Foundation
 import os.log
 
-private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Caudit", category: "PricingTable")
+private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Claudit", category: "PricingTable")
 
 struct ModelPricing: Sendable {
     let inputPrice: Double

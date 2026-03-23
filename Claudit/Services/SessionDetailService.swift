@@ -142,7 +142,7 @@ final class SessionDetailService: Sendable {
         let uuid = json["uuid"] as? String ?? json["id"] as? String ?? UUID().uuidString
         let timestamp: Date
         if let ts = json["timestamp"] as? String {
-            timestamp = CauditFormatter.parseISO8601(ts) ?? Date()
+            timestamp = ClauditFormatter.parseISO8601(ts) ?? Date()
         } else {
             timestamp = Date()
         }

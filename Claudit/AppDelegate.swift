@@ -80,7 +80,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         let window = makeWindow(
-            title: "Caudit Settings",
+            title: "Claudit Settings",
             size: NSSize(width: 680, height: 480),
             minSize: NSSize(width: 560, height: 400),
             rootView: SettingsView(updater: updaterController.updater)
@@ -117,7 +117,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         let window = makeWindow(
-            title: "Caudit",
+            title: "Claudit",
             size: NSSize(width: 820, height: 600),
             minSize: NSSize(width: 720, height: 580),
             maxSize: NSSize(width: 960, height: CGFloat.greatestFiniteMagnitude),
@@ -266,12 +266,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let appMenuItem = NSMenuItem()
         appMenuItem.submenu = appMenu
 
-        appMenu.addItem(withTitle: "About Caudit", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        appMenu.addItem(withTitle: "About Claudit", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
         appMenu.addItem(withTitle: "Check for Updates…", action: #selector(checkForUpdates), keyEquivalent: "")
         appMenu.addItem(.separator())
         appMenu.addItem(withTitle: "Settings…", action: #selector(openSettingsFromMenu), keyEquivalent: ",")
         appMenu.addItem(.separator())
-        appMenu.addItem(withTitle: "Quit Caudit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        appMenu.addItem(withTitle: "Quit Claudit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
 
         mainMenu.addItem(appMenuItem)
 
@@ -305,7 +305,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func setupStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         guard let button = statusItem.button else { return }
-        button.image = NSImage(systemSymbolName: "chart.bar.fill", accessibilityDescription: "Caudit")
+        button.image = NSImage(systemSymbolName: "chart.bar.fill", accessibilityDescription: "Claudit")
         button.imagePosition = .imageLeading
         button.title = " --"
         button.action = #selector(togglePopover)

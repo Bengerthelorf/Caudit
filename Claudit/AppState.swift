@@ -4,7 +4,7 @@ import ServiceManagement
 import CoreServices
 import os.log
 
-private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Caudit", category: "AppState")
+private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Claudit", category: "AppState")
 
 @Observable @MainActor
 final class AppState {
@@ -433,7 +433,7 @@ final class AppState {
         guard hasLoadedUsage else { return "--" }
         switch menuBarDisplayMode {
         case .cost:
-            return CauditFormatter.cost(todayUsage.totalCost)
+            return ClauditFormatter.cost(todayUsage.totalCost)
         case .quota:
             if let quota = quotaInfo {
                 return "\(Int(quota.fiveHourUtilization))%"

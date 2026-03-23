@@ -14,7 +14,7 @@ struct QuotaView: View {
                                 .foregroundStyle(.secondary)
                             Spacer()
                             if let remaining = quota.fiveHourTimeRemaining {
-                                Label(CauditFormatter.duration(remaining), systemImage: "clock")
+                                Label(ClauditFormatter.duration(remaining), systemImage: "clock")
                                     .font(.system(size: 10))
                                     .foregroundStyle(.secondary)
                             }
@@ -106,7 +106,7 @@ struct QuotaRow: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 if let remaining {
-                    Label(CauditFormatter.duration(remaining), systemImage: "clock")
+                    Label(ClauditFormatter.duration(remaining), systemImage: "clock")
                         .font(.system(size: 10))
                         .foregroundStyle(.tertiary)
                 }

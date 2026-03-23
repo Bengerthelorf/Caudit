@@ -2,7 +2,7 @@ import SwiftUI
 import Sparkle
 import os.log
 
-private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Caudit", category: "Settings")
+private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Claudit", category: "Settings")
 
 enum SettingsTab: String, CaseIterable, Identifiable {
     case general = "General"
@@ -422,14 +422,14 @@ struct AboutSettingsView: View {
                 }
             }
 
-            Text("Caudit")
+            Text("Claudit")
                 .font(.title.bold())
 
             Text("Version \(appVersion) (\(buildNumber))")
                 .foregroundStyle(.secondary)
 
             VStack(spacing: 6) {
-                Link("GitHub Repository", destination: URL(string: "https://github.com/Bengerthelorf/Caudit")!)
+                Link("GitHub Repository", destination: URL(string: "https://github.com/Bengerthelorf/Claudit")!)
             }
             .font(.callout)
 

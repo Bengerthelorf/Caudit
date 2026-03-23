@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # ==============================================================================
-# Caudit Release Script (local steps only)
+# Claudit Release Script (local steps only)
 # Usage: ./scripts/release.sh <version>
 # Example: ./scripts/release.sh 0.0.5
 #
@@ -11,7 +11,7 @@ set -euo pipefail
 # ==============================================================================
 
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-PROJECT_FILE="$PROJECT_DIR/Caudit.xcodeproj/project.pbxproj"
+PROJECT_FILE="$PROJECT_DIR/Claudit.xcodeproj/project.pbxproj"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -67,7 +67,7 @@ info "Committing version bump..."
 git add "$PROJECT_FILE"
 git commit -m "release: v$VERSION"
 
-git tag -a "$TAG" -m "Caudit v$VERSION"
+git tag -a "$TAG" -m "Claudit v$VERSION"
 
 info "Pushing to remote..."
 git push origin main
@@ -76,5 +76,5 @@ git push origin "$TAG"
 info "============================================"
 info "Tag $TAG pushed!"
 info "GitHub Actions will now build, sign, and publish the release."
-info "Monitor at: https://github.com/Bengerthelorf/Caudit/actions"
+info "Monitor at: https://github.com/Bengerthelorf/Claudit/actions"
 info "============================================"

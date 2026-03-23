@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
     <channel>
-        <title>Caudit</title>
+        <title>Claudit</title>
         <item>
                     <title>Version 0.0.8</title>
                     <link>https://github.com/Bengerthelorf/Caudit</link>
@@ -23,11 +23,11 @@
                 </item>
         <item>
                     <title>Version 0.0.7</title>
-                    <link>https://github.com/Bengerthelorf/Caudit</link>
+                    <link>https://github.com/Bengerthelorf/Claudit</link>
                     <sparkle:version>2026032301</sparkle:version>
                     <sparkle:shortVersionString>0.0.7</sparkle:shortVersionString>
                     <pubDate>Mon, 23 Mar 2026 09:24:43 +0000</pubDate>
-                    <enclosure url="https://github.com/Bengerthelorf/Caudit/releases/download/v0.0.7/Caudit.dmg"
+                    <enclosure url="https://github.com/Bengerthelorf/Claudit/releases/download/v0.0.7/Claudit.dmg"
                     sparkle:edSignature="SclRkb1edAdJakVBIKCxahNGA5/d6NxoS4BPRwD7xwfZG7m8CCH77SAAVUBp/lTlybseuAZG0PkB/hSzqCjpAw==" length="4167133"
                     type="application/octet-stream"/>
                     <description>
@@ -43,11 +43,11 @@
                 </item>
         <item>
                     <title>Version 0.0.6</title>
-                    <link>https://github.com/Bengerthelorf/Caudit</link>
+                    <link>https://github.com/Bengerthelorf/Claudit</link>
                     <sparkle:version>2026032300</sparkle:version>
                     <sparkle:shortVersionString>0.0.6</sparkle:shortVersionString>
                     <pubDate>Sun, 22 Mar 2026 20:16:28 +0000</pubDate>
-                    <enclosure url="https://github.com/Bengerthelorf/Caudit/releases/download/v0.0.6/Caudit.dmg"
+                    <enclosure url="https://github.com/Bengerthelorf/Claudit/releases/download/v0.0.6/Claudit.dmg"
                     sparkle:edSignature="1ZoSDDzNOZzBnt8Za6tEJZQLpKs52uqPd3JoPNykKwDWLjNZcI9xHx5J/iK5StQXc19yiPHsJ6+tUcvbjQINBg==" length="4172156"
                     type="application/octet-stream"/>
                     <description>
@@ -62,7 +62,7 @@
                         <li><strong>Fixed:</strong> replace deprecated activate(ignoringOtherApps:) with activate()</li>
                         <li><strong>New:</strong> add command timeout for SSH remote operations</li>
                         <li><strong>Fixed:</strong> eliminate SessionContentItem ID collisions</li>
-                        <li><strong>Refactor:</strong> extract shared toolIcon() to CauditFormatter</li>
+                        <li><strong>Refactor:</strong> extract shared toolIcon() to ClauditFormatter</li>
                         <li><strong>Perf:</strong> move DateFormatter creation to static properties</li>
                         <li><strong>Refactor:</strong> deduplicate SessionReaderView by composing SessionDetailView</li>
                         <li><strong>Fixed:</strong> handle millisecond timestamps in expiresAt credential field</li>
@@ -77,11 +77,11 @@
                 </item>
         <item>
                     <title>Version 0.0.5</title>
-                    <link>https://github.com/Bengerthelorf/Caudit</link>
+                    <link>https://github.com/Bengerthelorf/Claudit</link>
                     <sparkle:version>2026031702</sparkle:version>
                     <sparkle:shortVersionString>0.0.5</sparkle:shortVersionString>
                     <pubDate>Mon, 16 Mar 2026 21:12:16 +0000</pubDate>
-                    <enclosure url="https://github.com/Bengerthelorf/Caudit/releases/download/v0.0.5/Caudit.dmg"
+                    <enclosure url="https://github.com/Bengerthelorf/Claudit/releases/download/v0.0.5/Claudit.dmg"
                     sparkle:edSignature="0jplXcArJcPzUFyKkfSXmTirMXpZnAMqqGpFME5Nlnq53NBU2wn6K2VNzz7M6+3CjwBSQL9Y4uJZVEIts2d/Cw==" length="4161193"
                     type="application/octet-stream"/>
                     <description>
@@ -110,11 +110,11 @@
                 </item>
         <item>
                     <title>Version 0.0.4</title>
-                    <link>https://github.com/Bengerthelorf/Caudit</link>
+                    <link>https://github.com/Bengerthelorf/Claudit</link>
                     <sparkle:version>2026031701</sparkle:version>
                     <sparkle:shortVersionString>0.0.4</sparkle:shortVersionString>
                     <pubDate>Mon, 16 Mar 2026 19:49:21 +0000</pubDate>
-                    <enclosure url="https://github.com/Bengerthelorf/Caudit/releases/download/v0.0.4/Caudit.dmg"
+                    <enclosure url="https://github.com/Bengerthelorf/Claudit/releases/download/v0.0.4/Claudit.dmg"
                     sparkle:edSignature="UhmJosYYqpUIM5sqcLEkz6+rX1orJtNDVDmZntxukWBjRZqAUY5utZqiCFbjCpvzhmm2MPgtkSk69PsIAwz7Ag==" length="4151718"
                     type="application/octet-stream"/>
                     <description>
@@ -148,11 +148,11 @@
                 </item>
         <item>
                     <title>Version 0.0.3</title>
-                    <link>https://github.com/Bengerthelorf/Caudit</link>
+                    <link>https://github.com/Bengerthelorf/Claudit</link>
                     <sparkle:version>2026031700</sparkle:version>
                     <sparkle:shortVersionString>0.0.3</sparkle:shortVersionString>
                     <pubDate>Mon, 16 Mar 2026 17:49:06 +0000</pubDate>
-                    <enclosure url="https://github.com/Bengerthelorf/Caudit/releases/download/v0.0.3/Caudit.dmg"
+                    <enclosure url="https://github.com/Bengerthelorf/Claudit/releases/download/v0.0.3/Claudit.dmg"
                     sparkle:edSignature="+/8kA7JuGS6zHHoJtf6pUWQmJWvMSzZ8gwo3+8Oa/ZnnvW6YdrAHYr6DF+T7XYwNMsvKqqxEzLo+bhYWEVoUBw==" length="4133939"
                     type="application/octet-stream"/>
                     <description>
@@ -168,11 +168,11 @@
                 </item>
         <item>
                     <title>Version 0.0.2</title>
-                    <link>https://github.com/Bengerthelorf/Caudit</link>
+                    <link>https://github.com/Bengerthelorf/Claudit</link>
                     <sparkle:version>2026031300</sparkle:version>
                     <sparkle:shortVersionString>0.0.2</sparkle:shortVersionString>
                     <pubDate>Thu, 12 Mar 2026 18:51:40 +0000</pubDate>
-                    <enclosure url="https://github.com/Bengerthelorf/Caudit/releases/download/v0.0.2/Caudit.dmg"
+                    <enclosure url="https://github.com/Bengerthelorf/Claudit/releases/download/v0.0.2/Claudit.dmg"
                     sparkle:edSignature="9BJ6GZI3Eg1YuSCdBckZ4zmKu40+n2y5LwgXVBEOwv0BFGvx+B5i7isi4YJXrpSetGisPtubcdBCjpIOz2nLDg==" length="4186926"
                     type="application/octet-stream"/>
                     <description>
@@ -186,11 +186,11 @@
                 </item>
         <item>
                     <title>Version 0.0.1</title>
-                    <link>https://github.com/Bengerthelorf/Caudit</link>
+                    <link>https://github.com/Bengerthelorf/Claudit</link>
                     <sparkle:version>1</sparkle:version>
                     <sparkle:shortVersionString>0.0.1</sparkle:shortVersionString>
                     <pubDate>Thu, 12 Mar 2026 16:18:17 +0000</pubDate>
-                    <enclosure url="https://github.com/Bengerthelorf/Caudit/releases/download/v0.0.1/Caudit.dmg"
+                    <enclosure url="https://github.com/Bengerthelorf/Claudit/releases/download/v0.0.1/Claudit.dmg"
                     sparkle:edSignature="nc+hsCHyWTELOqQAbAwMjQITaWhMXueWYmxBsWVmREeTsVhX6+iOVk9L9OvWmzlW9ZSc64QQe8Z/r5yUqWlpAw==" length="3247035"
                     type="application/octet-stream"/>
                     <description>
