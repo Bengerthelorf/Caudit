@@ -125,17 +125,21 @@ private final class SendableBox: @unchecked Sendable {
 }
 
 /// Shell-escape a string so it can be safely interpolated into shell commands.
-/// Only allows safe path characters; throws if the value contains dangerous chars.
+/// Handles tilde expansion by splitting ~/... into ~/'...' so the shell can
+/// resolve ~ while the rest stays safely quoted.
 enum ShellEscape {
-    private static let safePattern = try! NSRegularExpression(pattern: "^[a-zA-Z0-9._~/@: -]+$")
-
     static func path(_ value: String) -> String {
-        let range = NSRange(value.startIndex..., in: value)
-        if safePattern.firstMatch(in: value, range: range) != nil {
-            return "'\(value)'"
+        var prefix = ""
+        var rest = value
+        // Split off ~ prefix so shell can expand it outside quotes
+        if rest.hasPrefix("~/") {
+            prefix = "~/"
+            rest = String(rest.dropFirst(2))
+        } else if rest == "~" {
+            return "~"
         }
         // Escape single quotes: replace ' with '\''
-        let escaped = value.replacingOccurrences(of: "'", with: "'\\''")
-        return "'\(escaped)'"
+        let escaped = rest.replacingOccurrences(of: "'", with: "'\\''")
+        return "\(prefix)'\(escaped)'"
     }
 }
