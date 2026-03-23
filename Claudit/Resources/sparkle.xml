@@ -3,6 +3,40 @@
     <channel>
         <title>Claudit</title>
         <item>
+                    <title>Version 0.0.11</title>
+                    <link>https://github.com/Bengerthelorf/Claudit</link>
+                    <sparkle:version>2026032305</sparkle:version>
+                    <sparkle:shortVersionString>0.0.11</sparkle:shortVersionString>
+                    <pubDate>Mon, 23 Mar 2026 14:43:48 +0000</pubDate>
+                    <enclosure url="https://github.com/Bengerthelorf/Claudit/releases/download/v0.0.11/Claudit.dmg"
+                    sparkle:edSignature="Z2WF1+qZcU40xzJYEJkT2vnQ0eVNIqsTZ/SrVTKu8c1jNI5752ExcRITfhkxjRKyidZcoDt59zpYY5HhvZMLCw==" length="4382607"
+                    type="application/octet-stream"/>
+                    <description>
+                        <![CDATA[
+                    <h2>Version 0.0.11</h2>
+                    <ul>
+                        <li><strong>Fixed:</strong> decouple AboutSettingsView logger from SettingsView</li>
+                        <li><strong>Refactor:</strong> split large files and consolidate formatters</li>
+                        <li><strong>Fixed:</strong> address comprehensive code review findings</li>
+                        <li><strong>New:</strong> add terminal statusline for Claude Code</li>
+                        <li><strong>Fixed:</strong> address Phase 4 code review findings</li>
+                        <li><strong>New:</strong> add usage history snapshots and timeline chart</li>
+                        <li><strong>New:</strong> add pace system for quota usage prediction</li>
+                        <li><strong>Fixed:</strong> address Phase 3 code review findings</li>
+                        <li><strong>New:</strong> detachable popover as floating window</li>
+                        <li><strong>New:</strong> add global keyboard shortcuts</li>
+                        <li><strong>New:</strong> richer notification system with multi-threshold alerts</li>
+                        <li><strong>Fixed:</strong> use correct NotificationCenter for wake events, review fixes</li>
+                        <li><strong>New:</strong> add JSON/CSV data export from dashboard</li>
+                        <li><strong>New:</strong> display Claude system status in popover</li>
+                        <li><strong>New:</strong> auto-refresh on sleep/wake and network recovery</li>
+                        <li>ci: add separate test workflow</li>
+                        <li><strong>Refactor:</strong> replace remaining Caudit references with Claudit</li>
+                    </ul>
+                        ]]>
+                    </description>
+                </item>
+        <item>
                     <title>Version 0.0.10</title>
                     <link>https://github.com/Bengerthelorf/Claudit</link>
                     <sparkle:version>2026032304</sparkle:version>
