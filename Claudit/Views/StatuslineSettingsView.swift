@@ -77,7 +77,7 @@ struct StatuslineSettingsView: View {
         weekly=28
         reset=2026-03-23T18:30:00Z
         pace=On Track
-        updated=1711216200
+        updated=1774565400
         """
     }
 }
