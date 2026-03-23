@@ -57,6 +57,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    private var wizardWindow: NSWindow?
+
     private func showSetupWizard() {
         let window = makeWindow(
             title: "Claudit Setup",
@@ -65,11 +67,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             maxSize: NSSize(width: 420, height: 360),
             rootView: SetupWizardView(onComplete: { [weak self] in
                 DispatchQueue.main.async {
-                    self?.settingsWindow?.close()
+                    self?.wizardWindow?.close()
+                    self?.wizardWindow = nil
                 }
             })
         )
-        self.settingsWindow = window
+        self.wizardWindow = window
         activateApp(window: window)
     }
 
