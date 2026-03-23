@@ -3,6 +3,27 @@
     <channel>
         <title>Claudit</title>
         <item>
+                    <title>Version 0.0.13</title>
+                    <link>https://github.com/Bengerthelorf/Claudit</link>
+                    <sparkle:version>2026032307</sparkle:version>
+                    <sparkle:shortVersionString>0.0.13</sparkle:shortVersionString>
+                    <pubDate>Mon, 23 Mar 2026 15:20:43 +0000</pubDate>
+                    <enclosure url="https://github.com/Bengerthelorf/Claudit/releases/download/v0.0.13/Claudit.dmg"
+                    sparkle:edSignature="+VEKfGarY2D4tf9M7K9X1UzdAnKNYmKR2IXdv7qriFFsZ55ORBlfu1E90r9TXBqc9Gc6XnOqKsg2N5IpAKZ2BQ==" length="4372716"
+                    type="application/octet-stream"/>
+                    <description>
+                        <![CDATA[
+                    <h2>Version 0.0.13</h2>
+                    <ul>
+                        <li><strong>Fixed:</strong> correct sample timestamp in statusline settings</li>
+                        <li><strong>Refactor:</strong> simplify statusline to pure data cache API</li>
+                        <li><strong>Fixed:</strong> final audit — race condition, dead code cleanup</li>
+                        <li><strong>Fixed:</strong> design audit improvements</li>
+                    </ul>
+                        ]]>
+                    </description>
+                </item>
+        <item>
                     <title>Version 0.0.12</title>
                     <link>https://github.com/Bengerthelorf/Claudit</link>
                     <sparkle:version>2026032306</sparkle:version>
