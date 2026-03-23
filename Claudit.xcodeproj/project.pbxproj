@@ -11,6 +11,7 @@
 		3A1F7E01C8D94B2E00ABCDEF /* SystemEventServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A1F7E02C8D94B2E00ABCDEF /* SystemEventServiceTests.swift */; };
 		3A1F7E03C8D94B2E00BCDEF0 /* ClaudeStatusServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A1F7E04C8D94B2E00BCDEF0 /* ClaudeStatusServiceTests.swift */; };
 		3A1F7E05C8D94B2E00CDEF01 /* ExportServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A1F7E06C8D94B2E00CDEF01 /* ExportServiceTests.swift */; };
+		3A1F7E07C8D94B2E00DEF012 /* NotificationServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A1F7E08C8D94B2E00DEF012 /* NotificationServiceTests.swift */; };
 		C69BBA3B2F63420800F1E822 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = A1B2C3022F5DE001006DEF9B /* Sparkle */; };
 		E0FE9F6AD927B295C944B2B6 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1541B855BA3C9B4000DE52F2 /* Cocoa.framework */; };
 /* End PBXBuildFile section */
@@ -30,6 +31,7 @@
 		3A1F7E02C8D94B2E00ABCDEF /* SystemEventServiceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SystemEventServiceTests.swift; sourceTree = "<group>"; };
 		3A1F7E04C8D94B2E00BCDEF0 /* ClaudeStatusServiceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ClaudeStatusServiceTests.swift; sourceTree = "<group>"; };
 		3A1F7E06C8D94B2E00CDEF01 /* ExportServiceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ExportServiceTests.swift; sourceTree = "<group>"; };
+		3A1F7E08C8D94B2E00DEF012 /* NotificationServiceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotificationServiceTests.swift; sourceTree = "<group>"; };
 		9D569E6DDBEE339067DBB0DC /* UsageParserTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = UsageParserTests.swift; sourceTree = "<group>"; };
 		C673A4092F5DDAE7006DEF9B /* Claudit.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Claudit.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		ED7C6BEC01DB7C0DC37601BF /* ClauditTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ClauditTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -81,6 +83,7 @@
 			children = (
 				3A1F7E04C8D94B2E00BCDEF0 /* ClaudeStatusServiceTests.swift */,
 				3A1F7E06C8D94B2E00CDEF01 /* ExportServiceTests.swift */,
+				3A1F7E08C8D94B2E00DEF012 /* NotificationServiceTests.swift */,
 				3A1F7E02C8D94B2E00ABCDEF /* SystemEventServiceTests.swift */,
 				9D569E6DDBEE339067DBB0DC /* UsageParserTests.swift */,
 			);
@@ -228,6 +231,7 @@
 			files = (
 				3A1F7E03C8D94B2E00BCDEF0 /* ClaudeStatusServiceTests.swift in Sources */,
 				3A1F7E05C8D94B2E00CDEF01 /* ExportServiceTests.swift in Sources */,
+				3A1F7E07C8D94B2E00DEF012 /* NotificationServiceTests.swift in Sources */,
 				3A1F7E01C8D94B2E00ABCDEF /* SystemEventServiceTests.swift in Sources */,
 				2E40B542B8676001AD324295 /* UsageParserTests.swift in Sources */,
 			);

@@ -110,6 +110,21 @@ final class AppState {
         didSet { UserDefaults.standard.set(quotaNotificationThreshold, forKey: "quotaNotificationThreshold") }
     }
 
+    var enabledNotificationThresholds: Set<Int> {
+        didSet {
+            let array = Array(enabledNotificationThresholds)
+            UserDefaults.standard.set(array, forKey: "enabledNotificationThresholds")
+        }
+    }
+
+    var notifyOnSessionReset: Bool {
+        didSet { UserDefaults.standard.set(notifyOnSessionReset, forKey: "notifyOnSessionReset") }
+    }
+
+    var notifyOnWeeklyThreshold: Bool {
+        didSet { UserDefaults.standard.set(notifyOnWeeklyThreshold, forKey: "notifyOnWeeklyThreshold") }
+    }
+
     // MARK: - Services
     private let usageParser = UsageParser()
     private let quotaService = QuotaService()
@@ -128,6 +143,7 @@ final class AppState {
     private var systemEventService: SystemEventService?
     private var lastUsageRefreshTime: Date?
     private var lastNotifiedQuotaLevel: Double = 0
+    private var lastNotifiedWeeklyLevel: Double = 0
     private var hasFinishedInit = false
 
     init() {
@@ -150,6 +166,15 @@ final class AppState {
 
         let savedThreshold = defaults.double(forKey: "quotaNotificationThreshold")
         self.quotaNotificationThreshold = savedThreshold > 0 ? savedThreshold : 80
+
+        if let savedThresholds = defaults.array(forKey: "enabledNotificationThresholds") as? [Int] {
+            self.enabledNotificationThresholds = Set(savedThresholds)
+        } else {
+            self.enabledNotificationThresholds = [75, 90, 95]
+        }
+
+        self.notifyOnSessionReset = defaults.bool(forKey: "notifyOnSessionReset")
+        self.notifyOnWeeklyThreshold = defaults.bool(forKey: "notifyOnWeeklyThreshold")
 
         if let data = UserDefaults.standard.data(forKey: "remoteDevices"),
            let devices = try? JSONDecoder().decode([RemoteDevice].self, from: data) {
@@ -461,14 +486,40 @@ final class AppState {
     }
 
     private func checkQuotaNotification(_ quota: QuotaInfo) {
-        guard notifyOnQuotaThreshold else { return }
-        let threshold = quotaNotificationThreshold
         let current = quota.fiveHourUtilization
 
-        if current >= threshold && lastNotifiedQuotaLevel < threshold {
-            notificationService.sendQuotaAlert(percentage: current, threshold: threshold)
+        // Session reset detection
+        if notifyOnSessionReset && NotificationService.isSessionReset(current: current, previousLevel: lastNotifiedQuotaLevel) {
+            notificationService.sendSessionResetNotification()
         }
+
+        // Multi-threshold 5h alerts
+        if notifyOnQuotaThreshold {
+            let thresholds = NotificationService.thresholdsToFire(
+                current: current,
+                previousLevel: lastNotifiedQuotaLevel,
+                enabledThresholds: enabledNotificationThresholds
+            )
+            for threshold in thresholds {
+                notificationService.sendQuotaAlert(percentage: current, threshold: Double(threshold))
+            }
+        }
+
         lastNotifiedQuotaLevel = current
+
+        // Weekly threshold alerts
+        if notifyOnWeeklyThreshold {
+            let weeklyUtilization = quota.sevenDayUtilization
+            let weeklyThresholds = NotificationService.thresholdsToFire(
+                current: weeklyUtilization,
+                previousLevel: lastNotifiedWeeklyLevel,
+                enabledThresholds: enabledNotificationThresholds
+            )
+            for threshold in weeklyThresholds {
+                notificationService.sendWeeklyQuotaAlert(percentage: weeklyUtilization, threshold: Double(threshold))
+            }
+            lastNotifiedWeeklyLevel = weeklyUtilization
+        }
     }
 
     var menuBarText: String {
