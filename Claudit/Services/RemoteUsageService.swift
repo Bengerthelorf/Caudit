@@ -16,7 +16,7 @@ final class RemoteUsageService: @unchecked Sendable {
         var parts = ["""
         find \(esc(device.claudePath))/projects -name '*.jsonl' 2>/dev/null | while IFS= read -r f; do \
         rel="${f#*/projects/}"; proj="${rel%%/*}"; \
-        echo "===CAUDIT_PROJECT:${proj}==="; grep '"input_tokens"' "$f" 2>/dev/null; done
+        echo "===CLAUDIT_PROJECT:${proj}==="; grep '"input_tokens"' "$f" 2>/dev/null; done
         """]
 
         for ocPath in device.openClawPaths {
@@ -24,7 +24,7 @@ final class RemoteUsageService: @unchecked Sendable {
             parts.append("""
             find \(esc(ocPath))/agents -name '*.jsonl' 2>/dev/null | while IFS= read -r f; do \
             sess=$(basename "$f" .jsonl); \
-            echo "===CAUDIT_OC:\(dirName)/${sess}==="; grep '"usage":{' "$f" 2>/dev/null; done
+            echo "===CLAUDIT_OC:\(dirName)/${sess}==="; grep '"usage":{' "$f" 2>/dev/null; done
             """)
         }
 

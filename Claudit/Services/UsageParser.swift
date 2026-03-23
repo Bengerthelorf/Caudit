@@ -317,16 +317,16 @@ final class UsageParser: @unchecked Sendable {
         var currentOCSessionId = ""
 
         for line in lines {
-            if line.hasPrefix("===CAUDIT_PROJECT:") && line.hasSuffix("===") {
-                let raw = String(line.dropFirst("===CAUDIT_PROJECT:".count).dropLast(3))
+            if line.hasPrefix("===CLAUDIT_PROJECT:") && line.hasSuffix("===") {
+                let raw = String(line.dropFirst("===CLAUDIT_PROJECT:".count).dropLast(3))
                 currentProject = readableProjectName(raw)
                 currentProjectDir = raw
                 currentOCSessionId = ""
                 continue
             }
 
-            if line.hasPrefix("===CAUDIT_OC:") && line.hasSuffix("===") {
-                let payload = String(line.dropFirst("===CAUDIT_OC:".count).dropLast(3))
+            if line.hasPrefix("===CLAUDIT_OC:") && line.hasSuffix("===") {
+                let payload = String(line.dropFirst("===CLAUDIT_OC:".count).dropLast(3))
                 if let slashIdx = payload.firstIndex(of: "/") {
                     let dirName = String(payload[payload.startIndex..<slashIdx])
                     currentOCSessionId = String(payload[payload.index(after: slashIdx)...])
