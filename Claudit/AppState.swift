@@ -110,7 +110,10 @@ final class AppState {
     }
 
     var quotaSource: QuotaSource {
-        didSet { UserDefaults.standard.set(quotaSource.rawValue, forKey: "quotaSource") }
+        didSet {
+            UserDefaults.standard.set(quotaSource.rawValue, forKey: "quotaSource")
+            if hasFinishedInit { refreshQuota() }
+        }
     }
 
     var notifyOnQuotaThreshold: Bool {

@@ -4,10 +4,10 @@ import WebKit
 /// Embedded browser for signing into Claude.ai to extract session cookie.
 struct BrowserSignInView: NSViewRepresentable {
     let onSessionKey: (String, Date?) -> Void
-    let onCancel: () -> Void
 
     func makeNSView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
+        config.websiteDataStore = .nonPersistent()
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = context.coordinator
         webView.uiDelegate = context.coordinator
@@ -18,17 +18,15 @@ struct BrowserSignInView: NSViewRepresentable {
     func updateNSView(_ nsView: WKWebView, context: Context) {}
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(onSessionKey: onSessionKey, onCancel: onCancel)
+        Coordinator(onSessionKey: onSessionKey)
     }
 
     class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
         let onSessionKey: (String, Date?) -> Void
-        let onCancel: () -> Void
         private let targetDomain = "claude.ai"
 
-        init(onSessionKey: @escaping (String, Date?) -> Void, onCancel: @escaping () -> Void) {
+        init(onSessionKey: @escaping (String, Date?) -> Void) {
             self.onSessionKey = onSessionKey
-            self.onCancel = onCancel
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {

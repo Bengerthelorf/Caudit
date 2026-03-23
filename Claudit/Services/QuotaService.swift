@@ -76,13 +76,20 @@ final class RateLimitHeadersQuotaProvider: QuotaProvider {
         ]
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
+        let start = Date()
         let (_, response) = try await URLSession.shared.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw QuotaError.invalidResponse
         }
 
-        // Even 4xx/5xx responses include rate limit headers
+        await NetworkLogService.shared.record(
+            method: "POST", url: url.absoluteString,
+            statusCode: httpResponse.statusCode,
+            responseHeaders: httpResponse.allHeaderFields.reduce(into: [:]) { $0["\($1.key)"] = "\($1.value)" },
+            duration: Date().timeIntervalSince(start)
+        )
+
         return Self.parseHeaders(httpResponse)
     }
 
@@ -160,11 +167,19 @@ final class OAuthAPIQuotaProvider: QuotaProvider {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
 
+        let start = Date()
         let (data, response) = try await URLSession.shared.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw QuotaError.invalidResponse
         }
+
+        await NetworkLogService.shared.record(
+            method: "GET", url: url.absoluteString,
+            statusCode: httpResponse.statusCode,
+            responseBody: String(data: data.prefix(2000), encoding: .utf8),
+            duration: Date().timeIntervalSince(start)
+        )
 
         guard httpResponse.statusCode == 200 else {
             if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
@@ -245,7 +260,7 @@ final class SessionCookieQuotaProvider: QuotaProvider {
         guard let sessionKey = SessionCredentialStore.shared.sessionKey else {
             throw QuotaError.noCredentials
         }
-        guard let orgId = SessionCredentialStore.shared.organizationId else {
+        guard let orgId = SessionCredentialStore.shared.organizationId, !orgId.isEmpty else {
             throw QuotaError.noCredentials
         }
 
@@ -350,9 +365,12 @@ enum CredentialReader {
 
 // MARK: - Session Credential Store
 
-/// Stores Claude.ai session cookie and organization ID from browser sign-in.
+/// Stores Claude.ai session cookie (in Keychain) and organization ID from browser sign-in.
 final class SessionCredentialStore: @unchecked Sendable {
     static let shared = SessionCredentialStore()
+
+    private static let keychainService = "cc.ffitch.Claudit.session"
+    private static let keychainAccount = "claudeSessionKey"
 
     private let lock = NSLock()
     private var _sessionKey: String?
@@ -360,7 +378,7 @@ final class SessionCredentialStore: @unchecked Sendable {
     private var _expiryDate: Date?
 
     private init() {
-        _sessionKey = UserDefaults.standard.string(forKey: "claudeSessionKey")
+        _sessionKey = Self.readKeychain()
         _organizationId = UserDefaults.standard.string(forKey: "claudeOrganizationId")
         if let ts = UserDefaults.standard.object(forKey: "claudeSessionExpiry") as? TimeInterval, ts > 0 {
             _expiryDate = Date(timeIntervalSince1970: ts)
@@ -402,10 +420,12 @@ final class SessionCredentialStore: @unchecked Sendable {
         _expiryDate = expiryDate
         lock.unlock()
 
-        UserDefaults.standard.set(sessionKey, forKey: "claudeSessionKey")
+        Self.writeKeychain(sessionKey)
         UserDefaults.standard.set(organizationId, forKey: "claudeOrganizationId")
         if let expiry = expiryDate {
             UserDefaults.standard.set(expiry.timeIntervalSince1970, forKey: "claudeSessionExpiry")
+        } else {
+            UserDefaults.standard.removeObject(forKey: "claudeSessionExpiry")
         }
     }
 
@@ -416,9 +436,46 @@ final class SessionCredentialStore: @unchecked Sendable {
         _expiryDate = nil
         lock.unlock()
 
-        UserDefaults.standard.removeObject(forKey: "claudeSessionKey")
+        Self.deleteKeychain()
         UserDefaults.standard.removeObject(forKey: "claudeOrganizationId")
         UserDefaults.standard.removeObject(forKey: "claudeSessionExpiry")
+    }
+
+    // MARK: - Keychain
+
+    private static func writeKeychain(_ value: String) {
+        deleteKeychain()
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: keychainService,
+            kSecAttrAccount as String: keychainAccount,
+            kSecValueData as String: value.data(using: .utf8)!
+        ]
+        SecItemAdd(query as CFDictionary, nil)
+    }
+
+    private static func readKeychain() -> String? {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: keychainService,
+            kSecAttrAccount as String: keychainAccount,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+        var result: AnyObject?
+        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
+              let data = result as? Data,
+              let str = String(data: data, encoding: .utf8) else { return nil }
+        return str
+    }
+
+    private static func deleteKeychain() {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: keychainService,
+            kSecAttrAccount as String: keychainAccount
+        ]
+        SecItemDelete(query as CFDictionary)
     }
 
     /// Fetch organizations from Claude.ai using the stored session key.

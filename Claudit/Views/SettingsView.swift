@@ -220,8 +220,7 @@ struct BrowserSignInSheet: View {
                             self.status = "Session key obtained, fetching organizations..."
                             self.isLoading = true
                             fetchOrganizations(key: key)
-                        },
-                        onCancel: { dismiss() }
+                        }
                     )
                 }
             }
