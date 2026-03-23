@@ -3,6 +3,25 @@
     <channel>
         <title>Caudit</title>
         <item>
+                    <title>Version 0.0.8</title>
+                    <link>https://github.com/Bengerthelorf/Caudit</link>
+                    <sparkle:version>2026032302</sparkle:version>
+                    <sparkle:shortVersionString>0.0.8</sparkle:shortVersionString>
+                    <pubDate>Mon, 23 Mar 2026 10:48:36 +0000</pubDate>
+                    <enclosure url="https://github.com/Bengerthelorf/Caudit/releases/download/v0.0.8/Caudit.dmg"
+                    sparkle:edSignature="7PQY74kbToJCjqvS7VYtJasvmsnh4FeP6M6t96T0xdXwjzVMRl0VyzrfFEktBA5dgOlVkWbM0GhHgNBYQO9fAw==" length="4184087"
+                    type="application/octet-stream"/>
+                    <description>
+                        <![CDATA[
+                    <h2>Version 0.0.8</h2>
+                    <ul>
+                        <li>test: add SSHPasswordStore and ShellEscape edge case tests</li>
+                        <li><strong>New:</strong> add SSH password authentication for remote devices</li>
+                    </ul>
+                        ]]>
+                    </description>
+                </item>
+        <item>
                     <title>Version 0.0.7</title>
                     <link>https://github.com/Bengerthelorf/Caudit</link>
                     <sparkle:version>2026032301</sparkle:version>
