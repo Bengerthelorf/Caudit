@@ -45,6 +45,11 @@ final class AppState {
     var isLoadingQuota = false
     var quotaError: String?
 
+    // MARK: - Pace
+    var sessionPace: PaceStatus?
+    var weeklyPace: PaceStatus?
+    var sessionElapsedFraction: Double = 0
+
     // MARK: - Claude System Status
     var claudeStatus: ClaudeStatus?
 
@@ -469,6 +474,7 @@ final class AppState {
                     self.quotaInfo = info
                     self.isLoadingQuota = false
                     self.hasLoadedQuota = true
+                    self.updatePace(info)
                     self.checkQuotaNotification(info)
                     NotificationCenter.default.post(name: .clauditDataUpdated, object: nil)
                 }
@@ -483,6 +489,15 @@ final class AppState {
                 }
             }
         }
+    }
+
+    private func updatePace(_ quota: QuotaInfo) {
+        let fiveHourElapsed = PaceService.fiveHourElapsedFraction(resetAt: quota.fiveHourResetAt)
+        sessionElapsedFraction = fiveHourElapsed
+        sessionPace = PaceService.calculatePace(usedPercentage: quota.fiveHourUtilization, elapsedFraction: fiveHourElapsed)
+
+        let sevenDayElapsed = PaceService.sevenDayElapsedFraction(resetAt: quota.sevenDayResetAt)
+        weeklyPace = PaceService.calculatePace(usedPercentage: quota.sevenDayUtilization, elapsedFraction: sevenDayElapsed)
     }
 
     private func checkQuotaNotification(_ quota: QuotaInfo) {

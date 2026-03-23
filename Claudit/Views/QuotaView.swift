@@ -19,12 +19,22 @@ struct QuotaView: View {
                                     .foregroundStyle(.secondary)
                             }
                         }
-                        Text("\(Int(quota.fiveHourUtilization))%")
-                            .font(.system(size: 28, weight: .semibold, design: .rounded))
-                            .monospacedDigit()
-                            .foregroundStyle(quotaColor(quota.fiveHourUtilization))
-                            .accessibilityLabel("5-hour quota: \(Int(quota.fiveHourUtilization)) percent")
-                        QuotaBar(percentage: quota.fiveHourUtilization)
+                        HStack(alignment: .firstTextBaseline) {
+                            Text("\(Int(quota.fiveHourUtilization))%")
+                                .font(.system(size: 28, weight: .semibold, design: .rounded))
+                                .monospacedDigit()
+                                .foregroundStyle(quotaColor(quota.fiveHourUtilization))
+                                .accessibilityLabel("5-hour quota: \(Int(quota.fiveHourUtilization)) percent")
+                            if let pace = appState.sessionPace {
+                                Text(pace.label)
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundStyle(pace.color)
+                            }
+                        }
+                        QuotaBar(
+                            percentage: quota.fiveHourUtilization,
+                            elapsedFraction: appState.sessionElapsedFraction
+                        )
                     }
 
                     Divider()
@@ -123,6 +133,7 @@ struct QuotaRow: View {
 struct QuotaBar: View {
     let percentage: Double
     var height: CGFloat = 6
+    var elapsedFraction: Double? = nil
 
     private var color: Color {
         if percentage < 50 { return Palette.quotaGood }
@@ -138,6 +149,15 @@ struct QuotaBar: View {
                 RoundedRectangle(cornerRadius: height / 2)
                     .fill(color.gradient)
                     .frame(width: geo.size.width * min(max(percentage / 100, 0), 1.0))
+
+                // Elapsed time marker
+                if let elapsed = elapsedFraction, elapsed > 0.03 {
+                    let xPos = geo.size.width * min(elapsed, 1.0)
+                    Rectangle()
+                        .fill(.primary.opacity(0.5))
+                        .frame(width: 1.5, height: height + 4)
+                        .offset(x: xPos - 0.75)
+                }
             }
         }
         .frame(height: height)
