@@ -137,6 +137,7 @@ final class AppState {
     private let remoteUsageService = RemoteUsageService()
     private let claudeStatusService = ClaudeStatusService()
     let usageHistoryService = UsageHistoryService()
+    let statuslineService = StatuslineService()
 
     // MARK: - Private State
     private var allRecords: [UsageRecord] = []
@@ -480,6 +481,12 @@ final class AppState {
                     self.usageHistoryService.recordIfNeeded(
                         sessionPercentage: info.fiveHourUtilization,
                         weeklyPercentage: info.sevenDayUtilization
+                    )
+                    self.statuslineService.updateCache(
+                        sessionPercent: info.fiveHourUtilization,
+                        weeklyPercent: info.sevenDayUtilization,
+                        sessionResetTime: info.fiveHourResetAt,
+                        pace: self.sessionPace?.label
                     )
                     NotificationCenter.default.post(name: .clauditDataUpdated, object: nil)
                 }
