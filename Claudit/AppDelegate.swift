@@ -47,6 +47,24 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             self, selector: #selector(handleDataUpdated),
             name: .clauditDataUpdated, object: nil
         )
+
+        setupShortcuts()
+    }
+
+    private func setupShortcuts() {
+        ShortcutService.shared.actionHandler = { [weak self] action in
+            guard let self else { return }
+            switch action {
+            case .togglePopover:
+                self.togglePopover(nil)
+            case .refresh:
+                self.appState.refresh()
+            case .openDashboard:
+                self.showDashboard()
+            case .openSettings:
+                self.showSettings()
+            }
+        }
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
