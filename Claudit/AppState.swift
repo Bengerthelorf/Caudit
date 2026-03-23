@@ -136,6 +136,7 @@ final class AppState {
     private let notificationService = NotificationService()
     private let remoteUsageService = RemoteUsageService()
     private let claudeStatusService = ClaudeStatusService()
+    let usageHistoryService = UsageHistoryService()
 
     // MARK: - Private State
     private var allRecords: [UsageRecord] = []
@@ -476,6 +477,10 @@ final class AppState {
                     self.hasLoadedQuota = true
                     self.updatePace(info)
                     self.checkQuotaNotification(info)
+                    self.usageHistoryService.recordIfNeeded(
+                        sessionPercentage: info.fiveHourUtilization,
+                        weeklyPercentage: info.sevenDayUtilization
+                    )
                     NotificationCenter.default.post(name: .clauditDataUpdated, object: nil)
                 }
             } catch {

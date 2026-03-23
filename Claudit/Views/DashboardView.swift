@@ -301,6 +301,11 @@ private struct OverviewPage: View {
                         }
                     }
 
+                    if appState.quotaInfo != nil {
+                        SectionHeader(title: "Usage History", icon: "chart.line.uptrend.xyaxis")
+                        UsageHistoryChartView()
+                    }
+
                     SectionHeader(title: "7-Day Trend", icon: "chart.bar")
 
                     TrendChart(
