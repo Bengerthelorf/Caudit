@@ -26,13 +26,13 @@ final class SystemEventService: @unchecked Sendable {
 
     deinit {
         networkMonitor.cancel()
-        NotificationCenter.default.removeObserver(self)
+        NSWorkspace.shared.notificationCenter.removeObserver(self)
     }
 
     // MARK: - Sleep/Wake
 
     private func setupWakeObserver() {
-        NotificationCenter.default.addObserver(
+        NSWorkspace.shared.notificationCenter.addObserver(
             self,
             selector: #selector(handleWake),
             name: NSWorkspace.didWakeNotification,

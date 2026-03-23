@@ -63,22 +63,17 @@ struct PopoverView: View {
 
             HStack(spacing: 12) {
                 if let status = appState.claudeStatus {
-                    HStack(spacing: 4) {
-                        Circle()
-                            .fill(status.indicator.color)
-                            .frame(width: 6, height: 6)
-                        Text(status.description)
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                            .lineLimit(1)
-                    }
-                    .onTapGesture {
-                        if let url = URL(string: "https://status.anthropic.com") {
-                            NSWorkspace.shared.open(url)
+                    Circle()
+                        .fill(status.indicator.color)
+                        .frame(width: 6, height: 6)
+                        .help(status.description)
+                        .onTapGesture {
+                            if let url = URL(string: "https://status.anthropic.com") {
+                                NSWorkspace.shared.open(url)
+                            }
                         }
-                    }
-                    .help("Claude System Status — click to open")
-                } else if let rate = appState.burnRate {
+                }
+                if let rate = appState.burnRate {
                     Text("~\(ClauditFormatter.costDetail(rate))/day")
                         .font(.caption2)
                         .foregroundStyle(.tertiary)

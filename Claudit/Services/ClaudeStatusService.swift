@@ -4,7 +4,7 @@ import os.log
 private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Claudit", category: "ClaudeStatus")
 
 /// Fetches Claude system status from the Atlassian Statuspage API.
-final class ClaudeStatusService: @unchecked Sendable {
+final class ClaudeStatusService: Sendable {
     private let statusURL = URL(string: "https://status.anthropic.com/api/v2/status.json")!
     private let session: URLSession
 
@@ -16,6 +16,8 @@ final class ClaudeStatusService: @unchecked Sendable {
         let (data, _) = try await session.data(from: statusURL)
         return try Self.parse(data)
     }
+
+    private static let iso8601Formatter = ISO8601DateFormatter()
 
     static func parse(_ data: Data) throws -> ClaudeStatus {
         let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
@@ -30,7 +32,7 @@ final class ClaudeStatusService: @unchecked Sendable {
         var updatedAt: Date?
         if let pageDict = json?["page"] as? [String: Any],
            let updatedAtString = pageDict["updated_at"] as? String {
-            updatedAt = ISO8601DateFormatter().date(from: updatedAtString)
+            updatedAt = iso8601Formatter.date(from: updatedAtString)
         }
 
         return ClaudeStatus(indicator: indicator, description: description, updatedAt: updatedAt)
