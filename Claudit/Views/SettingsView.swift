@@ -7,6 +7,7 @@ enum SettingsTab: String, CaseIterable, Identifiable {
     case shortcuts = "Shortcuts"
     case statusline = "Statusline"
     case devices = "Devices"
+    case debug = "Debug"
     case about = "About"
 
     var id: String { rawValue }
@@ -18,6 +19,7 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         case .shortcuts: "keyboard"
         case .statusline: "terminal"
         case .devices: "desktopcomputer"
+        case .debug: "ant.circle"
         case .about: "info.circle"
         }
     }
@@ -54,6 +56,9 @@ struct SettingsView: View {
             case .devices:
                 DeviceSettingsView()
                     .navigationTitle("Devices")
+            case .debug:
+                DebugLogView()
+                    .navigationTitle("Debug")
             case .about:
                 AboutSettingsView(updater: updater)
                     .navigationTitle("About")

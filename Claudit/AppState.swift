@@ -134,7 +134,7 @@ final class AppState {
 
     // MARK: - Services
     private let usageParser = UsageParser()
-    private let quotaService = QuotaService()
+    let quotaService = QuotaService()
     private let notificationService = NotificationService()
     private let remoteUsageService = RemoteUsageService()
     private let claudeStatusService = ClaudeStatusService()

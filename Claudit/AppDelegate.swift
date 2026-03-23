@@ -51,6 +51,26 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         )
 
         setupShortcuts()
+
+        if !UserDefaults.standard.bool(forKey: "setupWizardCompleted") {
+            showSetupWizard()
+        }
+    }
+
+    private func showSetupWizard() {
+        let window = makeWindow(
+            title: "Claudit Setup",
+            size: NSSize(width: 420, height: 360),
+            minSize: NSSize(width: 420, height: 360),
+            maxSize: NSSize(width: 420, height: 360),
+            rootView: SetupWizardView(onComplete: { [weak self] in
+                DispatchQueue.main.async {
+                    self?.settingsWindow?.close()
+                }
+            })
+        )
+        self.settingsWindow = window
+        activateApp(window: window)
     }
 
     private func setupShortcuts() {
