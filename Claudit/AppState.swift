@@ -109,6 +109,10 @@ final class AppState {
         }
     }
 
+    var quotaSource: QuotaSource {
+        didSet { UserDefaults.standard.set(quotaSource.rawValue, forKey: "quotaSource") }
+    }
+
     var notifyOnQuotaThreshold: Bool {
         didSet { UserDefaults.standard.set(notifyOnQuotaThreshold, forKey: "notifyOnQuotaThreshold") }
     }
@@ -167,6 +171,13 @@ final class AppState {
 
         let savedQuotaInterval = defaults.double(forKey: "quotaRefreshInterval")
         self.quotaRefreshInterval = savedQuotaInterval > 0 ? savedQuotaInterval : 120
+
+        if let savedSource = defaults.string(forKey: "quotaSource"),
+           let source = QuotaSource(rawValue: savedSource) {
+            self.quotaSource = source
+        } else {
+            self.quotaSource = .rateLimitHeaders
+        }
 
         self.notifyOnQuotaThreshold = defaults.bool(forKey: "notifyOnQuotaThreshold")
 
@@ -482,9 +493,10 @@ final class AppState {
         quotaError = nil
 
         let service = self.quotaService
+        let source = self.quotaSource
         Task.detached {
             do {
-                let info = try await service.fetchQuota()
+                let info = try await service.fetchQuota(source: source)
                 await MainActor.run { [weak self] in
                     guard let self else { return }
                     self.quotaInfo = info
