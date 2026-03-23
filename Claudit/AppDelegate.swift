@@ -81,6 +81,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if let obs = dashboardCloseObserver {
             NotificationCenter.default.removeObserver(obs)
         }
+        if let obs = detachedPanelCloseObserver {
+            NotificationCenter.default.removeObserver(obs)
+        }
         for obs in sessionCloseObservers.values {
             NotificationCenter.default.removeObserver(obs)
         }

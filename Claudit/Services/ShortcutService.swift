@@ -124,7 +124,10 @@ final class ShortcutService {
 
     private func unregisterAction(_ action: ShortcutAction) {
         for (id, entry) in registeredHotKeys where entry.1 == action {
-            UnregisterEventHotKey(entry.0)
+            let status = UnregisterEventHotKey(entry.0)
+            if status != noErr {
+                logger.warning("Failed to unregister hotkey for \(action.rawValue): \(status)")
+            }
             registeredHotKeys.removeValue(forKey: id)
         }
     }
@@ -144,7 +147,7 @@ final class ShortcutService {
             GetApplicationEventTarget(),
             { _, event, _ -> OSStatus in
                 var hotKeyID = EventHotKeyID()
-                GetEventParameter(
+                let status = GetEventParameter(
                     event,
                     UInt32(kEventParamDirectObject),
                     UInt32(typeEventHotKeyID),
@@ -153,6 +156,7 @@ final class ShortcutService {
                     nil,
                     &hotKeyID
                 )
+                guard status == noErr else { return status }
 
                 Task { @MainActor in
                     ShortcutService.shared.handleHotKey(id: hotKeyID.id)

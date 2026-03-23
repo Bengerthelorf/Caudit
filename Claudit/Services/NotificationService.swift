@@ -4,7 +4,7 @@ import os.log
 
 private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Claudit", category: "Notification")
 
-final class NotificationService: NSObject, Sendable, UNUserNotificationCenterDelegate {
+final class NotificationService: NSObject, @unchecked Sendable, UNUserNotificationCenterDelegate {
     override init() {
         super.init()
         let center = UNUserNotificationCenter.current()
