@@ -26,10 +26,9 @@ struct ExportService {
     }
 
     static func toJSON(_ records: [UsageRecord]) -> String {
-        let formatter = ISO8601DateFormatter()
         let entries: [[String: Any]] = records.map { r in
             [
-                "timestamp": formatter.string(from: r.timestamp),
+                "timestamp": ClauditFormatter.formatISO8601(r.timestamp),
                 "project": r.project,
                 "model": r.model,
                 "source": r.source,
@@ -51,10 +50,9 @@ struct ExportService {
 
     static func toCSV(_ records: [UsageRecord]) -> String {
         let header = "Timestamp,Project,Model,Source,Session ID,Input Tokens,Output Tokens,Cache Read,Cache Write,Cost"
-        let formatter = ISO8601DateFormatter()
         let rows = records.map { r in
             [
-                formatter.string(from: r.timestamp),
+                ClauditFormatter.formatISO8601(r.timestamp),
                 csvEscape(r.project),
                 csvEscape(r.model),
                 csvEscape(r.source),

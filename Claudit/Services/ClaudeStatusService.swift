@@ -17,8 +17,6 @@ final class ClaudeStatusService: Sendable {
         return try Self.parse(data)
     }
 
-    private static let iso8601Formatter = ISO8601DateFormatter()
-
     static func parse(_ data: Data) throws -> ClaudeStatus {
         let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
         guard let statusDict = json?["status"] as? [String: Any] else {
@@ -32,7 +30,7 @@ final class ClaudeStatusService: Sendable {
         var updatedAt: Date?
         if let pageDict = json?["page"] as? [String: Any],
            let updatedAtString = pageDict["updated_at"] as? String {
-            updatedAt = iso8601Formatter.date(from: updatedAtString)
+            updatedAt = ClauditFormatter.parseISO8601(updatedAtString)
         }
 
         return ClaudeStatus(indicator: indicator, description: description, updatedAt: updatedAt)

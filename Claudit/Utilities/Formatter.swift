@@ -86,6 +86,12 @@ enum ClauditFormatter {
             ?? microsecondFormatter.date(from: string)
     }
 
+    static func formatISO8601(_ date: Date) -> String {
+        dateParserLock.lock()
+        defer { dateParserLock.unlock() }
+        return isoBasic.string(from: date)
+    }
+
     static func toolIcon(_ name: String) -> String {
         switch name {
         case "Read": return "doc.text"
