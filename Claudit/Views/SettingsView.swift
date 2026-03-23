@@ -1,8 +1,5 @@
 import SwiftUI
 import Sparkle
-import os.log
-
-let settingsLogger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Claudit", category: "Settings")
 
 enum SettingsTab: String, CaseIterable, Identifiable {
     case general = "General"

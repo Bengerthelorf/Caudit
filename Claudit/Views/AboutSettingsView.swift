@@ -2,6 +2,8 @@ import SwiftUI
 import Sparkle
 import os.log
 
+private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Claudit", category: "About")
+
 struct AboutSettingsView: View {
     private let updater: SPUUpdater
     @State private var avatarImage: NSImage?
@@ -134,7 +136,7 @@ struct AboutSettingsView: View {
         } catch is CancellationError {
             return
         } catch {
-            settingsLogger.debug("Failed to fetch avatar: \(error.localizedDescription)")
+            logger.debug("Failed to fetch avatar: \(error.localizedDescription)")
         }
     }
 }
