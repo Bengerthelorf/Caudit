@@ -3,10 +3,26 @@ import SwiftUI
 struct QuotaView: View {
     @Environment(AppState.self) private var appState
 
+    /// Compute live pace from current time, independent of quota refresh cycle.
+    private func livePace(for quota: QuotaInfo) -> PaceStatus? {
+        let elapsed = PaceService.fiveHourElapsedFraction(resetAt: quota.fiveHourResetAt)
+        return PaceService.calculatePace(usedPercentage: quota.fiveHourUtilization, elapsedFraction: elapsed)
+    }
+
+    private func liveElapsed(for quota: QuotaInfo) -> Double {
+        PaceService.fiveHourElapsedFraction(resetAt: quota.fiveHourResetAt)
+    }
+
+    private func liveWeeklyPace(for quota: QuotaInfo) -> PaceStatus? {
+        let elapsed = PaceService.sevenDayElapsedFraction(resetAt: quota.sevenDayResetAt)
+        return PaceService.calculatePace(usedPercentage: quota.sevenDayUtilization, elapsedFraction: elapsed)
+    }
+
     var body: some View {
         TimelineView(.periodic(from: .now, by: 60)) { context in
             VStack(alignment: .leading, spacing: 14) {
                 if let quota = appState.quotaInfo {
+                    let _ = context.date // force re-evaluation on tick
                     VStack(alignment: .leading, spacing: 6) {
                         HStack(alignment: .firstTextBaseline) {
                             Text("5h Window")
@@ -25,15 +41,19 @@ struct QuotaView: View {
                                 .monospacedDigit()
                                 .foregroundStyle(quotaColor(quota.fiveHourUtilization))
                                 .accessibilityLabel("5-hour quota: \(Int(quota.fiveHourUtilization)) percent")
-                            if let pace = appState.sessionPace {
+                            if let pace = livePace(for: quota) {
                                 Text(pace.label)
                                     .font(.system(size: 11, weight: .medium))
                                     .foregroundStyle(pace.color)
+                            } else if liveElapsed(for: quota) > 0 && liveElapsed(for: quota) < PaceService.minimumElapsedFraction {
+                                Text("Calculating…")
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(.tertiary)
                             }
                         }
                         QuotaBar(
                             percentage: quota.fiveHourUtilization,
-                            elapsedFraction: appState.sessionElapsedFraction
+                            elapsedFraction: liveElapsed(for: quota)
                         )
                     }
 
@@ -43,7 +63,7 @@ struct QuotaView: View {
                         title: "7-Day",
                         percentage: quota.sevenDayUtilization,
                         remaining: quota.sevenDayTimeRemaining,
-                        pace: appState.weeklyPace
+                        pace: liveWeeklyPace(for: quota)
                     )
 
                     if let opus = quota.sevenDayOpusUtilization {

@@ -31,7 +31,9 @@ final class AppState {
 
     var burnRate: Double? {
         guard hasLoadedUsage, todayUsage.totalCost > 0 else { return nil }
-        let hoursElapsed = max(Date().timeIntervalSince(Calendar.current.startOfDay(for: Date())) / 3600, 0.5)
+        let hoursElapsed = Date().timeIntervalSince(Calendar.current.startOfDay(for: Date())) / 3600
+        // Only show burn rate after 2 hours to avoid misleading extrapolation
+        guard hoursElapsed >= 2.0 else { return nil }
         return todayUsage.totalCost / hoursElapsed * 24
     }
 
