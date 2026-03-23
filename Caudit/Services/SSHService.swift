@@ -17,13 +17,28 @@ final class SSHService: @unchecked Sendable {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/ssh")
 
+        let password = device.usePassword ? SSHPasswordStore.load(for: device.id) : nil
+        var askpassScript: String?
+
         var args = [
-            "-o", "BatchMode=yes",
             "-o", "ConnectTimeout=\(connectTimeout)",
             "-o", "StrictHostKeyChecking=accept-new",
             "-o", "ServerAliveInterval=10",
             "-o", "ServerAliveCountMax=3",
         ]
+
+        if let password, !password.isEmpty {
+            // Create a temporary askpass script that echoes the password
+            let scriptPath = NSTemporaryDirectory() + "caudit-askpass-\(UUID().uuidString)"
+            let escaped = password.replacingOccurrences(of: "'", with: "'\\''")
+            let script = "#!/bin/sh\necho '\(escaped)'"
+            try script.write(toFile: scriptPath, atomically: true, encoding: .utf8)
+            try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: scriptPath)
+            askpassScript = scriptPath
+            args += ["-o", "NumberOfPasswordPrompts=1"]
+        } else {
+            args += ["-o", "BatchMode=yes"]
+        }
 
         if !device.identityFile.isEmpty {
             let expanded = NSString(string: device.identityFile).expandingTildeInPath
@@ -34,12 +49,26 @@ final class SSHService: @unchecked Sendable {
         process.arguments = args
 
         var env = ProcessInfo.processInfo.environment
-        if env["SSH_AUTH_SOCK"] == nil {
-            if let sock = Self.launchdSSHAuthSocket() {
-                env["SSH_AUTH_SOCK"] = sock
+        if let scriptPath = askpassScript {
+            env["SSH_ASKPASS"] = scriptPath
+            env["SSH_ASKPASS_REQUIRE"] = "force"
+            env["DISPLAY"] = ":0"
+            // Prevent SSH agent from bypassing password
+            env.removeValue(forKey: "SSH_AUTH_SOCK")
+        } else {
+            if env["SSH_AUTH_SOCK"] == nil {
+                if let sock = Self.launchdSSHAuthSocket() {
+                    env["SSH_AUTH_SOCK"] = sock
+                }
             }
         }
         process.environment = env
+
+        defer {
+            if let scriptPath = askpassScript {
+                try? FileManager.default.removeItem(atPath: scriptPath)
+            }
+        }
 
         let stdout = Pipe()
         let stderr = Pipe()

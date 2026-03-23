@@ -251,6 +251,7 @@ private struct DeviceFormSheet: View {
     @State var device: RemoteDevice
     var onSave: (RemoteDevice) -> Void
 
+    @State private var password: String = ""
     @State private var isTesting = false
     @State private var testResult: (success: Bool, message: String)?
 
@@ -296,8 +297,14 @@ private struct DeviceFormSheet: View {
                     }
                 }
 
-                Section("Options") {
-                    TextField("SSH Key Path", text: $device.identityFile, prompt: Text("Optional, e.g. ~/.ssh/id_ed25519"))
+                Section("Authentication") {
+                    Toggle("Use Password", isOn: $device.usePassword)
+
+                    if device.usePassword {
+                        SecureField("Password", text: $password, prompt: Text("SSH password"))
+                    } else {
+                        TextField("SSH Key Path", text: $device.identityFile, prompt: Text("Optional, e.g. ~/.ssh/id_ed25519"))
+                    }
                 }
             }
             .formStyle(.grouped)
@@ -332,6 +339,11 @@ private struct DeviceFormSheet: View {
                 Button("Save") {
                     if device.claudePath.isEmpty { device.claudePath = "~/.claude" }
                     device.openClawPaths = device.openClawPaths.filter { !$0.isEmpty }
+                    if device.usePassword && !password.isEmpty {
+                        SSHPasswordStore.save(password: password, for: device.id)
+                    } else if !device.usePassword {
+                        SSHPasswordStore.delete(for: device.id)
+                    }
                     onSave(device)
                     dismiss()
                 }
@@ -340,12 +352,21 @@ private struct DeviceFormSheet: View {
             }
             .padding()
         }
-        .frame(width: 440, height: 420)
+        .frame(width: 440, height: 460)
+        .onAppear {
+            if device.usePassword {
+                password = SSHPasswordStore.load(for: device.id) ?? ""
+            }
+        }
     }
 
     private func testConnection() {
         isTesting = true
         testResult = nil
+        // Save password to Keychain before testing so SSHService can read it
+        if device.usePassword && !password.isEmpty {
+            SSHPasswordStore.save(password: password, for: device.id)
+        }
         Task {
             let service = RemoteUsageService()
             var testDevice = device
