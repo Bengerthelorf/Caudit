@@ -403,6 +403,10 @@ final class AppState {
         }
     }
 
+    var filteredRecords: [UsageRecord] {
+        Self.applySourceFilter(allRecords, filter: dashboardFilter)
+    }
+
     private func recomputeFromFilter() {
         guard !allRecords.isEmpty else { return }
         let filtered = Self.applySourceFilter(allRecords, filter: dashboardFilter)

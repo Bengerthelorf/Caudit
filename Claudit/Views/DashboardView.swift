@@ -105,6 +105,22 @@ struct DashboardView: View {
                         .controlGroupStyle(.navigation)
                     }
 
+                    ToolbarItem(placement: .primaryAction) {
+                        Menu {
+                            Button("Export as JSON") {
+                                let content = ExportService.exportRecords(appState.filteredRecords, format: .json)
+                                ExportService.saveToFile(content: content, format: .json)
+                            }
+                            Button("Export as CSV") {
+                                let content = ExportService.exportRecords(appState.filteredRecords, format: .csv)
+                                ExportService.saveToFile(content: content, format: .csv)
+                            }
+                        } label: {
+                            Image(systemName: "square.and.arrow.up")
+                        }
+                        .help("Export usage data")
+                    }
+
                     if appState.selectedSessionForDetail != nil {
                         ToolbarItem(placement: .primaryAction) {
                             Button {
