@@ -64,9 +64,11 @@ final class StatuslineService: @unchecked Sendable {
         sessionResetTime: Date?,
         pace: String?
     ) {
-        guard currentConfig.enabled else { return }
+        lock.lock()
+        let cfg = config
+        lock.unlock()
 
-        let cfg = currentConfig
+        guard cfg.enabled else { return }
         var parts: [String] = []
 
         if cfg.showUsagePercent {

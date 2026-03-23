@@ -10,7 +10,7 @@ enum SSHError: LocalizedError {
     }
 }
 
-final class SSHService: @unchecked Sendable {
+final class SSHService: Sendable {
     static let shared = SSHService()
 
     func run(device: RemoteDevice, command: String, connectTimeout: Int = 15, commandTimeout: TimeInterval = 60) async throws -> String {

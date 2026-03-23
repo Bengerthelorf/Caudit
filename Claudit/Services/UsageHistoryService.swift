@@ -30,10 +30,9 @@ final class UsageHistoryService: @unchecked Sendable {
     /// Record a snapshot if enough time has passed since the last one.
     func recordIfNeeded(sessionPercentage: Double, weeklyPercentage: Double) {
         let now = Date()
-        lock.lock()
-        defer { lock.unlock() }
+        var needsSave = false
 
-        var didRecord = false
+        lock.lock()
 
         if now.timeIntervalSince(lastSessionRecordTime) >= sessionInterval {
             let snapshot = UsageSnapshot(timestamp: now, type: .session, percentage: sessionPercentage)
@@ -42,7 +41,7 @@ final class UsageHistoryService: @unchecked Sendable {
                 sessionSnapshots.removeFirst(sessionSnapshots.count - Self.maxSessionSnapshots)
             }
             lastSessionRecordTime = now
-            didRecord = true
+            needsSave = true
         }
 
         if now.timeIntervalSince(lastWeeklyRecordTime) >= weeklyInterval {
@@ -52,10 +51,14 @@ final class UsageHistoryService: @unchecked Sendable {
                 weeklySnapshots.removeFirst(weeklySnapshots.count - Self.maxWeeklySnapshots)
             }
             lastWeeklyRecordTime = now
-            didRecord = true
+            needsSave = true
         }
 
-        if didRecord { saveToDisk() }
+        // Copy data for saving outside the lock
+        let container = needsSave ? StorageContainer(sessionSnapshots: sessionSnapshots, weeklySnapshots: weeklySnapshots) : nil
+        lock.unlock()
+
+        if let container { saveToDisk(container) }
     }
 
     /// Get all snapshots of a given type within a time range.
@@ -87,8 +90,7 @@ final class UsageHistoryService: @unchecked Sendable {
         var weeklySnapshots: [UsageSnapshot]
     }
 
-    private func saveToDisk() {
-        let container = StorageContainer(sessionSnapshots: sessionSnapshots, weeklySnapshots: weeklySnapshots)
+    private func saveToDisk(_ container: StorageContainer) {
         do {
             let data = try JSONEncoder().encode(container)
             try data.write(to: storageURL, options: .atomic)

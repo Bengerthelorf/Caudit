@@ -1,6 +1,6 @@
 import Foundation
 
-final class RemoteUsageService: @unchecked Sendable {
+final class RemoteUsageService: Sendable {
     private let ssh = SSHService.shared
 
     func fingerprint(for device: RemoteDevice) async throws -> String {
@@ -24,7 +24,7 @@ final class RemoteUsageService: @unchecked Sendable {
             parts.append("""
             find \(esc(ocPath))/agents -name '*.jsonl' 2>/dev/null | while IFS= read -r f; do \
             sess=$(basename "$f" .jsonl); \
-            echo "===CLAUDIT_OC:\(dirName)/${sess}==="; grep '"usage":{' "$f" 2>/dev/null; done
+            echo "===CLAUDIT_OC:\(dirName)/${sess}==="; grep '"usage"' "$f" 2>/dev/null; done
             """)
         }
 

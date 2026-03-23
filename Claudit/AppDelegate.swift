@@ -469,11 +469,9 @@ private final class WindowSizeDelegate: NSObject, NSWindowDelegate {
     }
 
     nonisolated func windowWillResize(_ sender: NSWindow, to frameSize: NSSize) -> NSSize {
-        MainActor.assumeIsolated {
-            var clamped = frameSize
-            clamped.width = max(minSize.width, min(maxSize.width, clamped.width))
-            clamped.height = max(minSize.height, clamped.height)
-            return clamped
-        }
+        var clamped = frameSize
+        clamped.width = max(minSize.width, min(maxSize.width, clamped.width))
+        clamped.height = max(minSize.height, clamped.height)
+        return clamped
     }
 }
