@@ -9,8 +9,6 @@ enum Palette {
     static let terracotta = adaptive(light: (0.78, 0.62, 0.56), dark: (0.84, 0.68, 0.62))
     static let lavender   = adaptive(light: (0.72, 0.66, 0.76), dark: (0.78, 0.72, 0.82))
     static let sand       = adaptive(light: (0.78, 0.74, 0.60), dark: (0.84, 0.80, 0.66))
-    static let olive      = adaptive(light: (0.62, 0.66, 0.56), dark: (0.68, 0.72, 0.62))
-    static let coral      = adaptive(light: (0.82, 0.62, 0.58), dark: (0.88, 0.68, 0.64))
 
     static let quotaGood   = adaptive(light: (0.60, 0.72, 0.64), dark: (0.50, 0.78, 0.56))
     static let quotaWarn   = adaptive(light: (0.80, 0.72, 0.52), dark: (0.88, 0.80, 0.50))

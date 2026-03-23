@@ -211,8 +211,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         size: NSSize,
         minSize: NSSize,
         maxSize: NSSize? = nil,
-        rootView: some View,
-        toolbar: Bool = true
+        rootView: some View
     ) -> NSWindow {
         let controller = NSHostingController(
             rootView: rootView
@@ -228,12 +227,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         window.isReleasedWhenClosed = false
         window.titlebarSeparatorStyle = .none
 
-        if toolbar {
-            let tb = NSToolbar(identifier: "\(title)Toolbar")
-            tb.displayMode = .iconOnly
-            window.toolbar = tb
-            window.toolbarStyle = .unified
-        }
+        let tb = NSToolbar(identifier: "\(title)Toolbar")
+        tb.displayMode = .iconOnly
+        window.toolbar = tb
+        window.toolbarStyle = .unified
 
         window.setContentSize(size)
 

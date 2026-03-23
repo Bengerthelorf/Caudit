@@ -113,10 +113,6 @@ final class AppState {
         didSet { UserDefaults.standard.set(notifyOnQuotaThreshold, forKey: "notifyOnQuotaThreshold") }
     }
 
-    var quotaNotificationThreshold: Double {
-        didSet { UserDefaults.standard.set(quotaNotificationThreshold, forKey: "quotaNotificationThreshold") }
-    }
-
     var enabledNotificationThresholds: Set<Int> {
         didSet {
             let array = Array(enabledNotificationThresholds)
@@ -153,6 +149,7 @@ final class AppState {
     private var lastUsageRefreshTime: Date?
     private var lastNotifiedQuotaLevel: Double = 0
     private var lastNotifiedWeeklyLevel: Double = 0
+    private var usageGeneration: Int = 0
     private var hasFinishedInit = false
 
     init() {
@@ -172,9 +169,6 @@ final class AppState {
         self.quotaRefreshInterval = savedQuotaInterval > 0 ? savedQuotaInterval : 120
 
         self.notifyOnQuotaThreshold = defaults.bool(forKey: "notifyOnQuotaThreshold")
-
-        let savedThreshold = defaults.double(forKey: "quotaNotificationThreshold")
-        self.quotaNotificationThreshold = savedThreshold > 0 ? savedThreshold : 80
 
         if let savedThresholds = defaults.array(forKey: "enabledNotificationThresholds") as? [Int] {
             self.enabledNotificationThresholds = Set(savedThresholds)
@@ -280,6 +274,8 @@ final class AppState {
     }
 
     func refresh() {
+        // Increment generation to invalidate any in-flight parse tasks
+        usageGeneration += 1
         isParsingUsage = false
         remoteFingerprints.removeAll()
         for device in remoteDevices where device.isEnabled {
@@ -325,6 +321,7 @@ final class AppState {
         let cachedRecords = self.remoteCachedRecords
 
         let currentFilter = self.dashboardFilter
+        let generation = self.usageGeneration
 
         Task.detached {
             let localRecords = parser.scanLocalRecords()
@@ -333,7 +330,7 @@ final class AppState {
             let filtered = Self.applySourceFilter(merged, filter: currentFilter)
             let initialResult = parser.aggregate(records: filtered, tableTimeRange: currentFilter.timeRange)
             await MainActor.run { [weak self] in
-                guard let self else { return }
+                guard let self, self.usageGeneration == generation else { return }
                 self.allRecords = merged
                 self.availableSources = Self.computeSources(merged)
                 self.applyResult(initialResult)
@@ -402,7 +399,7 @@ final class AppState {
                     let filtered = Self.applySourceFilter(merged, filter: currentFilter)
                     let mergedResult = parser.aggregate(records: filtered, tableTimeRange: currentFilter.timeRange)
                     await MainActor.run { [weak self] in
-                        guard let self else { return }
+                        guard let self, self.usageGeneration == generation else { return }
                         self.allRecords = merged
                         self.availableSources = Self.computeSources(merged)
                         self.applyResult(mergedResult)
@@ -411,7 +408,8 @@ final class AppState {
             }
 
             await MainActor.run { [weak self] in
-                self?.isParsingUsage = false
+                guard let self, self.usageGeneration == generation else { return }
+                self.isParsingUsage = false
             }
         }
     }
