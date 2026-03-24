@@ -62,6 +62,7 @@ struct UsageHistoryChartView: View {
                     }
                 }
                 .pickerStyle(.segmented)
+                .labelsHidden()
                 .frame(width: 200)
                 .onChange(of: timeScale) { _, _ in
                     windowEnd = Date()
