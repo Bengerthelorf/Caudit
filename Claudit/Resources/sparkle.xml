@@ -3,6 +3,24 @@
     <channel>
         <title>Claudit</title>
         <item>
+                    <title>Version 0.0.16</title>
+                    <link>https://github.com/Bengerthelorf/Claudit</link>
+                    <sparkle:version>2026032401</sparkle:version>
+                    <sparkle:shortVersionString>0.0.16</sparkle:shortVersionString>
+                    <pubDate>Tue, 24 Mar 2026 14:38:50 +0000</pubDate>
+                    <enclosure url="https://github.com/Bengerthelorf/Claudit/releases/download/v0.0.16/Claudit.dmg"
+                    sparkle:edSignature="tzbImy6nZrR/0bLRVZXn+IjYd4ORumOBsAkRt39DkVr3pgdjpJXoktVAoTJqDAIw+r/E3LCDtAqXR1IU83oMDA==" length="4537368"
+                    type="application/octet-stream"/>
+                    <description>
+                        <![CDATA[
+                    <h2>Version 0.0.16</h2>
+                    <ul>
+                        <li><strong>Fixed:</strong> use case-insensitive header lookup for rate limit quota</li>
+                    </ul>
+                        ]]>
+                    </description>
+                </item>
+        <item>
                     <title>Version 0.0.15</title>
                     <link>https://github.com/Bengerthelorf/Claudit</link>
                     <sparkle:version>2026032400</sparkle:version>
