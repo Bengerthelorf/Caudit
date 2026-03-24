@@ -77,6 +77,14 @@ final class AppState {
         didSet { UserDefaults.standard.set(menuBarDisplayMode.rawValue, forKey: "menuBarDisplayMode") }
     }
 
+    var menuBarConfig: MenuBarConfig {
+        didSet {
+            if let data = try? JSONEncoder().encode(menuBarConfig) {
+                UserDefaults.standard.set(data, forKey: "menuBarConfig")
+            }
+        }
+    }
+
     var launchAtLogin: Bool {
         get {
             let status = SMAppService.mainApp.status
@@ -135,6 +143,19 @@ final class AppState {
         didSet { UserDefaults.standard.set(notifyOnWeeklyThreshold, forKey: "notifyOnWeeklyThreshold") }
     }
 
+    // MARK: - Budget Alerts
+    var dailyBudget: Double {
+        didSet { UserDefaults.standard.set(dailyBudget, forKey: "dailyBudget") }
+    }
+    var monthlyBudget: Double {
+        didSet { UserDefaults.standard.set(monthlyBudget, forKey: "monthlyBudget") }
+    }
+    var notifyOnBudget: Bool {
+        didSet { UserDefaults.standard.set(notifyOnBudget, forKey: "notifyOnBudget") }
+    }
+    private var lastNotifiedDailyBudgetLevel: Double = 0
+    private var lastNotifiedMonthlyBudgetLevel: Double = 0
+
     // MARK: - Services
     private let usageParser = UsageParser()
     let quotaService = QuotaService()
@@ -169,6 +190,13 @@ final class AppState {
             self.menuBarDisplayMode = .cost
         }
 
+        if let configData = defaults.data(forKey: "menuBarConfig"),
+           let config = try? JSONDecoder().decode(MenuBarConfig.self, from: configData) {
+            self.menuBarConfig = config
+        } else {
+            self.menuBarConfig = MenuBarConfig()
+        }
+
         let savedUsageInterval = defaults.double(forKey: "usageRefreshInterval")
         self.usageRefreshInterval = savedUsageInterval > 0 ? savedUsageInterval : 60
 
@@ -192,6 +220,10 @@ final class AppState {
 
         self.notifyOnSessionReset = defaults.bool(forKey: "notifyOnSessionReset")
         self.notifyOnWeeklyThreshold = defaults.bool(forKey: "notifyOnWeeklyThreshold")
+
+        self.dailyBudget = defaults.double(forKey: "dailyBudget")
+        self.monthlyBudget = defaults.double(forKey: "monthlyBudget")
+        self.notifyOnBudget = defaults.bool(forKey: "notifyOnBudget")
 
         if let data = UserDefaults.standard.data(forKey: "remoteDevices"),
            let devices = try? JSONDecoder().decode([RemoteDevice].self, from: data) {
@@ -349,6 +381,7 @@ final class AppState {
                 self.availableSources = Self.computeSources(merged)
                 self.applyResult(initialResult)
                 self.hasLoadedUsage = true
+                self.checkBudgetNotifications()
             }
 
             if !enabledDevices.isEmpty {
@@ -417,6 +450,7 @@ final class AppState {
                         self.allRecords = merged
                         self.availableSources = Self.computeSources(merged)
                         self.applyResult(mergedResult)
+                        self.checkBudgetNotifications()
                     }
                 }
             }
@@ -578,6 +612,42 @@ final class AppState {
         }
     }
 
+    private func checkBudgetNotifications() {
+        guard notifyOnBudget else { return }
+
+        if dailyBudget > 0 {
+            let dailyPercent = todayUsage.totalCost / dailyBudget * 100
+            let thresholds = NotificationService.thresholdsToFire(
+                current: dailyPercent,
+                previousLevel: lastNotifiedDailyBudgetLevel,
+                enabledThresholds: enabledNotificationThresholds
+            )
+            for t in thresholds {
+                notificationService.sendBudgetAlert(
+                    type: "Daily", currentCost: todayUsage.totalCost,
+                    budget: dailyBudget, thresholdPercent: t
+                )
+            }
+            lastNotifiedDailyBudgetLevel = dailyPercent
+        }
+
+        if monthlyBudget > 0 {
+            let monthlyPercent = monthUsage.totalCost / monthlyBudget * 100
+            let thresholds = NotificationService.thresholdsToFire(
+                current: monthlyPercent,
+                previousLevel: lastNotifiedMonthlyBudgetLevel,
+                enabledThresholds: enabledNotificationThresholds
+            )
+            for t in thresholds {
+                notificationService.sendBudgetAlert(
+                    type: "Monthly", currentCost: monthUsage.totalCost,
+                    budget: monthlyBudget, thresholdPercent: t
+                )
+            }
+            lastNotifiedMonthlyBudgetLevel = monthlyPercent
+        }
+    }
+
     var menuBarText: String {
         guard hasLoadedUsage else { return "--" }
         switch menuBarDisplayMode {
@@ -588,6 +658,14 @@ final class AppState {
                 return "\(Int(quota.fiveHourUtilization))%"
             }
             return "--"
+        case .custom:
+            return menuBarConfig.formatText(
+                todayCost: todayUsage.totalCost,
+                quotaPercent: quotaInfo?.fiveHourUtilization,
+                pace: sessionPace?.label,
+                resetTimeRemaining: quotaInfo?.fiveHourTimeRemaining,
+                weeklyPercent: quotaInfo?.sevenDayUtilization
+            )
         }
     }
 }
@@ -595,6 +673,7 @@ final class AppState {
 enum MenuBarDisplayMode: String, CaseIterable {
     case cost = "Today's Cost"
     case quota = "Quota %"
+    case custom = "Custom"
 }
 
 // MARK: - FSEvents Directory Monitor

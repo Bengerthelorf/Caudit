@@ -87,6 +87,14 @@ struct GeneralSettingsView: View {
                     }
                 }
 
+                if appState.menuBarDisplayMode == .custom {
+                    Toggle("Today's Cost", isOn: $state.menuBarConfig.showCost)
+                    Toggle("5h Quota %", isOn: $state.menuBarConfig.showQuotaPercent)
+                    Toggle("Pace", isOn: $state.menuBarConfig.showPace)
+                    Toggle("Reset Time", isOn: $state.menuBarConfig.showResetTime)
+                    Toggle("7d Quota %", isOn: $state.menuBarConfig.showWeeklyPercent)
+                }
+
                 Picker("Usage Refresh", selection: $state.usageRefreshInterval) {
                     Text("30 seconds").tag(30.0 as TimeInterval)
                     Text("1 minute").tag(60.0 as TimeInterval)
@@ -131,11 +139,11 @@ struct GeneralSettingsView: View {
             } footer: {
                 switch appState.quotaSource {
                 case .rateLimitHeaders:
-                    Text("Sends a minimal API call and reads quota from response headers. Low overhead, no extra login needed.")
+                    Text("Sends a minimal API call and reads quota from response headers. Low overhead, no extra login needed. Includes Sonnet breakdown but not Opus.")
                 case .oauthAPI:
-                    Text("Calls the OAuth usage endpoint directly. May be rate limited under heavy use.")
+                    Text("Calls the OAuth usage endpoint directly. Full data including Opus and Sonnet breakdown. May be rate limited under heavy use.")
                 case .claudeSession:
-                    Text("Uses Claude.ai session cookie for full quota data including per-model breakdown.")
+                    Text("Uses Claude.ai session cookie. Full data including Opus and Sonnet breakdown.")
                 }
             }
 

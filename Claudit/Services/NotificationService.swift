@@ -63,6 +63,23 @@ final class NotificationService: NSObject, @unchecked Sendable, UNUserNotificati
         logger.info("Sent weekly quota alert: \(Int(percentage))% >= \(Int(threshold))%")
     }
 
+    // MARK: - Budget Alerts
+
+    func sendBudgetAlert(type: String, currentCost: Double, budget: Double, thresholdPercent: Int) {
+        let content = UNMutableNotificationContent()
+        content.title = "\(type) Budget Alert"
+        content.body = "\(type) spend $\(String(format: "%.2f", currentCost)) has reached \(thresholdPercent)% of $\(String(format: "%.2f", budget)) budget"
+        content.sound = .default
+
+        let request = UNNotificationRequest(
+            identifier: "\(type.lowercased())-budget-alert-\(thresholdPercent)",
+            content: content,
+            trigger: nil
+        )
+        UNUserNotificationCenter.current().add(request)
+        logger.info("Sent \(type) budget alert: $\(String(format: "%.2f", currentCost)) >= \(thresholdPercent)% of $\(String(format: "%.2f", budget))")
+    }
+
     // MARK: - Delegate
 
     func userNotificationCenter(

@@ -36,6 +36,32 @@ struct NotificationSettingsView: View {
             } footer: {
                 Text("Uses the same thresholds as 5-hour alerts for the 7-day window.")
             }
+            Section {
+                Toggle("Budget Alerts", isOn: $state.notifyOnBudget)
+
+                if appState.notifyOnBudget {
+                    HStack {
+                        Text("Daily Budget")
+                        Spacer()
+                        TextField("$", value: $state.dailyBudget, format: .currency(code: "USD"))
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: 100)
+                            .multilineTextAlignment(.trailing)
+                    }
+                    HStack {
+                        Text("Monthly Budget")
+                        Spacer()
+                        TextField("$", value: $state.monthlyBudget, format: .currency(code: "USD"))
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: 100)
+                            .multilineTextAlignment(.trailing)
+                    }
+                }
+            } header: {
+                Text("Spending")
+            } footer: {
+                Text("Alerts when your daily or monthly spend crosses the configured thresholds as a percentage of the budget. Set to $0 to disable.")
+            }
         }
         .formStyle(.grouped)
     }
