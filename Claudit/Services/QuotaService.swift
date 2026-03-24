@@ -65,6 +65,7 @@ final class RateLimitHeadersQuotaProvider: QuotaProvider {
         request.timeoutInterval = 30
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+        request.setValue("oauth-2025-04-20", forHTTPHeaderField: "anthropic-beta")
         let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0"
         request.setValue("Claudit/\(appVersion)", forHTTPHeaderField: "User-Agent")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -107,6 +108,10 @@ final class RateLimitHeadersQuotaProvider: QuotaProvider {
             sevenDayResetAt = parseResetTimestamp(resetStr)
         }
 
+        // Sonnet-specific 7d utilization (undocumented but returned by API)
+        let sonnetUtil = headerDouble(response, key: "anthropic-ratelimit-unified-7d_sonnet-utilization")
+        let sevenDaySonnetUtilization: Double? = sonnetUtil > 0 ? sonnetUtil * 100 : nil
+
         // If 5h reset is in the past, session has reset
         if let reset = fiveHourResetAt, reset < Date() {
             return QuotaInfo(
@@ -115,7 +120,7 @@ final class RateLimitHeadersQuotaProvider: QuotaProvider {
                 sevenDayUtilization: sevenDayUtil,
                 sevenDayResetAt: sevenDayResetAt,
                 sevenDayOpusUtilization: nil,
-                sevenDaySonnetUtilization: nil,
+                sevenDaySonnetUtilization: sevenDaySonnetUtilization,
                 lastUpdated: Date()
             )
         }
@@ -126,7 +131,7 @@ final class RateLimitHeadersQuotaProvider: QuotaProvider {
             sevenDayUtilization: sevenDayUtil,
             sevenDayResetAt: sevenDayResetAt,
             sevenDayOpusUtilization: nil,
-            sevenDaySonnetUtilization: nil,
+            sevenDaySonnetUtilization: sevenDaySonnetUtilization,
             lastUpdated: Date()
         )
     }
