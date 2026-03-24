@@ -11,6 +11,10 @@ struct BrowserSignInView: NSViewRepresentable {
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = context.coordinator
         webView.uiDelegate = context.coordinator
+
+        // Watch for cookie changes in real-time
+        config.websiteDataStore.httpCookieStore.add(context.coordinator)
+
         webView.load(URLRequest(url: URL(string: "https://claude.ai/login")!))
         return webView
     }
@@ -21,17 +25,35 @@ struct BrowserSignInView: NSViewRepresentable {
         Coordinator(onSessionKey: onSessionKey)
     }
 
-    class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
+    class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WKHTTPCookieStoreObserver {
         let onSessionKey: (String, Date?) -> Void
         private let targetDomain = "claude.ai"
+        private var foundCookie = false
+        private weak var webView: WKWebView?
 
         init(onSessionKey: @escaping (String, Date?) -> Void) {
             self.onSessionKey = onSessionKey
         }
 
+        // MARK: - WKHTTPCookieStoreObserver
+
+        /// Fires whenever any cookie in the store changes — most reliable detection method.
+        func cookiesDidChange(in cookieStore: WKHTTPCookieStore) {
+            guard !foundCookie else { return }
+            cookieStore.getAllCookies { [weak self] cookies in
+                self?.processCookies(cookies)
+            }
+        }
+
+        // MARK: - WKNavigationDelegate
+
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            self.webView = webView
+            guard !foundCookie else { return }
             checkForSessionCookie(webView: webView)
         }
+
+        // MARK: - WKUIDelegate
 
         /// Handle Google SSO popups by loading in the same webview.
         func webView(
@@ -46,18 +68,25 @@ struct BrowserSignInView: NSViewRepresentable {
             return nil
         }
 
+        // MARK: - Cookie Extraction
+
         private func checkForSessionCookie(webView: WKWebView) {
             webView.configuration.websiteDataStore.httpCookieStore.getAllCookies { [weak self] cookies in
-                guard let self else { return }
-                for cookie in cookies {
-                    if cookie.name == "sessionKey" && cookie.domain.contains(self.targetDomain) {
-                        let key = cookie.value
-                        let expiry = cookie.expiresDate
-                        DispatchQueue.main.async {
-                            self.onSessionKey(key, expiry)
-                        }
-                        return
+                self?.processCookies(cookies)
+            }
+        }
+
+        private func processCookies(_ cookies: [HTTPCookie]) {
+            guard !foundCookie else { return }
+            for cookie in cookies {
+                if cookie.name == "sessionKey" && cookie.domain.contains(targetDomain) {
+                    foundCookie = true
+                    let key = cookie.value
+                    let expiry = cookie.expiresDate
+                    DispatchQueue.main.async { [weak self] in
+                        self?.onSessionKey(key, expiry)
                     }
+                    return
                 }
             }
         }

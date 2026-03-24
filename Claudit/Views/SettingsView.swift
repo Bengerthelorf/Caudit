@@ -231,14 +231,11 @@ struct BrowserSignInSheet: View {
     private func fetchOrganizations(key: String) {
         Task {
             do {
-                // Temporarily store key to fetch orgs
-                SessionCredentialStore.shared.save(sessionKey: key, organizationId: "", expiryDate: expiryDate)
-                let orgs = try await SessionCredentialStore.shared.fetchOrganizations()
+                let orgs = try await Self.fetchOrgsWithKey(key)
                 await MainActor.run {
                     organizations = orgs
                     isLoading = false
                     if orgs.count == 1 {
-                        // Auto-select single org
                         SessionCredentialStore.shared.save(
                             sessionKey: key,
                             organizationId: orgs[0].id,
@@ -249,11 +246,34 @@ struct BrowserSignInSheet: View {
                 }
             } catch {
                 await MainActor.run {
-                    status = "Failed to fetch organizations: \(error.localizedDescription)"
+                    status = "Failed: \(error.localizedDescription)"
                     isLoading = false
-                    SessionCredentialStore.shared.clear()
                 }
             }
+        }
+    }
+
+    /// Fetch organizations directly with a session key, without persisting to the store.
+    private static func fetchOrgsWithKey(_ key: String) async throws -> [(id: String, name: String)] {
+        let url = URL(string: "https://claude.ai/api/organizations")!
+        var request = URLRequest(url: url)
+        request.setValue("sessionKey=\(key)", forHTTPHeaderField: "Cookie")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            throw QuotaError.sessionExpired
+        }
+
+        guard let orgs = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
+            throw QuotaError.invalidResponse
+        }
+
+        return orgs.compactMap { org in
+            guard let id = org["uuid"] as? String,
+                  let name = org["name"] as? String else { return nil }
+            return (id: id, name: name)
         }
     }
 }
