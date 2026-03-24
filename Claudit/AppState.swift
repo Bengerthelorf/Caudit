@@ -52,6 +52,12 @@ final class AppState {
     var weeklyPace: PaceStatus?
     var sessionElapsedFraction: Double = 0
 
+    // MARK: - Console Billing
+    var consoleBilling: ConsoleBilling?
+    var isLoadingBilling = false
+    var billingError: String?
+    var hasLoadedBilling = false
+
     // MARK: - Claude System Status
     var claudeStatus: ClaudeStatus?
 
@@ -177,6 +183,7 @@ final class AppState {
     private let claudeStatusService = ClaudeStatusService()
     let usageHistoryService = UsageHistoryService()
     let statuslineService = StatuslineService()
+    private let consoleBillingService = ConsoleBillingService()
 
     // MARK: - Private State
     private var allRecords: [UsageRecord] = []
@@ -185,6 +192,7 @@ final class AppState {
     private var usageTimer: Timer?
     private var quotaTimer: Timer?
     private var statusTimer: Timer?
+    private var billingTimer: Timer?
     private var directoryMonitor: DirectoryMonitor?
     private var systemEventService: SystemEventService?
     private var lastUsageRefreshTime: Date?
@@ -300,6 +308,9 @@ final class AppState {
 
         refreshClaudeStatus()
         restartStatusTimer()
+
+        refreshBilling()
+        restartBillingTimer()
     }
 
     private func restartStatusTimer() {
@@ -370,6 +381,7 @@ final class AppState {
         }
         refreshUsage(force: true)
         refreshQuota()
+        refreshBilling()
     }
 
     private func cleanStaleCaches() {
@@ -602,6 +614,45 @@ final class AppState {
                     }
                     self.isLoadingQuota = false
                     self.hasLoadedQuota = true
+                }
+            }
+        }
+    }
+
+    // MARK: - Console Billing
+
+    private func restartBillingTimer() {
+        billingTimer?.invalidate()
+        billingTimer = Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in
+            guard let self else { return }
+            Task { @MainActor in self.refreshBilling() }
+        }
+    }
+
+    func refreshBilling() {
+        guard ConsoleCredentialStore.shared.isConfigured else { return }
+        guard !isLoadingBilling else { return }
+        isLoadingBilling = true
+        billingError = nil
+
+        let service = self.consoleBillingService
+        Task.detached {
+            do {
+                let billing = try await service.fetchBilling()
+                await MainActor.run { [weak self] in
+                    guard let self else { return }
+                    self.consoleBilling = billing
+                    self.isLoadingBilling = false
+                    self.hasLoadedBilling = true
+                }
+            } catch {
+                await MainActor.run { [weak self] in
+                    guard let self else { return }
+                    if self.consoleBilling == nil {
+                        self.billingError = error.localizedDescription
+                    }
+                    self.isLoadingBilling = false
+                    self.hasLoadedBilling = true
                 }
             }
         }

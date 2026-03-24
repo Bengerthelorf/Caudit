@@ -63,6 +63,45 @@ struct OverviewPage: View {
                         }
                     }
 
+                    if let billing = appState.consoleBilling {
+                        SectionHeader(title: "API Billing", icon: "creditcard")
+
+                        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 4), spacing: 12) {
+                            StatCard(
+                                label: "Current Spend",
+                                value: ClauditFormatter.costDetail(billing.currentSpend),
+                                detail: billing.spendPercentage.map { "\(Int($0))% of limit" },
+                                color: Palette.terracotta
+                            )
+                            if let limit = billing.hardLimit {
+                                StatCard(
+                                    label: "Hard Limit",
+                                    value: ClauditFormatter.costDetail(limit),
+                                    detail: billing.remainingBudget.map { "\(ClauditFormatter.costDetail($0)) remaining" },
+                                    color: Palette.rose
+                                )
+                            }
+                            if billing.prepaidCredits > 0 {
+                                StatCard(
+                                    label: "Prepaid Credits",
+                                    value: ClauditFormatter.costDetail(billing.prepaidCredits),
+                                    color: Palette.sage
+                                )
+                            }
+                            if let softLimit = billing.softLimit {
+                                StatCard(
+                                    label: "Soft Limit",
+                                    value: ClauditFormatter.costDetail(softLimit),
+                                    color: Palette.sand
+                                )
+                            }
+                        }
+
+                        if !billing.apiKeyUsage.isEmpty {
+                            BillingAPIKeyBreakdown(usage: billing.apiKeyUsage)
+                        }
+                    }
+
                     if appState.quotaInfo != nil {
                         SectionHeader(title: "Usage History", icon: "chart.line.uptrend.xyaxis")
                         UsageHistoryChartView()
@@ -90,5 +129,37 @@ struct OverviewPage: View {
         if pct < 50 { return Palette.quotaGood }
         if pct < 80 { return Palette.quotaWarn }
         return Palette.quotaDanger
+    }
+}
+
+// MARK: - API Key Usage Breakdown
+
+struct BillingAPIKeyBreakdown: View {
+    let usage: [ConsoleBilling.APIKeyUsage]
+
+    var body: some View {
+        GroupBox {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Usage by API Key")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .padding(.bottom, 4)
+
+                ForEach(usage) { entry in
+                    HStack {
+                        Text(entry.apiKeyName ?? entry.apiKeyId)
+                            .font(.caption)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                        Spacer()
+                        Text(ClauditFormatter.costDetail(entry.cost))
+                            .font(.caption)
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .padding(.vertical, 4)
+        }
     }
 }

@@ -18,6 +18,7 @@
 		3A1F7E0FC8D94B2E00123456 /* StatuslineServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A1F7E10C8D94B2E00123456 /* StatuslineServiceTests.swift */; };
 		3A1F7E11C8D94B2E00234567 /* QuotaServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A1F7E12C8D94B2E00234567 /* QuotaServiceTests.swift */; };
 		3A1F7E13C8D94B2E00345678 /* MenuBarConfigTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A1F7E14C8D94B2E00345678 /* MenuBarConfigTests.swift */; };
+		3A1F7E15C8D94B2E00456789 /* ConsoleBillingServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A1F7E16C8D94B2E00456789 /* ConsoleBillingServiceTests.swift */; };
 		C69BBA3B2F63420800F1E822 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = A1B2C3022F5DE001006DEF9B /* Sparkle */; };
 		E0FE9F6AD927B295C944B2B6 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1541B855BA3C9B4000DE52F2 /* Cocoa.framework */; };
 /* End PBXBuildFile section */
@@ -44,6 +45,7 @@
 		3A1F7E10C8D94B2E00123456 /* StatuslineServiceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StatuslineServiceTests.swift; sourceTree = "<group>"; };
 		3A1F7E12C8D94B2E00234567 /* QuotaServiceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = QuotaServiceTests.swift; sourceTree = "<group>"; };
 		3A1F7E14C8D94B2E00345678 /* MenuBarConfigTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MenuBarConfigTests.swift; sourceTree = "<group>"; };
+		3A1F7E16C8D94B2E00456789 /* ConsoleBillingServiceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ConsoleBillingServiceTests.swift; sourceTree = "<group>"; };
 		9D569E6DDBEE339067DBB0DC /* UsageParserTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = UsageParserTests.swift; sourceTree = "<group>"; };
 		C673A4092F5DDAE7006DEF9B /* Claudit.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Claudit.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		ED7C6BEC01DB7C0DC37601BF /* ClauditTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ClauditTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -94,6 +96,7 @@
 			isa = PBXGroup;
 			children = (
 				3A1F7E04C8D94B2E00BCDEF0 /* ClaudeStatusServiceTests.swift */,
+				3A1F7E16C8D94B2E00456789 /* ConsoleBillingServiceTests.swift */,
 				3A1F7E06C8D94B2E00CDEF01 /* ExportServiceTests.swift */,
 				3A1F7E14C8D94B2E00345678 /* MenuBarConfigTests.swift */,
 				3A1F7E08C8D94B2E00DEF012 /* NotificationServiceTests.swift */,
@@ -248,6 +251,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				3A1F7E03C8D94B2E00BCDEF0 /* ClaudeStatusServiceTests.swift in Sources */,
+				3A1F7E15C8D94B2E00456789 /* ConsoleBillingServiceTests.swift in Sources */,
 				3A1F7E05C8D94B2E00CDEF01 /* ExportServiceTests.swift in Sources */,
 				3A1F7E13C8D94B2E00345678 /* MenuBarConfigTests.swift in Sources */,
 				3A1F7E07C8D94B2E00DEF012 /* NotificationServiceTests.swift in Sources */,

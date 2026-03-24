@@ -81,7 +81,9 @@ struct SettingsView: View {
 struct GeneralSettingsView: View {
     @Environment(AppState.self) private var appState
     @State private var showBrowserSignIn = false
+    @State private var showConsoleBrowserSignIn = false
     @State private var sessionRefreshId = UUID()
+    @State private var consoleRefreshId = UUID()
 
     var body: some View {
         @Bindable var state = appState
@@ -156,6 +158,33 @@ struct GeneralSettingsView: View {
                 }
             }
 
+            Section {
+                Group {
+                    if ConsoleCredentialStore.shared.isConfigured {
+                        if ConsoleCredentialStore.shared.isExpired {
+                            Label("Session expired", systemImage: "exclamationmark.triangle.fill")
+                                .foregroundStyle(.orange)
+                            Button("Sign In Again") { showConsoleBrowserSignIn = true }
+                        } else {
+                            Label("Connected", systemImage: "checkmark.circle.fill")
+                                .foregroundStyle(.green)
+                            Button("Sign Out") {
+                                ConsoleCredentialStore.shared.clear()
+                                appState.consoleBilling = nil
+                                appState.hasLoadedBilling = false
+                                consoleRefreshId = UUID()
+                            }
+                        }
+                    } else {
+                        Button("Sign In to Console") { showConsoleBrowserSignIn = true }
+                    }
+                }.id(consoleRefreshId)
+            } header: {
+                Text("API Console Billing")
+            } footer: {
+                Text("Sign in to console.anthropic.com to view API spend, limits, and per-key usage on the Dashboard.")
+            }
+
             Section("System") {
                 Toggle("Launch at Login", isOn: $state.launchAtLogin)
             }
@@ -172,6 +201,12 @@ struct GeneralSettingsView: View {
             sessionRefreshId = UUID()
         }) {
             BrowserSignInSheet()
+        }
+        .sheet(isPresented: $showConsoleBrowserSignIn, onDismiss: {
+            consoleRefreshId = UUID()
+            appState.refreshBilling()
+        }) {
+            ConsoleSignInSheet()
         }
     }
 }
@@ -292,6 +327,136 @@ struct BrowserSignInSheet: View {
 
         return orgs.compactMap { org in
             guard let id = org["uuid"] as? String,
+                  let name = org["name"] as? String else { return nil }
+            return (id: id, name: name)
+        }
+    }
+}
+
+// MARK: - Console Sign-In Sheet
+
+struct ConsoleSignInSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var status: String = "Sign in to your Anthropic Console account"
+    @State private var organizations: [(id: String, name: String)] = []
+    @State private var sessionKey: String?
+    @State private var expiryDate: Date?
+    @State private var isLoading = false
+
+    var body: some View {
+        VStack(spacing: 0) {
+            if let sessionKey, !organizations.isEmpty {
+                // Organization selection
+                VStack(spacing: 16) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.largeTitle)
+                        .foregroundStyle(.green)
+                    Text("Signed in successfully")
+                        .font(.headline)
+                    Text("Select your organization:")
+                        .foregroundStyle(.secondary)
+
+                    ForEach(organizations, id: \.id) { org in
+                        Button {
+                            ConsoleCredentialStore.shared.save(
+                                sessionKey: sessionKey,
+                                organizationId: org.id,
+                                expiryDate: expiryDate
+                            )
+                            dismiss()
+                        } label: {
+                            Text(org.name)
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
+                }
+                .padding(30)
+            } else if isLoading {
+                ProgressView("Fetching organizations...")
+                    .padding(30)
+            } else {
+                // Browser
+                VStack(spacing: 8) {
+                    HStack {
+                        Text(status)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Button("Cancel") { dismiss() }
+                            .buttonStyle(.borderless)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.top, 8)
+
+                    ConsoleBrowserSignInView(
+                        onSessionKey: { key, expiry in
+                            self.sessionKey = key
+                            self.expiryDate = expiry
+                            self.status = "Session key obtained, fetching organizations..."
+                            self.isLoading = true
+                            ConsoleBrowserSignInView.cleanupWebData()
+                            fetchOrganizations(key: key)
+                        }
+                    )
+                }
+            }
+        }
+        .frame(width: 500, height: 600)
+    }
+
+    private func fetchOrganizations(key: String) {
+        Task {
+            do {
+                let orgs = try await Self.fetchOrgsWithKey(key)
+                await MainActor.run {
+                    organizations = orgs
+                    isLoading = false
+                    if orgs.count == 1 {
+                        ConsoleCredentialStore.shared.save(
+                            sessionKey: key,
+                            organizationId: orgs[0].id,
+                            expiryDate: expiryDate
+                        )
+                        dismiss()
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    status = "Failed: \(error.localizedDescription)"
+                    isLoading = false
+                }
+            }
+        }
+    }
+
+    private static func fetchOrgsWithKey(_ key: String) async throws -> [(id: String, name: String)] {
+        let url = URL(string: "https://console.anthropic.com/api/organizations")!
+        var request = URLRequest(url: url)
+        request.setValue("sessionKey=\(key)", forHTTPHeaderField: "Cookie")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            throw ConsoleBillingError.sessionExpired
+        }
+
+        guard let json = try? JSONSerialization.jsonObject(with: data) else {
+            throw ConsoleBillingError.invalidResponse
+        }
+
+        let orgs: [[String: Any]]
+        if let array = json as? [[String: Any]] {
+            orgs = array
+        } else if let dict = json as? [String: Any], let arr = dict["data"] as? [[String: Any]] {
+            orgs = arr
+        } else {
+            throw ConsoleBillingError.invalidResponse
+        }
+
+        return orgs.compactMap { org in
+            guard let id = org["id"] as? String ?? org["uuid"] as? String,
                   let name = org["name"] as? String else { return nil }
             return (id: id, name: name)
         }
