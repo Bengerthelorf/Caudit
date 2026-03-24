@@ -15,11 +15,60 @@ enum WebhookPreset: String, Codable, CaseIterable, Identifiable {
 struct WebhookConfig: Codable, Equatable {
     var enabled: Bool = false
     var preset: WebhookPreset = .custom
+    /// Webhook URL (contains auth tokens for Slack/Discord — stored via Keychain by AppState)
     var url: String = ""
-    /// Telegram-specific: bot token (used to construct URL)
+    /// Telegram-specific: bot token
     var telegramBotToken: String = ""
     /// Telegram-specific: chat ID
     var telegramChatId: String = ""
+}
+
+/// Keychain storage for webhook secrets.
+enum WebhookKeychain {
+    private static let service = "cc.ffitch.Claudit.webhook"
+
+    static func save(_ config: WebhookConfig) {
+        let secrets: [String: String] = [
+            "url": config.url,
+            "telegramBotToken": config.telegramBotToken,
+            "telegramChatId": config.telegramChatId,
+        ]
+        guard let data = try? JSONSerialization.data(withJSONObject: secrets) else { return }
+        delete()
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: "webhookSecrets",
+            kSecValueData as String: data
+        ]
+        SecItemAdd(query as CFDictionary, nil)
+    }
+
+    static func load() -> (url: String, botToken: String, chatId: String) {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: "webhookSecrets",
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+        var result: AnyObject?
+        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
+              let data = result as? Data,
+              let dict = try? JSONSerialization.jsonObject(with: data) as? [String: String] else {
+            return ("", "", "")
+        }
+        return (dict["url"] ?? "", dict["telegramBotToken"] ?? "", dict["telegramChatId"] ?? "")
+    }
+
+    static func delete() {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: "webhookSecrets"
+        ]
+        SecItemDelete(query as CFDictionary)
+    }
 }
 
 final class WebhookService: Sendable {
@@ -110,8 +159,8 @@ final class WebhookService: Sendable {
         guard let endpoint = URL(string: urlStr) else { throw WebhookError.invalidURL }
         let payload: [String: Any] = [
             "chat_id": config.telegramChatId,
-            "text": "*\(title)*\n\(body)",
-            "parse_mode": "Markdown"
+            "text": "<b>\(Self.escapeHTML(title))</b>\n\(Self.escapeHTML(body))",
+            "parse_mode": "HTML"
         ]
         return (endpoint, try JSONSerialization.data(withJSONObject: payload))
     }
@@ -148,6 +197,12 @@ final class WebhookService: Sendable {
 
     static func formatSessionReset() -> (title: String, body: String) {
         ("Session Reset", "5-hour quota window has reset to 0%")
+    }
+
+    private static func escapeHTML(_ text: String) -> String {
+        text.replacingOccurrences(of: "&", with: "&amp;")
+            .replacingOccurrences(of: "<", with: "&lt;")
+            .replacingOccurrences(of: ">", with: "&gt;")
     }
 }
 

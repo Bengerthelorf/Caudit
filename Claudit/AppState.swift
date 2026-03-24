@@ -153,15 +153,19 @@ final class AppState {
     var notifyOnBudget: Bool {
         didSet { UserDefaults.standard.set(notifyOnBudget, forKey: "notifyOnBudget") }
     }
-    private var lastNotifiedDailyBudgetLevel: Double = 0
-    private var lastNotifiedMonthlyBudgetLevel: Double = 0
+    private var lastNotifiedDailyBudgetLevel: Double
+    private var lastNotifiedMonthlyBudgetLevel: Double
 
     // MARK: - Webhook
     var webhookConfig: WebhookConfig {
         didSet {
-            if let data = try? JSONEncoder().encode(webhookConfig) {
+            // Only persist non-secret fields to UserDefaults
+            let safeConfig = WebhookConfig(enabled: webhookConfig.enabled, preset: webhookConfig.preset)
+            if let data = try? JSONEncoder().encode(safeConfig) {
                 UserDefaults.standard.set(data, forKey: "webhookConfig")
             }
+            // Secrets go to Keychain
+            WebhookKeychain.save(webhookConfig)
         }
     }
 
@@ -234,8 +238,29 @@ final class AppState {
         self.monthlyBudget = defaults.double(forKey: "monthlyBudget")
         self.notifyOnBudget = defaults.bool(forKey: "notifyOnBudget")
 
+        // Load persisted budget alert levels (reset if date changed)
+        let today = Calendar.current.startOfDay(for: Date())
+        if let savedDate = defaults.object(forKey: "budgetAlertDate") as? Date,
+           Calendar.current.isDate(savedDate, inSameDayAs: today) {
+            self.lastNotifiedDailyBudgetLevel = defaults.double(forKey: "lastDailyBudgetLevel")
+        } else {
+            self.lastNotifiedDailyBudgetLevel = 0
+        }
+        let thisMonth = Calendar.current.dateInterval(of: .month, for: Date())?.start ?? today
+        if let savedMonth = defaults.object(forKey: "budgetAlertMonth") as? Date,
+           Calendar.current.isDate(savedMonth, equalTo: thisMonth, toGranularity: .month) {
+            self.lastNotifiedMonthlyBudgetLevel = defaults.double(forKey: "lastMonthlyBudgetLevel")
+        } else {
+            self.lastNotifiedMonthlyBudgetLevel = 0
+        }
+
         if let whData = defaults.data(forKey: "webhookConfig"),
-           let wh = try? JSONDecoder().decode(WebhookConfig.self, from: whData) {
+           var wh = try? JSONDecoder().decode(WebhookConfig.self, from: whData) {
+            // Load secrets from Keychain
+            let secrets = WebhookKeychain.load()
+            wh.url = secrets.url
+            wh.telegramBotToken = secrets.botToken
+            wh.telegramChatId = secrets.chatId
             self.webhookConfig = wh
         } else {
             self.webhookConfig = WebhookConfig()
@@ -653,6 +678,8 @@ final class AppState {
                 WebhookService.shared.send(title: wh.title, body: wh.body, config: webhookConfig)
             }
             lastNotifiedDailyBudgetLevel = dailyPercent
+            UserDefaults.standard.set(dailyPercent, forKey: "lastDailyBudgetLevel")
+            UserDefaults.standard.set(Date(), forKey: "budgetAlertDate")
         }
 
         if monthlyBudget > 0 {
@@ -671,6 +698,8 @@ final class AppState {
                 WebhookService.shared.send(title: wh.title, body: wh.body, config: webhookConfig)
             }
             lastNotifiedMonthlyBudgetLevel = monthlyPercent
+            UserDefaults.standard.set(monthlyPercent, forKey: "lastMonthlyBudgetLevel")
+            UserDefaults.standard.set(Date(), forKey: "budgetAlertMonth")
         }
     }
 
