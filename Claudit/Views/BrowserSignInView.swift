@@ -7,17 +7,22 @@ struct BrowserSignInView: NSViewRepresentable {
 
     func makeNSView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
-        // Use default (persistent) data store — nonPersistent does not reliably
-        // expose cookies via getAllCookies/cookiesDidChange in practice.
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = context.coordinator
         webView.uiDelegate = context.coordinator
+        context.coordinator.webView = webView
 
-        // Watch for cookie changes in real-time
-        config.websiteDataStore.httpCookieStore.add(context.coordinator)
+        // Start polling for cookie as reliable fallback
+        context.coordinator.startPolling()
 
         webView.load(URLRequest(url: URL(string: "https://claude.ai/login")!))
         return webView
+    }
+
+    func updateNSView(_ nsView: WKWebView, context: Context) {}
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onSessionKey: onSessionKey)
     }
 
     /// Clean up stored website data after sign-in is complete.
@@ -27,49 +32,40 @@ struct BrowserSignInView: NSViewRepresentable {
             WKWebsiteDataTypeCookies,
             WKWebsiteDataTypeLocalStorage,
             WKWebsiteDataTypeSessionStorage,
-            WKWebsiteDataTypeIndexedDBDatabases,
-            WKWebsiteDataTypeWebSQLDatabases,
         ]
         dataStore.removeData(ofTypes: types, modifiedSince: .distantPast) {}
     }
 
-    func updateNSView(_ nsView: WKWebView, context: Context) {}
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(onSessionKey: onSessionKey)
-    }
-
-    class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WKHTTPCookieStoreObserver {
+    class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
         let onSessionKey: (String, Date?) -> Void
         private let targetDomain = "claude.ai"
         private var foundCookie = false
-        private weak var webView: WKWebView?
+        weak var webView: WKWebView?
+        private var pollTimer: Timer?
 
         init(onSessionKey: @escaping (String, Date?) -> Void) {
             self.onSessionKey = onSessionKey
         }
 
-        // MARK: - WKHTTPCookieStoreObserver
+        deinit {
+            pollTimer?.invalidate()
+        }
 
-        /// Fires whenever any cookie in the store changes — most reliable detection method.
-        func cookiesDidChange(in cookieStore: WKHTTPCookieStore) {
-            guard !foundCookie else { return }
-            cookieStore.getAllCookies { [weak self] cookies in
-                self?.processCookies(cookies)
+        /// Poll cookies every 2 seconds — most reliable detection across all login flows.
+        func startPolling() {
+            pollTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+                self?.checkCookies()
             }
         }
 
         // MARK: - WKNavigationDelegate
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-            self.webView = webView
-            guard !foundCookie else { return }
-            checkForSessionCookie(webView: webView)
+            checkCookies()
         }
 
         // MARK: - WKUIDelegate
 
-        /// Handle Google SSO popups by loading in the same webview.
         func webView(
             _ webView: WKWebView,
             createWebViewWith configuration: WKWebViewConfiguration,
@@ -82,25 +78,24 @@ struct BrowserSignInView: NSViewRepresentable {
             return nil
         }
 
-        // MARK: - Cookie Extraction
+        // MARK: - Cookie Detection
 
-        private func checkForSessionCookie(webView: WKWebView) {
+        private func checkCookies() {
+            guard !foundCookie, let webView else { return }
             webView.configuration.websiteDataStore.httpCookieStore.getAllCookies { [weak self] cookies in
-                self?.processCookies(cookies)
-            }
-        }
-
-        private func processCookies(_ cookies: [HTTPCookie]) {
-            guard !foundCookie else { return }
-            for cookie in cookies {
-                if cookie.name == "sessionKey" && cookie.domain.contains(targetDomain) {
-                    foundCookie = true
-                    let key = cookie.value
-                    let expiry = cookie.expiresDate
-                    DispatchQueue.main.async { [weak self] in
-                        self?.onSessionKey(key, expiry)
+                guard let self, !self.foundCookie else { return }
+                for cookie in cookies {
+                    if cookie.name == "sessionKey" && cookie.domain.contains(self.targetDomain) {
+                        self.foundCookie = true
+                        self.pollTimer?.invalidate()
+                        self.pollTimer = nil
+                        let key = cookie.value
+                        let expiry = cookie.expiresDate
+                        DispatchQueue.main.async {
+                            self.onSessionKey(key, expiry)
+                        }
+                        return
                     }
-                    return
                 }
             }
         }

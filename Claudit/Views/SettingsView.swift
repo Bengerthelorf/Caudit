@@ -81,6 +81,7 @@ struct SettingsView: View {
 struct GeneralSettingsView: View {
     @Environment(AppState.self) private var appState
     @State private var showBrowserSignIn = false
+    @State private var sessionRefreshId = UUID()
 
     var body: some View {
         @Bindable var state = appState
@@ -123,6 +124,7 @@ struct GeneralSettingsView: View {
                 }
 
                 if appState.quotaSource == .claudeSession {
+                    Group {
                     if SessionCredentialStore.shared.isConfigured {
                         if SessionCredentialStore.shared.isExpired {
                             Label("Session expired", systemImage: "exclamationmark.triangle.fill")
@@ -133,11 +135,13 @@ struct GeneralSettingsView: View {
                                 .foregroundStyle(.green)
                             Button("Sign Out") {
                                 SessionCredentialStore.shared.clear()
+                                sessionRefreshId = UUID()
                             }
                         }
                     } else {
                         Button("Sign In to Claude.ai") { showBrowserSignIn = true }
                     }
+                    }.id(sessionRefreshId)
                 }
             } header: {
                 Text("Quota")
@@ -164,7 +168,9 @@ struct GeneralSettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .sheet(isPresented: $showBrowserSignIn) {
+        .sheet(isPresented: $showBrowserSignIn, onDismiss: {
+            sessionRefreshId = UUID()
+        }) {
             BrowserSignInSheet()
         }
     }
