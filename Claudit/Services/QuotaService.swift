@@ -450,7 +450,7 @@ final class SessionCredentialStore: @unchecked Sendable {
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: keychainService,
             kSecAttrAccount as String: keychainAccount,
-            kSecValueData as String: value.data(using: .utf8)!
+            kSecValueData as String: Data(value.utf8)
         ]
         SecItemAdd(query as CFDictionary, nil)
     }

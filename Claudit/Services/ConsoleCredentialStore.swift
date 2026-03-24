@@ -42,7 +42,16 @@ final class ConsoleCredentialStore: @unchecked Sendable {
     }
 
     var isConfigured: Bool {
-        sessionKey != nil && organizationId != nil
+        credentials() != nil
+    }
+
+    /// Atomically read both session key and org ID under a single lock.
+    func credentials() -> (sessionKey: String, organizationId: String)? {
+        lock.lock()
+        defer { lock.unlock() }
+        if let expiry = _expiryDate, expiry < Date() { return nil }
+        guard let key = _sessionKey, let org = _organizationId, !org.isEmpty else { return nil }
+        return (key, org)
     }
 
     var isExpired: Bool {
@@ -86,7 +95,7 @@ final class ConsoleCredentialStore: @unchecked Sendable {
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: keychainService,
             kSecAttrAccount as String: keychainAccount,
-            kSecValueData as String: value.data(using: .utf8)!
+            kSecValueData as String: Data(value.utf8)
         ]
         SecItemAdd(query as CFDictionary, nil)
     }

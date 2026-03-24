@@ -8,12 +8,11 @@ final class ConsoleBillingService: Sendable {
 
     /// Fetch all billing data (spend, credits, per-key usage) in parallel.
     func fetchBilling() async throws -> ConsoleBilling {
-        guard let sessionKey = ConsoleCredentialStore.shared.sessionKey else {
+        guard let creds = ConsoleCredentialStore.shared.credentials() else {
             throw ConsoleBillingError.noCredentials
         }
-        guard let orgId = ConsoleCredentialStore.shared.organizationId, !orgId.isEmpty else {
-            throw ConsoleBillingError.noCredentials
-        }
+        let sessionKey = creds.sessionKey
+        let orgId = creds.organizationId
 
         // Fetch spend, credits, and usage in parallel
         async let spendResult = fetchCurrentSpend(sessionKey: sessionKey, orgId: orgId)

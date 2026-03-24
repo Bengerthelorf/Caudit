@@ -115,7 +115,7 @@ final class ProfileManager {
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: account,
-            kSecValueData as String: value.data(using: .utf8)!
+            kSecValueData as String: Data(value.utf8)
         ]
         let status = SecItemAdd(addQuery as CFDictionary, nil)
         if status != errSecSuccess {

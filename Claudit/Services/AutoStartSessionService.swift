@@ -40,8 +40,14 @@ final class AutoStartSessionService {
         setupWakeObserver()
     }
 
-    // Timer and wake observer are cleaned up when the service is deallocated.
-    // Since this is a singleton-like service on AppState, it lives for the app lifetime.
+    nonisolated deinit {
+        MainActor.assumeIsolated {
+            timer?.invalidate()
+            if let obs = wakeObserver {
+                NSWorkspace.shared.notificationCenter.removeObserver(obs)
+            }
+        }
+    }
 
     // MARK: - Timer & Wake
 
@@ -79,13 +85,10 @@ final class AutoStartSessionService {
 
     // MARK: - Core Logic
 
-    /// Check if session is at 0% and auto-start if needed.
-    func checkAndStart() {
-        guard isEnabled, !isRunning else { return }
-
-        // Need a quota reading to determine if at 0%
-        // We get this from AppState, but to avoid circular deps, we check via notification
-        // For now, the caller (AppState) will call this after quota refresh
+    /// Placeholder for timer/wake triggers. Actual auto-start is driven by
+    /// onQuotaUpdate() called from AppState after each quota refresh.
+    private func checkAndStart() {
+        // No-op: quota refresh drives auto-start via onQuotaUpdate()
     }
 
     /// Called by AppState when quota refreshes. If utilization is 0%, start a session.
