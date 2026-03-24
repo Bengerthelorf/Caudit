@@ -3,6 +3,24 @@
     <channel>
         <title>Claudit</title>
         <item>
+                    <title>Version 0.0.20</title>
+                    <link>https://github.com/Bengerthelorf/Claudit</link>
+                    <sparkle:version>2026032501</sparkle:version>
+                    <sparkle:shortVersionString>0.0.20</sparkle:shortVersionString>
+                    <pubDate>Tue, 24 Mar 2026 17:01:21 +0000</pubDate>
+                    <enclosure url="https://github.com/Bengerthelorf/Claudit/releases/download/v0.0.20/Claudit.dmg"
+                    sparkle:edSignature="NEwOxPg3ypI8/B+ZN3riS9DG6w68J9EolaN9E56cxA16e+GeTt5ajEL9LTWRaaAFlrd7cda0XnoYHsygamSlAQ==" length="4629143"
+                    type="application/octet-stream"/>
+                    <description>
+                        <![CDATA[
+                    <h2>Version 0.0.20</h2>
+                    <ul>
+                        <li><strong>Fixed:</strong> use persistent WKWebView data store for cookie detection</li>
+                    </ul>
+                        ]]>
+                    </description>
+                </item>
+        <item>
                     <title>Version 0.0.19</title>
                     <link>https://github.com/Bengerthelorf/Claudit</link>
                     <sparkle:version>2026032500</sparkle:version>
