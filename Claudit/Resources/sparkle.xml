@@ -3,6 +3,24 @@
     <channel>
         <title>Claudit</title>
         <item>
+                    <title>Version 0.0.23</title>
+                    <link>https://github.com/Bengerthelorf/Claudit</link>
+                    <sparkle:version>2026032504</sparkle:version>
+                    <sparkle:shortVersionString>0.0.23</sparkle:shortVersionString>
+                    <pubDate>Tue, 24 Mar 2026 19:09:25 +0000</pubDate>
+                    <enclosure url="https://github.com/Bengerthelorf/Claudit/releases/download/v0.0.23/Claudit.dmg"
+                    sparkle:edSignature="mzJKqFI8nJFncF0kt5WuAIKIA6aQyLhR8Ba7LaI384op8FXMhgjn9dAQ47htaMd+Cjh/c8kPNobXc5pyZLMmCw==" length="4634355"
+                    type="application/octet-stream"/>
+                    <description>
+                        <![CDATA[
+                    <h2>Version 0.0.23</h2>
+                    <ul>
+                        <li><strong>Fixed:</strong> clamp projection line to chart window bounds</li>
+                    </ul>
+                        ]]>
+                    </description>
+                </item>
+        <item>
                     <title>Version 0.0.22</title>
                     <link>https://github.com/Bengerthelorf/Claudit</link>
                     <sparkle:version>2026032503</sparkle:version>
