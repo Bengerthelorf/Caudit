@@ -3,6 +3,7 @@ import Sparkle
 
 enum SettingsTab: String, CaseIterable, Identifiable {
     case general = "General"
+    case profiles = "Profiles"
     case notifications = "Notifications"
     case shortcuts = "Shortcuts"
     case statusline = "Statusline"
@@ -16,6 +17,7 @@ enum SettingsTab: String, CaseIterable, Identifiable {
     var icon: String {
         switch self {
         case .general: "gearshape"
+        case .profiles: "person.2"
         case .notifications: "bell"
         case .shortcuts: "keyboard"
         case .statusline: "terminal"
@@ -46,6 +48,9 @@ struct SettingsView: View {
             case .general:
                 GeneralSettingsView()
                     .navigationTitle("General")
+            case .profiles:
+                ProfileSettingsView()
+                    .navigationTitle("Profiles")
             case .notifications:
                 NotificationSettingsView()
                     .navigationTitle("Notifications")

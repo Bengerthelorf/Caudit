@@ -29,6 +29,9 @@ struct PopoverView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
+                if appState.profileManager.hasMultipleProfiles {
+                    ProfilePopoverPicker()
+                }
                 Picker("View", selection: $selectedTab) {
                     Text("Usage").tag(0)
                     Text("Quota").tag(1)
@@ -141,6 +144,11 @@ struct PopoverView: View {
             // Mirror the main layout without ScrollView to measure true content height
             VStack(spacing: 0) {
                 HStack {
+                    if appState.profileManager.hasMultipleProfiles {
+                        Text("P")
+                            .font(.caption)
+                            .hidden()
+                    }
                     Picker("", selection: .constant(selectedTab)) {
                         Text("Usage").tag(0)
                         Text("Quota").tag(1)

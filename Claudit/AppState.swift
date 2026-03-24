@@ -175,6 +175,9 @@ final class AppState {
         }
     }
 
+    // MARK: - Profiles
+    let profileManager = ProfileManager()
+
     // MARK: - Services
     private let usageParser = UsageParser()
     let quotaService = QuotaService()
