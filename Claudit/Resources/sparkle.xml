@@ -3,6 +3,24 @@
     <channel>
         <title>Claudit</title>
         <item>
+                    <title>Version 0.0.17</title>
+                    <link>https://github.com/Bengerthelorf/Claudit</link>
+                    <sparkle:version>2026032402</sparkle:version>
+                    <sparkle:shortVersionString>0.0.17</sparkle:shortVersionString>
+                    <pubDate>Tue, 24 Mar 2026 15:01:08 +0000</pubDate>
+                    <enclosure url="https://github.com/Bengerthelorf/Claudit/releases/download/v0.0.17/Claudit.dmg"
+                    sparkle:edSignature="P41iEwsUrWWAAI0JhDj9yjiE8904BHob0PioAOZCiqBtYiwAsVmXvfe872JoiLwNCULmEChjdJvOflfiA2qtCQ==" length="4537711"
+                    type="application/octet-stream"/>
+                    <description>
+                        <![CDATA[
+                    <h2>Version 0.0.17</h2>
+                    <ul>
+                        <li><strong>Fixed:</strong> add required anthropic-beta header for OAuth rate limit queries</li>
+                    </ul>
+                        ]]>
+                    </description>
+                </item>
+        <item>
                     <title>Version 0.0.16</title>
                     <link>https://github.com/Bengerthelorf/Claudit</link>
                     <sparkle:version>2026032401</sparkle:version>
