@@ -6,6 +6,7 @@ enum SettingsTab: String, CaseIterable, Identifiable {
     case notifications = "Notifications"
     case shortcuts = "Shortcuts"
     case statusline = "Statusline"
+    case webhooks = "Webhooks"
     case devices = "Devices"
     case debug = "Debug"
     case about = "About"
@@ -18,6 +19,7 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         case .notifications: "bell"
         case .shortcuts: "keyboard"
         case .statusline: "terminal"
+        case .webhooks: "paperplane"
         case .devices: "desktopcomputer"
         case .debug: "ant.circle"
         case .about: "info.circle"
@@ -53,6 +55,9 @@ struct SettingsView: View {
             case .statusline:
                 StatuslineSettingsView()
                     .navigationTitle("Statusline")
+            case .webhooks:
+                WebhookSettingsView()
+                    .navigationTitle("Webhooks")
             case .devices:
                 DeviceSettingsView()
                     .navigationTitle("Devices")

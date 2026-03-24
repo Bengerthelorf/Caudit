@@ -156,6 +156,15 @@ final class AppState {
     private var lastNotifiedDailyBudgetLevel: Double = 0
     private var lastNotifiedMonthlyBudgetLevel: Double = 0
 
+    // MARK: - Webhook
+    var webhookConfig: WebhookConfig {
+        didSet {
+            if let data = try? JSONEncoder().encode(webhookConfig) {
+                UserDefaults.standard.set(data, forKey: "webhookConfig")
+            }
+        }
+    }
+
     // MARK: - Services
     private let usageParser = UsageParser()
     let quotaService = QuotaService()
@@ -224,6 +233,13 @@ final class AppState {
         self.dailyBudget = defaults.double(forKey: "dailyBudget")
         self.monthlyBudget = defaults.double(forKey: "monthlyBudget")
         self.notifyOnBudget = defaults.bool(forKey: "notifyOnBudget")
+
+        if let whData = defaults.data(forKey: "webhookConfig"),
+           let wh = try? JSONDecoder().decode(WebhookConfig.self, from: whData) {
+            self.webhookConfig = wh
+        } else {
+            self.webhookConfig = WebhookConfig()
+        }
 
         if let data = UserDefaults.standard.data(forKey: "remoteDevices"),
            let devices = try? JSONDecoder().decode([RemoteDevice].self, from: data) {
@@ -581,6 +597,8 @@ final class AppState {
         // Session reset detection
         if notifyOnSessionReset && NotificationService.isSessionReset(current: current, previousLevel: lastNotifiedQuotaLevel) {
             notificationService.sendSessionResetNotification()
+            let wh = WebhookService.formatSessionReset()
+            WebhookService.shared.send(title: wh.title, body: wh.body, config: webhookConfig)
         }
 
         // Multi-threshold 5h alerts
@@ -592,6 +610,8 @@ final class AppState {
             )
             for threshold in thresholds {
                 notificationService.sendQuotaAlert(percentage: current, threshold: Double(threshold))
+                let wh = WebhookService.formatQuotaAlert(percentage: current, threshold: Double(threshold), windowType: "5h")
+                WebhookService.shared.send(title: wh.title, body: wh.body, config: webhookConfig)
             }
         }
 
@@ -607,6 +627,8 @@ final class AppState {
             )
             for threshold in weeklyThresholds {
                 notificationService.sendWeeklyQuotaAlert(percentage: weeklyUtilization, threshold: Double(threshold))
+                let wh = WebhookService.formatQuotaAlert(percentage: weeklyUtilization, threshold: Double(threshold), windowType: "7d")
+                WebhookService.shared.send(title: wh.title, body: wh.body, config: webhookConfig)
             }
             lastNotifiedWeeklyLevel = weeklyUtilization
         }
@@ -627,6 +649,8 @@ final class AppState {
                     type: "Daily", currentCost: todayUsage.totalCost,
                     budget: dailyBudget, thresholdPercent: t
                 )
+                let wh = WebhookService.formatBudgetAlert(type: "Daily", cost: todayUsage.totalCost, budget: dailyBudget, thresholdPercent: t)
+                WebhookService.shared.send(title: wh.title, body: wh.body, config: webhookConfig)
             }
             lastNotifiedDailyBudgetLevel = dailyPercent
         }
@@ -643,6 +667,8 @@ final class AppState {
                     type: "Monthly", currentCost: monthUsage.totalCost,
                     budget: monthlyBudget, thresholdPercent: t
                 )
+                let wh = WebhookService.formatBudgetAlert(type: "Monthly", cost: monthUsage.totalCost, budget: monthlyBudget, thresholdPercent: t)
+                WebhookService.shared.send(title: wh.title, body: wh.body, config: webhookConfig)
             }
             lastNotifiedMonthlyBudgetLevel = monthlyPercent
         }
