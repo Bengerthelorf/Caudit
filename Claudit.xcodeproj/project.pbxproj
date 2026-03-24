@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		2E40B542B8676001AD324295 /* UsageParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D569E6DDBEE339067DBB0DC /* UsageParserTests.swift */; };
+		3A1F7E19C8D94B2E00678901 /* AutoStartSessionServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A1F7E1AC8D94B2E00678901 /* AutoStartSessionServiceTests.swift */; };
 		3A1F7E01C8D94B2E00ABCDEF /* SystemEventServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A1F7E02C8D94B2E00ABCDEF /* SystemEventServiceTests.swift */; };
 		3A1F7E03C8D94B2E00BCDEF0 /* ClaudeStatusServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A1F7E04C8D94B2E00BCDEF0 /* ClaudeStatusServiceTests.swift */; };
 		3A1F7E05C8D94B2E00CDEF01 /* ExportServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A1F7E06C8D94B2E00CDEF01 /* ExportServiceTests.swift */; };
@@ -48,6 +49,7 @@
 		3A1F7E14C8D94B2E00345678 /* MenuBarConfigTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MenuBarConfigTests.swift; sourceTree = "<group>"; };
 		3A1F7E16C8D94B2E00456789 /* ConsoleBillingServiceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ConsoleBillingServiceTests.swift; sourceTree = "<group>"; };
 		3A1F7E18C8D94B2E00567890 /* ProfileManagerTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProfileManagerTests.swift; sourceTree = "<group>"; };
+		3A1F7E1AC8D94B2E00678901 /* AutoStartSessionServiceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AutoStartSessionServiceTests.swift; sourceTree = "<group>"; };
 		9D569E6DDBEE339067DBB0DC /* UsageParserTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = UsageParserTests.swift; sourceTree = "<group>"; };
 		C673A4092F5DDAE7006DEF9B /* Claudit.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Claudit.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		ED7C6BEC01DB7C0DC37601BF /* ClauditTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ClauditTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -97,6 +99,7 @@
 		7EC19BBB76F78FBD2C6DFF7A /* ClauditTests */ = {
 			isa = PBXGroup;
 			children = (
+				3A1F7E1AC8D94B2E00678901 /* AutoStartSessionServiceTests.swift */,
 				3A1F7E04C8D94B2E00BCDEF0 /* ClaudeStatusServiceTests.swift */,
 				3A1F7E16C8D94B2E00456789 /* ConsoleBillingServiceTests.swift */,
 				3A1F7E06C8D94B2E00CDEF01 /* ExportServiceTests.swift */,
@@ -253,6 +256,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3A1F7E19C8D94B2E00678901 /* AutoStartSessionServiceTests.swift in Sources */,
 				3A1F7E03C8D94B2E00BCDEF0 /* ClaudeStatusServiceTests.swift in Sources */,
 				3A1F7E15C8D94B2E00456789 /* ConsoleBillingServiceTests.swift in Sources */,
 				3A1F7E05C8D94B2E00CDEF01 /* ExportServiceTests.swift in Sources */,

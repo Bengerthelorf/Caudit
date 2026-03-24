@@ -190,6 +190,32 @@ struct GeneralSettingsView: View {
                 Text("Sign in to console.anthropic.com to view API spend, limits, and per-key usage on the Dashboard.")
             }
 
+            Section {
+                Toggle("Auto-Start Session", isOn: Binding(
+                    get: { appState.autoStartService.isEnabled },
+                    set: { appState.autoStartService.isEnabled = $0 }
+                ))
+
+                if appState.autoStartService.isEnabled {
+                    if !SessionCredentialStore.shared.isConfigured {
+                        Label("Requires Claude.ai session", systemImage: "exclamationmark.triangle")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                    }
+                    if let lastResult = appState.autoStartService.lastResult {
+                        LabeledContent("Last Result") {
+                            Text(lastResult)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            } header: {
+                Text("Auto-Start")
+            } footer: {
+                Text("When the 5-hour quota window is at 0%, automatically creates and deletes a minimal conversation to start the timer. Requires Claude.ai session sign-in.")
+            }
+
             Section("System") {
                 Toggle("Launch at Login", isOn: $state.launchAtLogin)
             }

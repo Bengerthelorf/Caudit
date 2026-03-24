@@ -186,6 +186,7 @@ final class AppState {
     private let claudeStatusService = ClaudeStatusService()
     let usageHistoryService = UsageHistoryService()
     let statuslineService = StatuslineService()
+    let autoStartService = AutoStartSessionService()
     private let consoleBillingService = ConsoleBillingService()
 
     // MARK: - Private State
@@ -607,6 +608,7 @@ final class AppState {
                         sessionResetTime: info.fiveHourResetAt,
                         pace: self.sessionPace?.label
                     )
+                    self.autoStartService.onQuotaUpdate(fiveHourUtilization: info.fiveHourUtilization)
                     NotificationCenter.default.post(name: .clauditDataUpdated, object: nil)
                 }
             } catch {
