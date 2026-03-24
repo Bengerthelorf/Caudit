@@ -38,7 +38,7 @@ struct UsageHistoryChartView: View {
         appState.usageHistoryService.snapshots(type: .weekly, from: windowStart, to: windowEnd)
     }
 
-    /// Projection: line from current usage to projected usage at reset time.
+    /// Projection: line from current usage to projected usage, clamped to chart bounds.
     private var sessionProjection: (start: (Date, Double), end: (Date, Double))? {
         guard let quota = appState.quotaInfo,
               let resetAt = quota.fiveHourResetAt,
@@ -47,10 +47,19 @@ struct UsageHistoryChartView: View {
         let now = Date()
         let currentPct = quota.fiveHourUtilization
         let elapsed = PaceService.fiveHourElapsedFraction(resetAt: resetAt)
-        guard elapsed >= PaceService.minimumElapsedFraction else { return nil }
+        guard elapsed >= PaceService.minimumElapsedFraction, currentPct > 0 else { return nil }
 
         let projected = currentPct / elapsed
-        return (start: (now, currentPct), end: (resetAt, projected))
+
+        // Clamp end date to chart window to prevent line from extending beyond visible area
+        let endDate = min(resetAt, windowEnd)
+        // Interpolate projected value at clamped end date
+        let totalDuration = resetAt.timeIntervalSince(now)
+        let clampedDuration = endDate.timeIntervalSince(now)
+        let fraction = totalDuration > 0 ? clampedDuration / totalDuration : 1
+        let endPct = currentPct + (projected - currentPct) * fraction
+
+        return (start: (now, currentPct), end: (endDate, endPct))
     }
 
     var body: some View {
