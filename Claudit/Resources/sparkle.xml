@@ -3,6 +3,24 @@
     <channel>
         <title>Claudit</title>
         <item>
+                    <title>Version 0.0.22</title>
+                    <link>https://github.com/Bengerthelorf/Claudit</link>
+                    <sparkle:version>2026032503</sparkle:version>
+                    <sparkle:shortVersionString>0.0.22</sparkle:shortVersionString>
+                    <pubDate>Tue, 24 Mar 2026 17:24:33 +0000</pubDate>
+                    <enclosure url="https://github.com/Bengerthelorf/Claudit/releases/download/v0.0.22/Claudit.dmg"
+                    sparkle:edSignature="7IKTDK9okUZtZ9P68xc3ocGWaXthImxP8ZVZw6KntduEzwT573bldjEuNvB5yVI9cfGo/fYudqvLHBzqFtORCg==" length="4632908"
+                    type="application/octet-stream"/>
+                    <description>
+                        <![CDATA[
+                    <h2>Version 0.0.22</h2>
+                    <ul>
+                        <li><strong>Fixed:</strong> hide Time Scale picker label to prevent vertical text wrap</li>
+                    </ul>
+                        ]]>
+                    </description>
+                </item>
+        <item>
                     <title>Version 0.0.21</title>
                     <link>https://github.com/Bengerthelorf/Claudit</link>
                     <sparkle:version>2026032502</sparkle:version>
