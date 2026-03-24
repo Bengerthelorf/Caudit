@@ -7,7 +7,8 @@ struct BrowserSignInView: NSViewRepresentable {
 
     func makeNSView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
-        config.websiteDataStore = .nonPersistent()
+        // Use default (persistent) data store — nonPersistent does not reliably
+        // expose cookies via getAllCookies/cookiesDidChange in practice.
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = context.coordinator
         webView.uiDelegate = context.coordinator
@@ -17,6 +18,19 @@ struct BrowserSignInView: NSViewRepresentable {
 
         webView.load(URLRequest(url: URL(string: "https://claude.ai/login")!))
         return webView
+    }
+
+    /// Clean up stored website data after sign-in is complete.
+    static func cleanupWebData() {
+        let dataStore = WKWebsiteDataStore.default()
+        let types: Set<String> = [
+            WKWebsiteDataTypeCookies,
+            WKWebsiteDataTypeLocalStorage,
+            WKWebsiteDataTypeSessionStorage,
+            WKWebsiteDataTypeIndexedDBDatabases,
+            WKWebsiteDataTypeWebSQLDatabases,
+        ]
+        dataStore.removeData(ofTypes: types, modifiedSince: .distantPast) {}
     }
 
     func updateNSView(_ nsView: WKWebView, context: Context) {}

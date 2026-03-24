@@ -232,6 +232,7 @@ struct BrowserSignInSheet: View {
                             self.expiryDate = expiry
                             self.status = "Session key obtained, fetching organizations..."
                             self.isLoading = true
+                            BrowserSignInView.cleanupWebData()
                             fetchOrganizations(key: key)
                         }
                     )
