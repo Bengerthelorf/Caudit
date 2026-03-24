@@ -3,6 +3,26 @@
     <channel>
         <title>Claudit</title>
         <item>
+                    <title>Version 0.0.19</title>
+                    <link>https://github.com/Bengerthelorf/Claudit</link>
+                    <sparkle:version>2026032500</sparkle:version>
+                    <sparkle:shortVersionString>0.0.19</sparkle:shortVersionString>
+                    <pubDate>Tue, 24 Mar 2026 16:16:58 +0000</pubDate>
+                    <enclosure url="https://github.com/Bengerthelorf/Claudit/releases/download/v0.0.19/Claudit.dmg"
+                    sparkle:edSignature="SWa3lF7u8NCZY6LelDsACsw0qYDH1giR8lay0NZJ7RY/kOgym3ENX+/btZXLX1AG57MJVxGtfeG0LwgqZcovDQ==" length="4627709"
+                    type="application/octet-stream"/>
+                    <description>
+                        <![CDATA[
+                    <h2>Version 0.0.19</h2>
+                    <ul>
+                        <li><strong>Fixed:</strong> audit fixes — webhook secrets to Keychain, budget alert persistence</li>
+                        <li><strong>New:</strong> quota prediction chart and webhook notifications</li>
+                        <li><strong>New:</strong> custom menu bar display and budget alerts</li>
+                    </ul>
+                        ]]>
+                    </description>
+                </item>
+        <item>
                     <title>Version 0.0.18</title>
                     <link>https://github.com/Bengerthelorf/Claudit</link>
                     <sparkle:version>2026032403</sparkle:version>
