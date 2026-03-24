@@ -94,18 +94,16 @@ final class RateLimitHeadersQuotaProvider: QuotaProvider {
     }
 
     static func parseHeaders(_ response: HTTPURLResponse) -> QuotaInfo {
-        let headers = response.allHeaderFields
-
-        let fiveHourUtil = parseHeaderDouble(headers, key: "anthropic-ratelimit-unified-5h-utilization") * 100
-        let sevenDayUtil = parseHeaderDouble(headers, key: "anthropic-ratelimit-unified-7d-utilization") * 100
+        let fiveHourUtil = headerDouble(response, key: "anthropic-ratelimit-unified-5h-utilization") * 100
+        let sevenDayUtil = headerDouble(response, key: "anthropic-ratelimit-unified-7d-utilization") * 100
 
         var fiveHourResetAt: Date?
-        if let resetStr = headers["anthropic-ratelimit-unified-5h-reset"] as? String {
+        if let resetStr = response.value(forHTTPHeaderField: "anthropic-ratelimit-unified-5h-reset") {
             fiveHourResetAt = parseResetTimestamp(resetStr)
         }
 
         var sevenDayResetAt: Date?
-        if let resetStr = headers["anthropic-ratelimit-unified-7d-reset"] as? String {
+        if let resetStr = response.value(forHTTPHeaderField: "anthropic-ratelimit-unified-7d-reset") {
             sevenDayResetAt = parseResetTimestamp(resetStr)
         }
 
@@ -133,11 +131,9 @@ final class RateLimitHeadersQuotaProvider: QuotaProvider {
         )
     }
 
-    private static func parseHeaderDouble(_ headers: [AnyHashable: Any], key: String) -> Double {
-        if let str = headers[key] as? String, let val = Double(str) {
-            return val
-        }
-        return 0
+    private static func headerDouble(_ response: HTTPURLResponse, key: String) -> Double {
+        guard let str = response.value(forHTTPHeaderField: key), let val = Double(str) else { return 0 }
+        return val
     }
 
     private static func parseResetTimestamp(_ str: String) -> Date? {
