@@ -3,6 +3,27 @@
     <channel>
         <title>Claudit</title>
         <item>
+                    <title>Version 0.0.24</title>
+                    <link>https://github.com/Bengerthelorf/Claudit</link>
+                    <sparkle:version>2026032505</sparkle:version>
+                    <sparkle:shortVersionString>0.0.24</sparkle:shortVersionString>
+                    <pubDate>Tue, 24 Mar 2026 19:42:30 +0000</pubDate>
+                    <enclosure url="https://github.com/Bengerthelorf/Claudit/releases/download/v0.0.24/Claudit.dmg"
+                    sparkle:edSignature="9OOdXapxlNkoypYHxU0178OKX07mv7YXZN+lEuR33szMamA3KIqu44HeJboMuvHfHeRe79W7OFxp6B3ssZuZCQ==" length="4845386"
+                    type="application/octet-stream"/>
+                    <description>
+                        <![CDATA[
+                    <h2>Version 0.0.24</h2>
+                    <ul>
+                        <li><strong>New:</strong> add multi-language support (i18n) with en + zh-Hans</li>
+                        <li><strong>New:</strong> add auto-start session service</li>
+                        <li><strong>New:</strong> add multi-profile system</li>
+                        <li><strong>New:</strong> add API console billing (console.anthropic.com)</li>
+                    </ul>
+                        ]]>
+                    </description>
+                </item>
+        <item>
                     <title>Version 0.0.23</title>
                     <link>https://github.com/Bengerthelorf/Claudit</link>
                     <sparkle:version>2026032504</sparkle:version>
