@@ -3,6 +3,24 @@
     <channel>
         <title>Claudit</title>
         <item>
+                    <title>Version 0.0.15</title>
+                    <link>https://github.com/Bengerthelorf/Claudit</link>
+                    <sparkle:version>2026032400</sparkle:version>
+                    <sparkle:shortVersionString>0.0.15</sparkle:shortVersionString>
+                    <pubDate>Tue, 24 Mar 2026 14:28:01 +0000</pubDate>
+                    <enclosure url="https://github.com/Bengerthelorf/Claudit/releases/download/v0.0.15/Claudit.dmg"
+                    sparkle:edSignature="quWuQebkTkpt+WAJJQQZ/LvkFpyKMjAzjSa1g6sgWQS5WYtftLS1l2jDegZKLS05jp03uB3ZmR3eeowzmSmHCg==" length="4537785"
+                    type="application/octet-stream"/>
+                    <description>
+                        <![CDATA[
+                    <h2>Version 0.0.15</h2>
+                    <ul>
+                        <li><strong>Fixed:</strong> setup wizard uses own window, doesn't block settings</li>
+                    </ul>
+                        ]]>
+                    </description>
+                </item>
+        <item>
                     <title>Version 0.0.14</title>
                     <link>https://github.com/Bengerthelorf/Claudit</link>
                     <sparkle:version>2026032308</sparkle:version>
