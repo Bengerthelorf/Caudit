@@ -3,6 +3,24 @@
     <channel>
         <title>Claudit</title>
         <item>
+                    <title>Version 0.0.21</title>
+                    <link>https://github.com/Bengerthelorf/Claudit</link>
+                    <sparkle:version>2026032502</sparkle:version>
+                    <sparkle:shortVersionString>0.0.21</sparkle:shortVersionString>
+                    <pubDate>Tue, 24 Mar 2026 17:18:30 +0000</pubDate>
+                    <enclosure url="https://github.com/Bengerthelorf/Claudit/releases/download/v0.0.21/Claudit.dmg"
+                    sparkle:edSignature="iuDyBQHTgak4o9EpHO7qsyEFcKL4wSKFND3yIzjn2CwlcMWznbP1aks4KQEw66hN7jMwhNXS9f8Bb9PskmVdAg==" length="4631996"
+                    type="application/octet-stream"/>
+                    <description>
+                        <![CDATA[
+                    <h2>Version 0.0.21</h2>
+                    <ul>
+                        <li><strong>Fixed:</strong> reliable cookie detection with polling, Settings state refresh</li>
+                    </ul>
+                        ]]>
+                    </description>
+                </item>
+        <item>
                     <title>Version 0.0.20</title>
                     <link>https://github.com/Bengerthelorf/Claudit</link>
                     <sparkle:version>2026032501</sparkle:version>
