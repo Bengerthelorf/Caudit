@@ -180,7 +180,7 @@ struct ProfileDetailSection: View {
             }
 
             LabeledContent("Config Dir") {
-                Text(profile.claudeConfigDir ?? "~/.claude (default)")
+                Text("~/.claude")
                     .foregroundStyle(.secondary)
                     .font(.caption)
             }

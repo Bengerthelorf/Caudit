@@ -1,6 +1,8 @@
 import Foundation
 
-/// Represents a user profile with its own credentials and settings.
+/// Represents a Claude Code account profile.
+/// Each profile corresponds to a separate set of OAuth credentials
+/// backed up in the Keychain, enabling multi-account switching.
 struct Profile: Identifiable, Codable, Equatable, Sendable {
     let id: UUID
     var name: String
@@ -9,15 +11,6 @@ struct Profile: Identifiable, Codable, Equatable, Sendable {
 
     /// Quota source preference for this profile.
     var quotaSource: String
-
-    /// Path to Claude config dir (defaults to ~/.claude).
-    var claudeConfigDir: String?
-
-    /// Organization ID for Claude.ai session cookie quota.
-    var claudeOrgId: String?
-
-    /// Organization ID for console.anthropic.com billing.
-    var consoleOrgId: String?
 
     /// When this profile was created.
     let createdAt: Date
@@ -28,9 +21,6 @@ struct Profile: Identifiable, Codable, Equatable, Sendable {
         isActive: Bool = false,
         autoSwitchOnLimit: Bool = false,
         quotaSource: String = QuotaSource.rateLimitHeaders.rawValue,
-        claudeConfigDir: String? = nil,
-        claudeOrgId: String? = nil,
-        consoleOrgId: String? = nil,
         createdAt: Date = Date()
     ) {
         self.id = id
@@ -38,9 +28,6 @@ struct Profile: Identifiable, Codable, Equatable, Sendable {
         self.isActive = isActive
         self.autoSwitchOnLimit = autoSwitchOnLimit
         self.quotaSource = quotaSource
-        self.claudeConfigDir = claudeConfigDir
-        self.claudeOrgId = claudeOrgId
-        self.consoleOrgId = consoleOrgId
         self.createdAt = createdAt
     }
 }
