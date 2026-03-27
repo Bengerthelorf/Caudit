@@ -6,11 +6,13 @@ final class QuotaServiceTests: XCTestCase {
     // MARK: - Rate Limit Headers Parsing
 
     func testParseHeadersBasic() {
+        let futureReset5h = String(Int(Date().timeIntervalSince1970 + 3600))
+        let futureReset7d = String(Int(Date().timeIntervalSince1970 + 86400))
         let response = makeHTTPResponse(headers: [
             "anthropic-ratelimit-unified-5h-utilization": "0.42",
             "anthropic-ratelimit-unified-7d-utilization": "0.28",
-            "anthropic-ratelimit-unified-5h-reset": "1774565400",
-            "anthropic-ratelimit-unified-7d-reset": "1775000000",
+            "anthropic-ratelimit-unified-5h-reset": futureReset5h,
+            "anthropic-ratelimit-unified-7d-reset": futureReset7d,
         ])
         let info = RateLimitHeadersQuotaProvider.parseHeaders(response)
         XCTAssertEqual(info.fiveHourUtilization, 42, accuracy: 0.1)
