@@ -265,7 +265,9 @@ final class SessionCookieQuotaProvider: QuotaProvider {
             throw QuotaError.noCredentials
         }
 
-        let url = URL(string: "https://claude.ai/api/organizations/\(orgId)/usage")!
+        guard let url = URL(string: "https://claude.ai/api/organizations/\(orgId)/usage") else {
+            throw QuotaError.invalidResponse
+        }
         var request = URLRequest(url: url)
         request.timeoutInterval = 30
         request.setValue("sessionKey=\(sessionKey)", forHTTPHeaderField: "Cookie")

@@ -32,8 +32,11 @@ final class SSHService: Sendable {
             let scriptPath = NSTemporaryDirectory() + "claudit-askpass-\(UUID().uuidString)"
             let escaped = password.replacingOccurrences(of: "'", with: "'\\''")
             let script = "#!/bin/sh\necho '\(escaped)'"
-            try script.write(toFile: scriptPath, atomically: true, encoding: .utf8)
-            try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: scriptPath)
+            FileManager.default.createFile(
+                atPath: scriptPath,
+                contents: script.data(using: .utf8),
+                attributes: [.posixPermissions: 0o700]
+            )
             askpassScript = scriptPath
             args += ["-o", "NumberOfPasswordPrompts=1"]
         } else {

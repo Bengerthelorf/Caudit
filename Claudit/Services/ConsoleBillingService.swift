@@ -42,7 +42,9 @@ final class ConsoleBillingService: Sendable {
     }
 
     private func fetchCurrentSpend(sessionKey: String, orgId: String) async throws -> SpendResponse {
-        let url = URL(string: "https://console.anthropic.com/api/organizations/\(orgId)/current_spend")!
+        guard let url = URL(string: "https://console.anthropic.com/api/organizations/\(orgId)/current_spend") else {
+            throw ConsoleBillingError.invalidResponse
+        }
         let (data, httpResponse) = try await performRequest(url: url, sessionKey: sessionKey)
 
         await NetworkLogService.shared.record(
@@ -82,7 +84,9 @@ final class ConsoleBillingService: Sendable {
     // MARK: - Prepaid Credits
 
     private func fetchPrepaidCredits(sessionKey: String, orgId: String) async throws -> Double {
-        let url = URL(string: "https://console.anthropic.com/api/organizations/\(orgId)/prepaid/credits")!
+        guard let url = URL(string: "https://console.anthropic.com/api/organizations/\(orgId)/prepaid/credits") else {
+            return 0
+        }
 
         do {
             let (data, httpResponse) = try await performRequest(url: url, sessionKey: sessionKey)
@@ -148,7 +152,7 @@ final class ConsoleBillingService: Sendable {
         let endStr = dateFormatter.string(from: startOfNextMonth)
 
         let urlStr = "https://console.anthropic.com/api/organizations/\(orgId)/workspaces/default/usage_cost?starting_on=\(startStr)&ending_before=\(endStr)&group_by=api_key_id"
-        let url = URL(string: urlStr)!
+        guard let url = URL(string: urlStr) else { return [] }
 
         do {
             let (data, httpResponse) = try await performRequest(url: url, sessionKey: sessionKey)

@@ -219,14 +219,14 @@ final class ProfileManager {
 
     // MARK: - ~/.claude.json Access
 
-    private var claudeJsonPath: String {
+    private nonisolated static var claudeJsonPathStatic: String {
         let configDir = ProcessInfo.processInfo.environment["CLAUDE_CONFIG_DIR"] ?? (NSHomeDirectory() + "/.claude")
         return configDir + ".json"  // ~/.claude.json (not ~/.claude/.json)
     }
 
     /// Read the oauthAccount block from ~/.claude.json as a JSON string.
     private nonisolated func readClaudeJsonOAuthAccount() -> String? {
-        let path = NSHomeDirectory() + "/.claude.json"
+        let path = Self.claudeJsonPathStatic
         guard let data = FileManager.default.contents(atPath: path),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let oauthAccount = json["oauthAccount"] else { return nil }
@@ -238,7 +238,7 @@ final class ProfileManager {
 
     /// Write an oauthAccount block to ~/.claude.json, preserving other fields.
     private nonisolated func writeClaudeJsonOAuthAccount(_ accountJson: String) {
-        let path = NSHomeDirectory() + "/.claude.json"
+        let path = Self.claudeJsonPathStatic
 
         // Read existing
         var json: [String: Any] = [:]
