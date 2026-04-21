@@ -55,7 +55,7 @@ Aggregate usage from other machines via SSH:
 2. Enter SSH host, test connection, save
 3. Remote data appears alongside local data with fingerprint-based caching
 
-> See [Remote Devices Guide](https://app.snaix.homes/claudit/guide/remote-devices) for details.
+> See [Remote Devices Guide](https://app.snaix.homes/claudit/docs/remote-devices) for details.
 
 ## System Requirements
 
