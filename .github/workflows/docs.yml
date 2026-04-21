@@ -8,6 +8,8 @@ on:
       - 'Claudit/Resources/sparkle.xml'
   release:
     types: [published]
+  repository_dispatch:
+    types: [redeploy-docs]
   workflow_dispatch:
 
 jobs:
